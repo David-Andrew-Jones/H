@@ -1,0 +1,3089 @@
+---
+title: "Supplemental Tables Impact of Stage at Cancer Diagnosis on NHS Hospital Care Costs: A National Population-Based Study Using England Individual-Level Patient Data"
+execute:
+  warning: false
+  echo: false
+format:
+   docx: 
+    output-file: "Supplemental Tables"
+    output-ext:  "docx"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(dplyr, quietly = TRUE)
+library(readr, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(tidyr, quietly = TRUE)
+library(stringr, quietly = TRUE)
+library(purrr, quietly = TRUE)
+library(readxl, quietly = TRUE)
+library(gt, quietly = TRUE)
+
+```
+
+```{r echo=FALSE}
+
+################################################################################
+#' _____________________________________________________________________________
+#' Load data: Descriptive statistics
+#' _____________________________________________________________________________
+#' _____ All cause main 8 cancers
+
+# res_path_allcause_descriptives_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Descriptives_GRAIL_2025-03-27.xlsx"
+
+res_path_allcause_descriptives_8cancers <- "~/Miscellaneous/HDI/Final_results2/Net costs/Unadjusted/Descriptives_GRAIL_net_2025-04-14.xlsx"
+
+l_allcause_descriptives_8cancers <- res_path_allcause_descriptives_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_allcause_descriptives_8cancers, sheet = .x), .id = "Sheet") %>%
+map(.f = function(x){ x %>% mutate(across(where(is.character), ~ case_when(grepl(c("5 years"), .) ~ str_replace(., "5 years","5 years before/after diagnosis"), .default = .))) }) %>%
+map(.f = function(x){ x %>% mutate(across(where(is.character), ~ case_when(grepl(c("78-06"), .) ~ str_replace(., "78-06","‘measured 78-6 months before diagnosis’"), .default = .))) }) %>%
+  map(.f = function(x){ x %>% mutate(across(where(is.character), ~ case_when(grepl(c("GP referral"), .) ~ str_replace(., "GP referral","GP routine referral"), .default = .))) }) %>%
+    map(.f = function(x){ x %>% mutate(across(where(is.character), ~ case_when(grepl(c("IQR"), .) ~ str_replace(., "IQR", "Quartiles"), .default = .))) }) %>%
+      map(.f = function(x){ x %>% mutate(across(where(is.character), ~ case_when(grepl(c("Year of diagnosis"), .) ~ str_replace(., "Year of diagnosis", "Year of diagnosis (registration date)"), .default = .))) }) %>%
+
+map(.f = function(x){ x %>% mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .)))  })
+
+
+l_allcause_descriptives_8cancers[[1]] <- l_allcause_descriptives_8cancers[[1]] %>%
+  rename(`Oesophageal N (%)` = `Oesophagus N (%)`,
+         `Ovarian N (%)` = `Ovary N (%)`,
+         `Pancreatic N (%)` = `Pancreas N (%)`)
+
+#' Need to change the % column to exclude stage 0
+l_allcause_descriptives_8cancers[[10]] <- l_allcause_descriptives_8cancers[[10]] %>%
+  separate_wider_delim(cols = `1`:`Unknown/Missing`,
+                       delim = " ",
+                       names_sep = "_") %>%
+  select(-`0`) %>%
+  mutate(across(dplyr::contains("_1"), as.numeric   ) ) %>%
+  mutate(Total = `1_1` + `2_1` + `3_1` + `4_1` + `Unknown/Missing_1`) %>%
+  mutate(across(dplyr::contains("_1") , \(x) round((x/Total *100),1), .names = "%_{col}")) %>%
+  mutate(`1_1` = paste0(`1_1`, " ", "(", `%_1_1` ,")"),
+         `2_1` = paste0(`2_1`, " ", "(", `%_2_1` ,")"),
+         `3_1` = paste0(`3_1`, " ", "(", `%_3_1` ,")"),
+         `4_1` = paste0(`4_1`, " ", "(", `%_4_1` ,")"),
+         `Unknown/Missing_1` = paste0(`Unknown/Missing_1`, " ", "(", `%_Unknown/Missing_1` ,")")) %>%
+    select(site, `diagnosis year`, `1_1`, `2_1` , `3_1`, `4_1`,  `Unknown/Missing_1`) %>%
+  rename(`1` = `1_1`,
+         `2` = `2_1` ,
+         `3` = `3_1`, 
+         `4` = `4_1`, 
+         `Unknown/Missing` = `Unknown/Missing_1`) %>%
+   mutate(site = case_when(grepl(c("Oesphagus"), site) ~ "Oesophageal",
+                                         grepl(c("Ovary"), site) ~ "Ovarian",
+                                         grepl(c("Pancreas"), site) ~ "Pancreatic",
+                                         .default = site))
+df_stage_missing <- bind_rows(
+  
+  l_allcause_descriptives_8cancers[[10]] %>%
+  fill(`site`, .direction = "down"),
+  
+  l_allcause_descriptives_8cancers[[10]] %>%
+  fill(`site`, .direction = "down") %>%
+  separate_wider_delim(cols = `1`:`Unknown/Missing`, delim = ' ', names_sep = '_') %>%
+  mutate(across(contains("_1"), \(x) as.numeric(x))) %>%
+  select(`site`, `diagnosis year`, contains("_1")) %>%
+  group_by(`site`) %>%
+  summarise(across(contains("_1"), sum)) %>%
+  ungroup() %>%
+  mutate(total_by_type = `1_1`+ `2_1`+ `3_1`+ `4_1`+ `Unknown/Missing_1`) %>%
+  mutate(across(contains("_1"), \(x) round((x/total_by_type)*100, 1), .names = "{.col}_percent")) %>%
+  mutate(`1` = paste0(`1_1`, " (", `1_1_percent`, ")"),
+         `2` = paste0(`2_1`, " (", `2_1_percent`, ")"),
+         `3` = paste0(`3_1`, " (", `3_1_percent`, ")"),
+         `4` = paste0(`4_1`, " (", `4_1_percent`, ")"),
+         `Unknown/Missing` = paste0(`Unknown/Missing_1`, " (", `Unknown/Missing_1_percent`, ")"),
+         `diagnosis year` = "All years") %>%
+  select(`site`, `diagnosis year`,`1`,`2`,`3`, `4` ,`Unknown/Missing`)
+  
+  ) %>% mutate(`diagnosis year` = factor(`diagnosis year`, levels = c("2014", "2015", "2016", "2017", "All years"))) %>%
+  arrange(`site`, `diagnosis year`)
+  
+
+#' _____ All cause lymphoma and colorectal splits
+res_path_allcause_descriptives_colorectal <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Descriptives_GRAIL_colorectal_2025-03-31.xlsx"
+
+l_allcause_descriptives_colorectal <- res_path_allcause_descriptives_colorectal %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_allcause_descriptives_colorectal, sheet = .x), .id = "Sheet")
+
+
+res_path_allcause_descriptives_lymphoma <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Descriptives_GRAIL_lymphoma_2025-04-01.xlsx"
+
+l_allcause_descriptives_lymphoma <- res_path_allcause_descriptives_lymphoma %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_allcause_descriptives_lymphoma, sheet = .x), .id = "Sheet")
+
+#' _____ Net main 8 cancers
+res_path_net_descriptives_8cancers <- "~/Miscellaneous/HDI/Final_results2/Net costs/Unadjusted/Descriptives_GRAIL_net_2025-04-14.xlsx"
+
+l_net_descriptives_8cancers <- res_path_net_descriptives_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_net_descriptives_8cancers, sheet = .x), .id = "Sheet")
+
+
+#' _____ Mean person months for main 8 cancers
+# For total outcome
+res_path_Total_NmonthsPersons_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Personmonths_GRAIL_2025-04-01.xlsx"
+
+# For annual period outcome
+res_path_annual_and_phase_Nmonths_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/N_GRAIL_phase_2025-03-31.xlsx"
+
+df_allcause_annual_and_phase_Nmonths_8cancers <- res_path_annual_and_phase_Nmonths_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map_df(~ read_excel(path = res_path_annual_and_phase_Nmonths_8cancers, sheet = .x), .id = "Sheet") %>%
+        fill(Characteristic, .direction = "down") %>%
+        filter(grepl(c("Stage at diagnosis"), Characteristic )) %>%
+        rename(`Stage` = `...2`) %>%
+        mutate(`Cancer type` = case_when(grepl(c("lung"), Sheet) ~ "Lung",
+                                         grepl(c("colorectal"), Sheet) ~ "Colorectal",
+                                         grepl(c("head_neck"), Sheet) ~ "Head and neck",
+                                         grepl(c("liver"), Sheet) ~ "Liver",
+                                         grepl(c("lymphoma"), Sheet) ~ "Lymphoma",
+                                         grepl(c("oesophagus"), Sheet) ~ "Oesophageal",
+                                         grepl(c("ovary"), Sheet) ~ "Ovarian",
+                                         grepl(c("pancreas"), Sheet) ~ "Pancreatic",
+                                         .default = Sheet) ,
+               .before = 1) %>%
+        select(-Sheet,-Characteristic) 
+
+# Add censored
+res_path_annual_and_phase_Ncensored_8cancers <- "~/Miscellaneous/HDI/Final_results2/Nandcensored_2025-09-30.xlsx"
+
+df_allcause_annual_and_phase_Ncensored_8cancers <- res_path_annual_and_phase_Ncensored_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_annual_and_phase_Ncensored_8cancers, sheet = .x), .id = "Sheet") %>%
+  bind_cols() %>%
+  select(-`site...28`, -`stage_best...29`) %>%
+  rename(`Cancer type` = `site...1`,
+         `Stage` = `stage_best...2`)%>%
+        mutate(`Cancer type` = case_when(grepl(c("lung"), `Cancer type`) ~ "Lung",
+                                         grepl(c("colorectal"), `Cancer type`) ~ "Colorectal",
+                                         grepl(c("head_neck"), `Cancer type`) ~ "Head and neck",
+                                         grepl(c("liver"), `Cancer type`) ~ "Liver",
+                                         grepl(c("lymphoma"), `Cancer type`) ~ "Lymphoma",
+                                         grepl(c("oesophagus"), `Cancer type`) ~ "Oesophageal",
+                                         grepl(c("ovary"), `Cancer type`) ~ "Ovarian",
+                                         grepl(c("pancreas"), `Cancer type`) ~ "Pancreatic",
+                                         .default = `Cancer type`),.before = 1)   %>%
+  mutate(across(`N_diag`:`censored_ac_treat_5`, \(x) as.numeric(x))) %>%
+        mutate(`0-1 years after diagnosis:died in period (%)` = round((`died_ac_treat_0_1`/`N_ac_treat_0_1`)*100, 2),
+               `0-1 years after diagnosis:censored (%)` = round((`censored_ac_treat_0_1`/`N_ac_treat_0_1`)*100, 2),
+               `1-2 years after diagnosis:died in period (%)` = round((`died_ac_treat_1_2`/`N_ac_treat_1_2`)*100, 2),
+               `1-2 years after diagnosis:censored (%)` = round((`censored_ac_treat_1_2`/`N_ac_treat_1_2`)*100, 2),
+               `2-3 years after diagnosis:died in period (%)` = round((`died_ac_treat_2_3`/`N_ac_treat_2_3`)*100, 2),
+               `2-3 years after diagnosis:censored (%)` = round((`censored_ac_treat_2_3`/`N_ac_treat_2_3`)*100, 2),
+               `3-4 years after diagnosis:died in period (%)` = round((`died_ac_treat_3_4`/`N_ac_treat_3_4`)*100, 2),
+               `3-4 years after diagnosis:censored (%)` = round((`censored_ac_treat_3_4`/`N_ac_treat_3_4`)*100, 2),
+               `4-5 years after diagnosis:died in period (%)` = round((`died_ac_treat_4_5`/`N_ac_treat_4_5`)*100, 2),
+               `4-5 years after diagnosis:censored (%)` = round((`censored_ac_treat_4_5`/`N_ac_treat_4_5`)*100, 2),
+               `5-6 years after diagnosis:died in period (%)` = round((`died_ac_treat_5`/`N_ac_treat_5`)*100, 2),
+               `5-6 years after diagnosis:censored (%)` = round((`censored_ac_treat_5`/`N_ac_treat_5`)*100, 2),
+               `Initial treatment phase (0-1 years):moved to EOL (%)` = round((`censored_eol_treat_0_1`/`N_treat_0_1`)*100, 2),
+               `Initial treatment phase (0-1 years):censored (%)` = round((`censored_end_treat_0_1`/`N_treat_0_1`)*100, 2),
+               `Continuing phase (1-2 years):moved to EOL (%)` = round((`censored_eol_treat_1_2`/`N_treat_1_2`)*100, 2),
+               `Continuing phase (1-2 years):censored (%)` = round((`censored_end_treat_1_2`/`N_treat_1_2`)*100, 2),
+               `Continuing phase (2-3 years):moved to EOL (%)` = round((`censored_eol_treat_2_3`/`N_treat_2_3`)*100, 2),
+               `Continuing phase (2-3 years):censored (%)` = round((`censored_end_treat_2_3`/`N_treat_2_3`)*100, 2),
+               `Continuing phase (3-4 years):moved to EOL (%)` = round((`censored_eol_treat_3_4`/`N_treat_3_4`)*100, 2),
+               `Continuing phase (3-4 years):censored (%)` = round((`censored_end_treat_3_4`/`N_treat_3_4`)*100, 2),
+               `Continuing phase (4-5 years):moved to EOL (%)` = round((`censored_eol_treat_4_5`/`N_treat_4_5`)*100, 2),
+               `Continuing phase (4-5 years):censored (%)` = round((`censored_end_treat_4_5`/`N_treat_4_5`)*100, 2),
+               `Continuing phase (5-6 years):moved to EOL (%)` = round((`censored_eol_treat_5`/`N_treat_5`)*100, 2),
+               `Continuing phase (5-6 years):censored (%)` = round((`censored_end_treat_5`/`N_treat_5`)*100, 2),
+               `End of life phase:<12 months in phase (%)` = round((`censored_died_eol`/`N_eol`)*100, 2),
+               `End of life phase:12 months in phase (%)` = round((`censored_end_eol`/`N_eol`)*100, 2)) %>%
+  select(`Cancer type`, `Stage`, `0-1 years after diagnosis:died in period (%)`:`End of life phase:12 months in phase (%)`)
+               
+               
+res_path_annual_and_phase_Persons_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Personmonths_GRAIL_phase_2025-03-31.xlsx"
+
+df_allcause_annual_and_phase_persons_8cancers <- res_path_annual_and_phase_Persons_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map_df(~ read_excel(path = res_path_annual_and_phase_Persons_8cancers, sheet = .x), .id = "Sheet") %>%
+        rename(Characteristic = `...1`, Stage = `...2`) %>%
+        fill(Characteristic, .direction = "down") %>%
+        filter(grepl(c("Stage at diagnosis"), Characteristic )) %>%
+        mutate(`Cancer type` = case_when(grepl(c("lung"), Sheet) ~ "Lung",
+                                         grepl(c("colorectal"), Sheet) ~ "Colorectal",
+                                         grepl(c("head_neck"), Sheet) ~ "Head and neck",
+                                         grepl(c("liver"), Sheet) ~ "Liver",
+                                         grepl(c("lymphoma"), Sheet) ~ "Lymphoma",
+                                         grepl(c("oesophagus"), Sheet) ~ "Oesophageal",
+                                         grepl(c("ovary"), Sheet) ~ "Ovarian",
+                                         grepl(c("pancreas"), Sheet) ~ "Pancreatic",
+                                         .default = Sheet) ,
+               .before = 1) %>%
+        select(-Sheet, -Characteristic)
+
+
+
+df_allcause_annual_and_phase_personsNmonths_8cancers <- left_join(df_allcause_annual_and_phase_Nmonths_8cancers, df_allcause_annual_and_phase_persons_8cancers, by = c("Cancer type" ,"Stage"))
+
+df_allcause_annual_and_phase_personsNmonths_8cancers <- df_allcause_annual_and_phase_personsNmonths_8cancers %>%
+    mutate(across(`Diag Phase N`:`AC Treat Phase 5 Person months`, \(x) as.numeric(x))) %>%
+        mutate(`0-6 months prior to diagnosis mean proportion` = round((`AC Diag Phase Person months`/`AC Diag Phase N`)/ 6, 2) ,
+               `0-1 years after diagnosis mean proportion` = round((`AC Treat Phase 0-1 Person months`/`AC Treat Phase 0-1 N`)/ 12, 2),
+               `1-2 years after diagnosis mean proportion` = round((`AC Treat Phase 1-2 Person months`/`AC Treat Phase 1-2 N`)/ 12, 2),
+               `2-3 years after diagnosis mean proportion` = round((`AC Treat Phase 2-3 Person months`/`AC Treat Phase 2-3 N`)/ 12, 2),
+               `3-4 years after diagnosis mean proportion` = round((`AC Treat Phase 3-4 Person months`/`AC Treat Phase 3-4 N`)/ 12, 2),
+               `4-5 years after diagnosis mean proportion` = round((`AC Treat Phase 4-5 Person months`/`AC Treat Phase 4-5 N`)/ 12, 2),
+               `5-6 years after diagnosis mean proportion` = round((`AC Treat Phase 5 Person months`/`AC Treat Phase 5 N`)/ 12, 2),
+               `Diag phase mean proportion` = round((`Diag Phase Person months`/`Diag Phase N`)/ 6, 2) ,
+               `Initial treatment phase (0-1 years) mean proportion` = round((`Treat Phase 0-1 Person months`/`Treat Phase 0-1 N`)/ 12, 2),
+               `Continuing phase (1-2 years) mean proportion` = round((`Treat Phase 1-2 Person months`/`Treat Phase 1-2 N`)/ 12, 2),
+               `Continuing phase (2-3 years) mean proportion` = round((`Treat Phase 2-3 Person months`/`Treat Phase 2-3 N`)/ 12, 2),
+               `Continuing phase (3-4 years) mean proportion` = round((`Treat Phase 3-4 Person months`/`Treat Phase 3-4 N`)/ 12, 2),
+               `Continuing phase (4-5 years) mean proportion` = round((`Treat Phase 4-5 Person months`/`Treat Phase 4-5 N`)/ 12, 2),
+               `Continuing phase (5-6 years) mean proportion` = round((`Treat Phase 5 Person months`/`Treat Phase 5 N`)/ 12, 2),
+               `End of life phase mean proportion` = round((`EOL Person months`/`EOL N`)/ 12, 2)) %>%
+  select(`Cancer type`, `Stage`, `0-6 months prior to diagnosis mean proportion`:`End of life phase mean proportion` )
+        
+# Add on cenorsing
+df_allcause_annual_and_phase_personsNmonthscensored_8cancers <- left_join(df_allcause_annual_and_phase_personsNmonths_8cancers, df_allcause_annual_and_phase_Ncensored_8cancers, by = c("Cancer type" ,"Stage")) %>%
+  dplyr::rename_with(~stringr::str_replace(.,pattern = ' mean proportion',replacement =':mean follow-up observed (%)'),
+                     dplyr::contains("mean proportion"))
+
+################################################################################
+#' _____________________________________________________________________________
+#' Load data: all-cause unadjusted costs
+#' _____________________________________________________________________________
+#' _____ Total costs
+
+res_path_allcause_unadj_total_costs_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Costs_GRAIL_2025-03-27.xlsx"
+res_path_allcause_unadj_total_costs_ColoSplits <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_GRAIL_colorectal_2025-04-01.xlsx"
+res_path_allcause_unadj_total_costs_lymphSplits<- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_GRAIL_lymphoma_2025-04-01.xlsx"
+
+df_allcause_unadj_total_costs_basic <- rbind(
+        
+        # The 8 original cancer
+       res_path_allcause_unadj_total_costs_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_allcause_unadj_total_costs_8cancers, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`,
+               Variable_type = `...2`) %>% 
+        fill(Variable_main, .direction = "down") %>%
+        unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+        mutate(cancer_type = case_when(Sheet == "T2costs_lung" ~ "Lung",
+                                       Sheet == "T2costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2costs_liver" ~ "Liver",
+                                       Sheet == "T2costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2costs_oesophagus" ~ "Oesophageal",
+                                       Sheet == "T2costs_ovary" ~ "Ovarian",
+                                       Sheet == "T2costs_pancreas" ~ "Pancreatic",
+                                       .default = Sheet )) %>%
+        select(-Sheet),
+        
+        #The colorectal splits
+        res_path_allcause_unadj_total_costs_ColoSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_total_costs_ColoSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T2costs_Colon" ~ "Colon and rectosigmoid junction",
+                                               Sheet == "T2costs_Rectum" ~ "Rectal",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet),
+
+        # The lymphoma splits
+        res_path_allcause_unadj_total_costs_lymphSplits %>%
+                 excel_sheets() %>%
+                 set_names() %>%
+                 map_df(~ read_excel(path = res_path_allcause_unadj_total_costs_lymphSplits, sheet = .x), .id = "Sheet") %>%
+                 rename(Variable_main = `...1`,
+                        Variable_type = `...2`) %>%
+                 fill(Variable_main, .direction = "down") %>%
+                 unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                 mutate(cancer_type = case_when(Sheet == "T2costs_Hodgkins" ~ "Lymphoma: Hodgkin",
+                                                Sheet == "T2costs_High_grade_NHL" ~ "Lymphoma: High grade non-Hodgkin",
+                                                Sheet == "T2costs_Low_grade_NHL" ~ "Lymphoma: Low grade non-Hodgkin",
+                                                .default = Sheet  ) ) %>%
+                 select(-Sheet)
+) %>%
+  relocate(cancer_type, .after = Variable) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("2014" = "cost_2014",
+         "2015" = "cost_2015",
+         "2016" = "cost_2016",
+         "2017" = "cost_2017") 
+
+df_allcause_unadj_total_costs <- df_allcause_unadj_total_costs_basic %>%
+  pivot_longer(cols = `2014`:`2017`, values_to = "values", names_to = "names") %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se"), too_many = "merge") %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(as.numeric(mean)),
+         sd = scales::dollar_format(prefix = "£")(as.numeric(str_sub(sd, 2, -2))),
+         se = scales::dollar_format(prefix = "£")(as.numeric(str_sub(se, 2, -2)))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  pivot_wider(names_from = "names", values_from = "recombined") %>%
+    mutate(`Sub-characteristic` = case_when(`Sub-characteristic` == "mean (sd) {se}" ~ "mean", .default = `Sub-characteristic`))%>%
+  mutate(across(where(is.character), ~ case_when(grepl(c("5 years"), .) ~ str_replace(., "5 years","5 years before/after diagnosis"), .default = .)))%>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+
+
+df_allcause_unadj_total_costs_basic <- df_allcause_unadj_total_costs_basic%>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+#' _____ Annual costs
+
+res_path_allcause_unadj_annual_costs_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Costs_annual_GRAIL_2025-03-31.xlsx"
+res_path_allcause_unadj_annual_costs_ColoSplits <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_annual_GRAIL_colorectal_2025-03-31.xlsx"
+res_path_allcause_unadj_annual_costs_lymphSplits <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_annual_GRAIL_lymphoma_2025-04-01.xlsx"
+
+df_allcause_unadj_annual_costs_basic <- rbind(
+        
+        # The 8 original cancer
+        res_path_allcause_unadj_annual_costs_8cancers %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_annual_costs_8cancers, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T4_lung" ~ "Lung",
+                                               Sheet == "T4_colorectal" ~ "Colorectal",
+                                               Sheet == "T4_head_neck" ~ "Head and neck",
+                                               Sheet == "T4_liver" ~ "Liver",
+                                               Sheet == "T4_lymphoma" ~ "Lymphoma",
+                                               Sheet == "T4_oesophagus" ~ "Oesophageal",
+                                               Sheet == "T4_ovary" ~ "Ovarian",
+                                               Sheet == "T4_pancreas" ~ "Pancreatic",
+                                               .default = Sheet )) %>%
+                select(-Sheet),
+        
+        #The colorectal splits
+        res_path_allcause_unadj_annual_costs_ColoSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_annual_costs_ColoSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T4_Colon" ~ "Colon and rectosigmoid junction",
+                                               Sheet == "T4_Rectum" ~ "Rectal",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet),
+        
+         # The lymphoma splits
+         res_path_allcause_unadj_annual_costs_lymphSplits %>% 
+                 excel_sheets() %>% 
+                 set_names() %>% 
+                 map_df(~ read_excel(path = res_path_allcause_unadj_annual_costs_lymphSplits, sheet = .x), .id = "Sheet") %>%
+                 rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                 fill(Variable_main, .direction = "down") %>%
+                 unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                 mutate(cancer_type = case_when(Sheet == "T4_Hodgkins" ~ "Lymphoma: Hodgkin",
+                                                Sheet == "T4_High_grade_NHL" ~ "Lymphoma: High grade non-Hodgkin",
+                                                Sheet == "T4_Low_grade_NHL" ~ "Lymphoma: Low grade non-Hodgkin",
+                                                .default = Sheet  ) ) %>%
+                 select(-Sheet)
+) %>%
+  relocate(cancer_type, .after = Variable) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("0-6 months before diagnosis" = "ac_Diagnosis",
+         "0-1 years after diagnosis" = "ac_Treat0_1_phase",
+         "1-2 years after diagnosis" = "ac_Treat1_2_phase",
+         "2-3 years after diagnosis" = "ac_Treat2_3_phase",
+         "3-4 years after diagnosis" = "ac_Treat3_4_phase",
+         "4-5 years after diagnosis" = "ac_Treat4_5_phase",
+         "5-6 years after diagnosis" = "ac_Treat5_phase") 
+
+
+df_allcause_unadj_annual_costs <- df_allcause_unadj_annual_costs_basic %>%
+  pivot_longer(cols = `0-6 months before diagnosis`:`5-6 years after diagnosis`, values_to = "values", names_to = "names") %>%
+  mutate(across(values, \(x) replace(x, grepl(c("NA"), x), NA))) %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se"), too_many = "merge") %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(as.numeric(mean)),
+         sd = scales::dollar_format(prefix = "£")(as.numeric(str_sub(sd, 2, -2))),
+         se = scales::dollar_format(prefix = "£")(as.numeric(str_sub(se, 2, -2)))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  pivot_wider(names_from = "names", values_from = "recombined") %>%
+    mutate(`Sub-characteristic` = case_when(`Sub-characteristic` == "mean (sd) {se}" ~ "mean", .default = `Sub-characteristic`)) %>%
+  mutate(across(where(is.character), ~ case_when(grepl(c("5 years"), .) ~ str_replace(., "5 years","5 years before/after diagnosis"), .default = .)))%>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+
+# Create annualised costs 
+df_allcause_unadj_annual_costs_annualised_basic <-   df_allcause_unadj_annual_costs_basic %>%
+  pivot_longer(cols = `0-6 months before diagnosis`:`5-6 years after diagnosis`, names_to = "Period", values_to = "value") %>%
+  mutate(Period = factor(Period, levels = c("0-6 months before diagnosis",
+                                          "0-1 years after diagnosis",
+                                          "1-2 years after diagnosis",
+                                          "2-3 years after diagnosis",
+                                          "3-4 years after diagnosis",
+                                          "4-5 years after diagnosis",
+                                          "5-6 years after diagnosis") )) %>%
+        separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                             too_few = "align_start") %>%
+        mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+               value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+               value_mean = as.numeric(value_mean)) %>%
+        fill(`Characteristic`, .direction = "down") %>%
+        filter(grepl(c("Stage at diagnosis"), `Characteristic`)) %>%
+        mutate(value_2.5CI  = value_mean - qnorm(0.975) * value_se,
+               value_97.5CI  = value_mean + qnorm(0.975) * value_se) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        select(cancer_type, `Sub-characteristic`, Period, value_mean, value_2.5CI, value_97.5CI) %>%
+  rename(stage = `Sub-characteristic`) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+        mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+        #filter(stage != "0" & stage != "Unknown/Missing") %>%
+        filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic")) %>%
+        left_join(df_allcause_annual_and_phase_personsNmonths_8cancers %>% 
+                    select(`Cancer type`, `Stage`,
+                           `0-6 months prior to diagnosis mean proportion`:`5-6 years after diagnosis mean proportion` ) %>%
+  rename("0-6 months before diagnosis" = "0-6 months prior to diagnosis mean proportion",
+                                          "0-1 years after diagnosis" = "0-1 years after diagnosis mean proportion" ,
+                                          "1-2 years after diagnosis" = "1-2 years after diagnosis mean proportion",
+                                          "2-3 years after diagnosis" = "2-3 years after diagnosis mean proportion",
+                                          "3-4 years after diagnosis" = "3-4 years after diagnosis mean proportion" ,
+                                          "4-5 years after diagnosis" = "4-5 years after diagnosis mean proportion", 
+                                          "5-6 years after diagnosis" = "5-6 years after diagnosis mean proportion") %>%
+                          pivot_longer(`0-6 months before diagnosis`:`5-6 years after diagnosis`, names_to = "Period", values_to = "Mean proportion of period"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type", "stage" = "Stage", "Period" )) %>%
+        mutate(`Annualised mean cost` =  round(value_mean / `Mean proportion of period`, 0) ,
+               `Annualised 2.5CI` =   round(value_2.5CI / `Mean proportion of period`, 0),
+               `Annualised 97.5CI` =  round(value_97.5CI / `Mean proportion of period`, 0)) %>%
+mutate(Period = factor(Period, levels = c("0-6 months before diagnosis",
+                                          "0-1 years after diagnosis",
+                                          "1-2 years after diagnosis",
+                                          "2-3 years after diagnosis",
+                                          "3-4 years after diagnosis",
+                                          "4-5 years after diagnosis",
+                                          "5-6 years after diagnosis") )) %>%
+        mutate(stage = forcats::fct_rev(stage))
+
+df_allcause_unadj_annual_costs_annualised <- df_allcause_unadj_annual_costs_annualised_basic %>%
+  mutate(`Mean period costs and 95% CI` = paste0(`Annualised mean cost`, " (", `Annualised 2.5CI`, ", ", `Annualised 97.5CI`, ")")) %>%
+  select(cancer_type, stage, Period, `Mean period costs and 95% CI` ) %>%
+  pivot_wider(names_from = Period, values_from = `Mean period costs and 95% CI`)
+  
+# Step needs to be done after the annualised
+df_allcause_unadj_annual_costs_basic <- df_allcause_unadj_annual_costs_basic %>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+#' _____ PoC costs
+
+res_path_allcause_unadj_PoC_costs_8cancers <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Costs_phase_GRAIL_2025-03-31.xlsx"
+res_path_allcause_unadj_PoC_costs_ColoSplits <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_phase_GRAIL_colorectal_2025-03-31.xlsx"
+res_path_allcause_unadj_PoC_costs_lymphSplits <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_phase_GRAIL_lymphoma_2025-04-01.xlsx"
+
+df_allcause_unadj_PoC_costs_basic <- rbind(
+        
+        # The 8 original cancer
+        res_path_allcause_unadj_PoC_costs_8cancers %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_PoC_costs_8cancers, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T3_lung" ~ "Lung",
+                                               Sheet == "T3_colorectal" ~ "Colorectal",
+                                               Sheet == "T3_head_neck" ~ "Head and neck",
+                                               Sheet == "T3_liver" ~ "Liver",
+                                               Sheet == "T3_lymphoma" ~ "Lymphoma",
+                                               Sheet == "T3_oesophagus" ~ "Oesophageal",
+                                               Sheet == "T3_ovary" ~ "Ovarian",
+                                               Sheet == "T3_pancreas" ~ "Pancreatic",
+                                               .default = Sheet )) %>%
+                select(-Sheet),
+        
+        #The colorectal splits
+        res_path_allcause_unadj_PoC_costs_ColoSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_PoC_costs_ColoSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T3_Colon" ~ "Colon and rectosigmoid junction",
+                                               Sheet == "T3_Rectum" ~ "Rectal",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet),
+        
+         # The lymphoma splits
+         res_path_allcause_unadj_PoC_costs_lymphSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_PoC_costs_lymphSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T3_Hodgkins" ~ "Lymphoma: Hodgkin",
+                                               Sheet == "T3_High_grade_NHL" ~ "Lymphoma: High grade non-Hodgkin",
+                                               Sheet == "T3_Low_grade_NHL" ~ "Lymphoma: Low grade non-Hodgkin",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet)
+) %>%
+  relocate(cancer_type, .after = Variable) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("Diagnosis phase" = "Diagnosis",
+         "Initial treatment phase (0-1 years)" = "Treat0_1_phase",
+         "Continuing phase (1-2 years)" = "Treat1_2_phase",
+         "Continuing phase (2-3 years)" = "Treat2_3_phase",
+         "Continuing phase (3-4 years)" = "Treat3_4_phase",
+         "Continuing phase (4-5 years)" = "Treat4_5_phase",
+         "Continuing phase (5-6 years)" = "Treat5_phase",
+          "End of life phase" = "Eol") 
+
+
+df_allcause_unadj_PoC_costs <- df_allcause_unadj_PoC_costs_basic %>%
+  pivot_longer(cols = `Diagnosis phase`:`End of life phase`, values_to = "values", names_to = "names") %>%
+    mutate(across(values, \(x) replace(x, grepl(c("NA"), x), NA))) %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se"), too_many = "merge") %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(as.numeric(mean)),
+         sd = scales::dollar_format(prefix = "£")(as.numeric(str_sub(sd, 2, -2))),
+         se = scales::dollar_format(prefix = "£")(as.numeric(str_sub(se, 2, -2)))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  pivot_wider(names_from = "names", values_from = "recombined")  %>%
+  mutate(`Sub-characteristic` = case_when(`Sub-characteristic` == "mean (sd) {se}" ~ "mean", .default = `Sub-characteristic`))%>%
+  mutate(across(where(is.character), ~ case_when(grepl(c("5 years"), .) ~ str_replace(., "5 years","5 years before/after diagnosis"), .default = .)))
+
+
+# Create annualised costs 
+df_allcause_unadj_PoC_costs_annualised_basic <-   df_allcause_unadj_PoC_costs_basic %>%
+  pivot_longer(cols = `Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "value") %>%
+        mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0-1 years)", "Continuing phase (1-2 years)",
+                                                "Continuing phase (2-3 years)",
+                                                "Continuing phase (3-4 years)", "Continuing phase (4-5 years)",
+                                                "Continuing phase (5-6 years)", "End of life phase") )) %>%
+        separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                             too_few = "align_start") %>%
+        mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+               value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+               value_mean = as.numeric(value_mean)) %>%
+        fill(`Characteristic`, .direction = "down") %>%
+        filter(grepl(c("Stage at diagnosis"), `Characteristic`)) %>%
+        mutate(value_2.5CI  = value_mean - qnorm(0.975) * value_se,
+               value_97.5CI  = value_mean + qnorm(0.975) * value_se) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        select(cancer_type, `Sub-characteristic`, Phase, value_mean, value_2.5CI, value_97.5CI) %>%
+  rename(stage = `Sub-characteristic`) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+        mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+        #filter(stage != "0" & stage != "Unknown/Missing") %>%
+        filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic")) %>%
+        left_join(df_allcause_annual_and_phase_personsNmonths_8cancers %>% 
+                    select(`Cancer type`, `Stage`, `Diag phase mean proportion`:`End of life phase mean proportion` ) %>%
+  rename("Diagnosis phase" = "Diag phase mean proportion",
+         "Initial treatment phase (0-1 years)" = "Initial treatment phase (0-1 years) mean proportion",
+         "Continuing phase (1-2 years)" = "Continuing phase (1-2 years) mean proportion",
+         "Continuing phase (2-3 years)" = "Continuing phase (2-3 years) mean proportion",
+         "Continuing phase (3-4 years)" = "Continuing phase (3-4 years) mean proportion"    ,
+         "Continuing phase (4-5 years)" = "Continuing phase (4-5 years) mean proportion",
+         "Continuing phase (5-6 years)" = "Continuing phase (5-6 years) mean proportion" ,
+          "End of life phase" = "End of life phase mean proportion") %>%
+                          pivot_longer(`Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "Mean proportion of phase"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type", "stage" = "Stage", "Phase" )) %>%
+        mutate(`Annualised mean cost` =  round(value_mean / `Mean proportion of phase`, 0) ,
+               `Annualised 2.5CI` =   round(value_2.5CI / `Mean proportion of phase`, 0),
+               `Annualised 97.5CI` =  round(value_97.5CI / `Mean proportion of phase`, 0)) %>%
+ mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0-1 years)", "Continuing phase (1-2 years)",
+                                                "Continuing phase (2-3 years)",
+                                                "Continuing phase (3-4 years)", "Continuing phase (4-5 years)",
+                                                "Continuing phase (5-6 years)", "End of life phase"))) %>%
+        mutate(stage = forcats::fct_rev(stage))
+
+df_allcause_unadj_PoC_costs_annualised <- df_allcause_unadj_PoC_costs_annualised_basic %>%
+  mutate(`Mean phase costs and 95% CI` = paste0(`Annualised mean cost`, " (", `Annualised 2.5CI`, ", ", `Annualised 97.5CI`, ")")) %>%
+  select(cancer_type, stage, Phase, `Mean phase costs and 95% CI` ) %>%
+  pivot_wider(names_from = Phase, values_from = `Mean phase costs and 95% CI`)
+  
+# Step needs to be done after the annualised
+df_allcause_unadj_PoC_costs <- df_allcause_unadj_PoC_costs%>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()%>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+  
+ 
+
+################################################################################
+#' _____________________________________________________________________________
+#' Adjusted all-cause costs
+#' _____________________________________________________________________________
+
+#' ______ Load data 
+#' All the AMEs are in one excel file
+
+res_path_allcause_adj_AME <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Regression adjusted/AME_results_2025-04-09.xlsx"
+
+df_allcause_AME_basic <- res_path_allcause_adj_AME %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_allcause_adj_AME, sheet = .x), .id = "Sheet") %>%
+        separate_wider_delim(Sheet, ".", names = c("cancer_type", "cost_outcome")) %>%
+        mutate(variable = case_when(is.na(variable) ~ Variable, .default = variable)) %>%
+          mutate(std.error = case_when(is.na(std.error) ~ Std.Err, .default = std.error)) %>%
+        mutate(estimate = case_when(is.na(estimate) ~ dydx, .default = estimate)) %>%
+        mutate(p.value = case_when(is.na(p.value) ~ pvalue, .default = p.value)) %>%
+          mutate(conf.low = case_when(is.na(conf.low) ~ CI.L, .default = conf.low)) %>%
+          mutate(conf.high = case_when(is.na(conf.high) ~ CI.U, .default = conf.high)) %>%
+        select(cancer_type, cost_outcome, variable, estimate,  std.error, p.value, conf.low, conf.high)
+
+df_allcause_AME <- df_allcause_AME_basic %>%
+select(cancer_type, cost_outcome, variable, estimate, conf.low, conf.high) %>%
+  rename(Covariate = variable, `Average marginal effect` = estimate, `CI: 2.5%` = conf.low, `CI: 97.5%` = conf.high ) %>%
+  filter(`CI: 2.5%` != 0) %>%
+  mutate(across(`Average marginal effect`:`CI: 97.5%`, \(x) round(x, 2))) %>%
+        mutate(across(`Average marginal effect`:`CI: 97.5%`, \(x) scales::dollar_format(prefix = "£")(x))) %>%
+  mutate(`Average marginal effect (95% CI)` = paste0(`Average marginal effect`, " ", "(",`CI: 2.5%`, ", ", `CI: 97.5%`, ")")) %>%
+  select(cancer_type, cost_outcome, Covariate,`Average marginal effect (95% CI)`) %>%
+  mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                 cancer_type == "head_neck" ~ "Head and neck",
+                                 cancer_type == "liver" ~ "Liver",
+                                 cancer_type == "lung" ~ "Lung",
+                                 cancer_type == "lymphoma" ~ "Lymphoma",
+                                 cancer_type == "oesophagus" ~ "Oesophageal",
+                                 cancer_type == "ovary" ~ "Ovarian",
+                                 cancer_type == "pancreas" ~ "Pancreatic", .default = cancer_type)) %>%
+  mutate(cost_outcome = case_when(cost_outcome == "ac_diag" ~ "0-6 months before diagnosis",
+                                  cost_outcome == "ac_treat_0_1year" ~ "0-1 years after diagnosis",
+                                  cost_outcome == "ac_treat_1_2year" ~ "1-2 years after diagnosis",
+                                  cost_outcome == "ac_treat_2_3year" ~ "2-3 years after diagnosis",
+                                  cost_outcome == "ac_treat_3_4year" ~ "3-4 years after diagnosis",
+                                  cost_outcome == "ac_treat_4_5year" ~ "4-5 years after diagnosis",
+                                  cost_outcome == "ac_treat_5year" ~ "5-6 years after diagnosis",
+                                  cost_outcome == "diag" ~ "Diagnosis phase",
+                                  cost_outcome == "treat_0_1year" ~ "Initial phase (0-1 years)",
+                                  cost_outcome == "treat_1_2year" ~ "Continuing phase (1-2 years)",
+                                  cost_outcome == "treat_2_3year" ~ "Continuing phase (2-3 years)",
+                                  cost_outcome == "treat_3_4year" ~ "Continuing phase (3-4 years)",
+                                  cost_outcome == "treat_4_5year" ~ "Continuing phase (4-5 years)",
+                                  cost_outcome == "treat_5year" ~ "Continuing phase (5-6 years)",
+                                  cost_outcome == "eol" ~ "End of life phase",
+                                  cost_outcome == "totalcost" ~ "Overall costs",
+                                  .default = cost_outcome),
+         cost_outcome = factor(cost_outcome, levels = c("Overall costs",
+                                                        "0-6 months before diagnosis",
+                                                        "0-1 years after diagnosis",
+                                                        "1-2 years after diagnosis",
+                                                        "2-3 years after diagnosis",
+                                                        "3-4 years after diagnosis",
+                                                        "4-5 years after diagnosis",
+                                                        "5-6 years after diagnosis",
+                                                        "Diagnosis phase", "Initial phase (0-1 years)", "Continuing phase (1-2 years)",
+                                                        "Continuing phase (2-3 years)","Continuing phase (3-4 years)","Continuing phase (4-5 years)",
+                                                        "Continuing phase (5-6 years)",  "End of life phase"))) %>%
+  arrange(cost_outcome)%>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+
+
+
+res_path_allcause_adj_stage1pred <- "~/Miscellaneous/HDI/Final_results2/All cause costs/Regression adjusted/Reg_stage_1_prediction_2025-04-09.xlsx"
+
+df_allcause_regression_stage1 <- res_path_allcause_adj_stage1pred %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_allcause_adj_stage1pred, sheet = .x), .id = "Sheet") %>%
+        select(-Sheet) %>%
+  rename(cancer_type = site) %>%
+  mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                 cancer_type == "head_neck" ~ "Head and neck",
+                                 cancer_type == "liver" ~ "Liver",
+                                 cancer_type == "lung" ~ "Lung",
+                                 cancer_type == "lymphoma" ~ "Lymphoma",
+                                 cancer_type == "oesophagus" ~ "Oesophageal",
+                                 cancer_type == "ovary" ~ "Ovarian",
+                                 cancer_type == "pancreas" ~ "Pancreatic", .default = cancer_type)) %>%
+  mutate(outcome = case_when(outcome == "totalcost" ~ "Overall costs",
+                             outcome == "ac_diag" ~ "0-6 months before diagnosis",
+                                  outcome == "ac_treat_0_1year" ~ "0-1 years after diagnosis",
+                                  outcome == "ac_treat_1_2year" ~ "1-2 years after diagnosis",
+                                  outcome == "ac_treat_2_3year" ~ "2-3 years after diagnosis",
+                                  outcome == "ac_treat_3_4year" ~ "3-4 years after diagnosis",
+                                  outcome == "ac_treat_4_5year" ~ "4-5 years after diagnosis",
+                                  outcome == "ac_treat_5year" ~ "5-6 years after diagnosis",
+                                  outcome == "diag" ~ "Diagnosis phase",
+                                  outcome == "treat_0_1year" ~ "Initial phase (0-1 years)",
+                                  outcome == "treat_1_2year" ~ "Continuing phase (1-2 years)",
+                                  outcome == "treat_2_3year" ~ "Continuing phase (2-3 years)",
+                                  outcome == "treat_3_4year" ~ "Continuing phase (3-4 years)",
+                                  outcome == "treat_4_5year" ~ "Continuing phase (4-5 years)",
+                                  outcome == "treat_5year" ~ "Continuing phase (5-6 years)",
+                                  outcome == "eol" ~ "End of life phase",
+                                  .default = outcome),
+         outcome = factor(outcome, levels = c("Overall costs",
+                                                        "0-6 months before diagnosis","0-1 years after diagnosis",
+                                                        "1-2 years after diagnosis", "2-3 years after diagnosis",
+                                                        "3-4 years after diagnosis", "4-5 years after diagnosis",
+                                                        "5-6 years after diagnosis",
+                                                        "Diagnosis phase", "Initial phase (0-1 years)",
+                                                         "Continuing phase (1-2 years)", 
+                                                        "Continuing phase (2-3 years)",
+                                                        "Continuing phase (3-4 years)",
+                                                        "Continuing phase (4-5 years)",
+                                                        "Continuing phase (5-6 years)",  "End of life phase"))) %>%
+  rename_with( ~ paste0("stage_1_", .x, recycle0 = TRUE), cols = Mean:p975)
+
+
+
+
+df_allcause_regression_stage1_table_format  <- df_allcause_regression_stage1 %>%
+    mutate(across(`stage_1_Mean`:`stage_1_p975`, \(x)round(x, 1))) %>%
+    mutate(across(`stage_1_Mean`:`stage_1_p975`, \(x) scales::dollar_format(prefix = "£")(x))) %>%
+  mutate(median_25_975 = paste0(stage_1_Median, " (", stage_1_p25, ", " ,stage_1_p975,")")) %>%
+  select(stage_1_outcome, stage_1_cancer_type, median_25_975)
+  
+
+################################################################################
+#' _____________________________________________________________________________
+#' Load data: net unadjusted costs
+#' _____________________________________________________________________________
+#' _____ Total costs
+
+res_path_net_unadj <- "~/Miscellaneous/HDI/Final_results2/Net costs/Unadjusted/Costs_GRAIL_net_2025-04-14.xlsx"
+
+df_net_unadj_total_costs_basic <- res_path_net_unadj %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_net_unadj, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T2_total_costs_lung" ~ "Lung",
+                                               Sheet == "T2_total_costs_colorectal" ~ "Colorectal",
+                                               Sheet == "T2_total_costs_head_neck" ~ "Head and neck",
+                                               Sheet == "T2_total_costs_liver" ~ "Liver",
+                                               Sheet == "T2_total_costs_lymphoma" ~ "Lymphoma",
+                                               Sheet == "T2_total_costs_oesophagus" ~ "Oesophageal",
+                                               Sheet == "T2_total_costs_ovary" ~ "Ovarian",
+                                               Sheet == "T2_total_costs_pancreas" ~ "Pancreatic",
+                                               .default = Sheet )) %>%
+                select(-Sheet) %>%
+        select(Variable, cancer_type, costs_2014:costs_2017) %>%
+        filter(!is.na(costs_2014))  %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("2014" = "costs_2014",
+         "2015" = "costs_2015",
+         "2016" = "costs_2016",
+         "2017" = "costs_2017") 
+
+df_net_unadj_total_costs <- df_net_unadj_total_costs_basic %>%
+  pivot_longer(cols = `2014`:`2017`, values_to = "values", names_to = "names") %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se"), too_many = "merge") %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(round(as.numeric(mean), 1)),
+         sd = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(sd, 2, -2)), 1)),
+         se = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(se, 2, -2)), 1))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  pivot_wider(names_from = "names", values_from = "recombined") %>%
+  mutate(`Sub-characteristic` = case_when(`Sub-characteristic` == "mean (sd) {se}" ~ "mean", .default = `Sub-characteristic`)) %>%
+  mutate(across(where(is.character), ~ case_when(grepl(c("78-06"), .) ~ str_replace(., "78-06","measured 78-6 months before diagnosis"), .default = .))) %>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+
+
+
+df_net_unadj_total_costs_basic <- df_net_unadj_total_costs_basic%>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+
+#' _____ Annual costs
+
+df_net_unadj_annual_costs_basic <- res_path_net_unadj %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_net_unadj, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`,
+               Variable_type = `...2`) %>% 
+        fill(Variable_main, .direction = "down") %>%
+        unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+        mutate(cancer_type = case_when(Sheet == "T2_costs_lung" ~ "Lung",
+                                       Sheet == "T2_costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2_costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2_costs_liver" ~ "Liver",
+                                       Sheet == "T2_costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2_costs_oesophagus" ~ "Oesophageal",
+                                       Sheet == "T2_costs_ovary" ~ "Ovarian",
+                                       Sheet == "T2_costs_pancreas" ~ "Pancreatic",
+                                       .default = Sheet )) %>%
+        select(-Sheet) %>%
+        select(Variable, cancer_type, costs_ac_diag:costs_ac_treat_5year) %>%
+        filter(!is.na(costs_ac_diag)) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("0-6 months before diagnosis" = "costs_ac_diag",
+         "0-1 years after diagnosis" = "costs_ac_treat_0_1year",
+         "1-2 years after diagnosis" = "costs_ac_treat_1_2year",
+         "2-3 years after diagnosis" = "costs_ac_treat_2_3year",
+         "3-4 years after diagnosis" = "costs_ac_treat_3_4year",
+         "4-5 years after diagnosis" = "costs_ac_treat_4_5year",
+         "5-6 years after diagnosis" = "costs_ac_treat_5year") 
+
+
+df_net_unadj_annual_costs <- df_net_unadj_annual_costs_basic %>%
+  pivot_longer(cols = `0-6 months before diagnosis`:`5-6 years after diagnosis`, values_to = "values", names_to = "names") %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se"), too_many = "merge") %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(round(as.numeric(mean),1)),
+         sd = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(sd, 2, -2)), 1)),
+         se = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(se, 2, -2)),1))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  pivot_wider(names_from = "names", values_from = "recombined") %>%
+  mutate(`Sub-characteristic` = case_when(`Sub-characteristic` == "mean (sd) {se}" ~ "mean", .default = `Sub-characteristic`)) %>%
+  mutate(across(where(is.character), ~ case_when(grepl(c("78-06"), .) ~ str_replace(., "78-06","measured 78-6 months before diagnosis"), .default = .)))
+  
+
+df_net_unadj_annual_costs_annualised <-   df_net_unadj_annual_costs_basic %>%
+  pivot_longer(cols = `0-6 months before diagnosis`:`5-6 years after diagnosis`, names_to = "Period", values_to = "value") %>%
+        mutate(Period = factor(Period, levels = c("0-6 months before diagnosis",
+                                                 "0-1 years after diagnosis",
+                                                 "1-2 years after diagnosis",
+                                                 "2-3 years after diagnosis",
+                                                 "3-4 years after diagnosis",
+                                                 "4-5 years after diagnosis",
+                                                 "5-6 years after diagnosis") )) %>%
+        separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                             too_few = "align_start") %>%
+        mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+               value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+               value_mean = as.numeric(value_mean)) %>%
+        filter(grepl(c("Stage at diagnosis"), `Characteristic`)) %>%
+        mutate(value_2.5CI  = value_mean - qnorm(0.975) * value_se,
+               value_97.5CI  = value_mean + qnorm(0.975) * value_se) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        select(cancer_type, `Sub-characteristic`, Period, value_mean, value_2.5CI, value_97.5CI) %>%
+  rename(stage = `Sub-characteristic`) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+        mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+        #filter(stage != "0" & stage != "Unknown/Missing") %>%
+        filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic")) %>%
+        left_join(df_allcause_annual_and_phase_personsNmonths_8cancers %>% 
+                    select(`Cancer type`,`Stage`,`0-6 months prior to diagnosis mean proportion`:`5-6 years after diagnosis mean proportion`) %>%
+  rename("0-6 months before diagnosis" = "0-6 months prior to diagnosis mean proportion",
+         "0-1 years after diagnosis" = "0-1 years after diagnosis mean proportion",
+         "1-2 years after diagnosis" = "1-2 years after diagnosis mean proportion",
+         "2-3 years after diagnosis" = "2-3 years after diagnosis mean proportion",
+         "3-4 years after diagnosis" = "3-4 years after diagnosis mean proportion",
+         "4-5 years after diagnosis" = "4-5 years after diagnosis mean proportion" ,
+         "5-6 years after diagnosis" = "5-6 years after diagnosis mean proportion") %>%
+                          pivot_longer(`0-6 months before diagnosis`:`5-6 years after diagnosis`, names_to = "Period", values_to = "Mean proportion of period"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type", "stage" = "Stage", "Period" )) %>%
+        mutate(`Annualised mean cost` =  round(value_mean / `Mean proportion of period`, 0) ,
+               `Annualised 2.5CI` =   round(value_2.5CI / `Mean proportion of period`, 0),
+               `Annualised 97.5CI` =  round(value_97.5CI / `Mean proportion of period`, 0)) %>%
+ mutate(Period = factor(Period, levels = c("0-6 months before diagnosis",
+                                                 "0-1 years after diagnosis",
+                                                 "1-2 years after diagnosis",
+                                                 "2-3 years after diagnosis",
+                                                 "3-4 years after diagnosis",
+                                                 "4-5 years after diagnosis",
+                                                 "5-6 years after diagnosis") )) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+  mutate(`Mean period costs and 95% CI` = paste0(`Annualised mean cost`, " (", `Annualised 2.5CI`, ", ", `Annualised 97.5CI`, ")")) %>%
+  select(cancer_type, stage, Period, `Mean period costs and 95% CI` ) %>%
+  pivot_wider(names_from = Period, values_from = `Mean period costs and 95% CI`)
+
+
+df_net_unadj_annual_costs <- df_net_unadj_annual_costs %>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()%>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])","\\1·\\2", .)))
+
+
+
+
+
+#' _____ PoC costs
+
+df_net_unadj_PoC_costs_basic <- res_path_net_unadj %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_net_unadj, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`,
+               Variable_type = `...2`) %>% 
+        fill(Variable_main, .direction = "down") %>%
+        unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+        mutate(cancer_type = case_when(Sheet == "T2_costs_lung" ~ "Lung",
+                                       Sheet == "T2_costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2_costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2_costs_liver" ~ "Liver",
+                                       Sheet == "T2_costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2_costs_oesophagus" ~ "Oesophageal",
+                                       Sheet == "T2_costs_ovary" ~ "Ovarian",
+                                       Sheet == "T2_costs_pancreas" ~ "Pancreatic",
+                                       .default = Sheet )) %>%
+        select(-Sheet) %>%
+        select(Variable, cancer_type, costs_diag:costs_treat_5year) %>%
+        filter(!is.na(costs_diag)) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("Diagnosis phase" = "costs_diag",
+         "Initial treatment phase (0-1 years)" = "costs_treat_0_1year",
+         "Continuing phase (1-2 years)" = "costs_treat_1_2year",
+         "Continuing phase (2-3 years)" = "costs_treat_2_3year",
+         "Continuing phase (3-4 years)" = "costs_treat_3_4year",
+         "Continuing phase (4-5 years)" = "costs_treat_4_5year",
+         "Continuing phase (5-6 years)" = "costs_treat_5year",
+          "End of life phase" = "costs_eol")  %>%
+  select(Characteristic, cancer_type, "Sub-characteristic" ,"Diagnosis phase", "Initial treatment phase (0-1 years)","Continuing phase (1-2 years)",  "Continuing phase (2-3 years)",
+          "Continuing phase (3-4 years)","Continuing phase (4-5 years)", "Continuing phase (5-6 years)", "End of life phase")
+
+df_net_unadj_PoC_costs <- df_net_unadj_PoC_costs_basic %>%
+  pivot_longer(cols = `Diagnosis phase`:`End of life phase`, values_to = "values", names_to = "names") %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se"), too_many = "merge") %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(round(as.numeric(mean),1)),
+         sd = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(sd, 2, -2)), 1)),
+         se = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(se, 2, -2)),1))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  pivot_wider(names_from = "names", values_from = "recombined")%>%
+  mutate(`Sub-characteristic` = case_when(`Sub-characteristic` == "mean (sd) {se}" ~ "mean", .default = `Sub-characteristic`)) %>%
+  mutate(across(where(is.character), ~ case_when(grepl(c("78-06"), .) ~ str_replace(., "78-06","measured 78-6 months before diagnosis"), .default = .)))
+  
+
+df_net_unadj_PoC_costs_annualised <-   df_net_unadj_PoC_costs_basic %>%
+  pivot_longer(cols = `Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "value") %>%
+        mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0-1 years)", "Continuing phase (1-2 years)",
+                                                "Continuing phase (2-3 years)",
+                                                "Continuing phase (3-4 years)", "Continuing phase (4-5 years)",
+                                                "Continuing phase (5-6 years)", "End of life phase") )) %>%
+        separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                             too_few = "align_start") %>%
+        mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+               value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+               value_mean = as.numeric(value_mean)) %>%
+        filter(grepl(c("Stage at diagnosis"), `Characteristic`)) %>%
+        mutate(value_2.5CI  = value_mean - qnorm(0.975) * value_se,
+               value_97.5CI  = value_mean + qnorm(0.975) * value_se) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        select(cancer_type, `Sub-characteristic`, Phase, value_mean, value_2.5CI, value_97.5CI) %>%
+  rename(stage = `Sub-characteristic`) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+        mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+        #filter(stage != "0" & stage != "Unknown/Missing") %>%
+        filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic")) %>%
+        left_join(df_allcause_annual_and_phase_personsNmonths_8cancers %>% 
+                    select(`Cancer type`,`Stage`,`Diag phase mean proportion`:`End of life phase mean proportion`) %>%
+  rename("Diagnosis phase" = "Diag phase mean proportion",
+         "Initial treatment phase (0-1 years)" = "Initial treatment phase (0-1 years) mean proportion",
+         "Continuing phase (1-2 years)" = "Continuing phase (1-2 years) mean proportion",
+         "Continuing phase (2-3 years)" = "Continuing phase (2-3 years) mean proportion",
+         "Continuing phase (3-4 years)" = "Continuing phase (3-4 years) mean proportion"    ,
+         "Continuing phase (4-5 years)" = "Continuing phase (4-5 years) mean proportion",
+         "Continuing phase (5-6 years)" = "Continuing phase (5-6 years) mean proportion" ,
+          "End of life phase" = "End of life phase mean proportion") %>%
+                          pivot_longer(`Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "Mean proportion of phase"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type", "stage" = "Stage", "Phase" )) %>%
+        mutate(`Annualised mean cost` =  round(value_mean / `Mean proportion of phase`, 0) ,
+               `Annualised 2.5CI` =   round(value_2.5CI / `Mean proportion of phase`, 0),
+               `Annualised 97.5CI` =  round(value_97.5CI / `Mean proportion of phase`, 0)) %>%
+ mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0-1 years)", "Continuing phase (1-2 years)",
+                                                "Continuing phase (2-3 years)",
+                                                "Continuing phase (3-4 years)", "Continuing phase (4-5 years)",
+                                                "Continuing phase (5-6 years)", "End of life phase"))) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+  mutate(`Mean phase costs and 95% CI` = paste0(`Annualised mean cost`, " (", `Annualised 2.5CI`, ", ", `Annualised 97.5CI`, ")")) %>%
+  select(cancer_type, stage, Phase, `Mean phase costs and 95% CI` ) %>%
+  pivot_wider(names_from = Phase, values_from = `Mean phase costs and 95% CI`)
+  
+
+df_net_unadj_PoC_costs <- df_net_unadj_PoC_costs%>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup() %>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])","\\1·\\2", .)))
+
+
+
+################################################################################
+
+################################################################################
+#' _____________________________________________________________________________
+#' Adjusted net costs
+#' _____________________________________________________________________________
+
+#' ______ Load data 
+#' All the AMEs are in one excel file
+
+res_path_net_adj_AME_PoC_annual <- "~/Miscellaneous/HDI/Final_results2/Net costs/Regression adjusted/AME_results_2025-04-14.xlsx"
+res_path_net_adj_AME_total <- "~/Miscellaneous/HDI/Final_results2/Net costs/Regression adjusted/AME_results_totalcost_2025-04-14.xlsx"
+
+
+df_net_AME_basic <- rbind(
+        
+        res_path_net_adj_AME_PoC_annual %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_net_adj_AME_PoC_annual, sheet = .x), .id = "Sheet") %>%
+        separate_wider_delim(Sheet, ".", names = c("cancer_type", "cost_outcome")) %>%
+        filter(!is.na(variable)),
+        
+        res_path_net_adj_AME_total %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_net_adj_AME_total, sheet = .x), .id = "Sheet") %>%
+                separate_wider_delim(Sheet, ".", names = c("cancer_type", "cost_outcome")) %>%
+                filter(!is.na(variable))
+        
+)%>%
+  select(cancer_type, cost_outcome, variable, estimate, conf.low, conf.high) %>%
+  mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                 cancer_type == "head_neck" ~ "Head and neck",
+                                 cancer_type == "liver" ~ "Liver",
+                                 cancer_type == "lung" ~ "Lung",
+                                 cancer_type == "lymphoma" ~ "Lymphoma",
+                                 cancer_type == "oesophagus" ~ "Oesophageal",
+                                 cancer_type == "ovary" ~ "Ovarian",
+                                 cancer_type == "pancreas" ~ "Pancreatic", .default = cancer_type)) %>%
+  mutate(cost_outcome = case_when(cost_outcome == "totalcost" ~ "Overall costs",
+                                  cost_outcome == "ac_diag" ~ "0-6 months before diagnosis",
+                                  cost_outcome == "ac_treat_0_1year" ~ "0-1 years after diagnosis",
+                                  cost_outcome == "ac_treat_1_2year" ~ "1-2 years after diagnosis",
+                                  cost_outcome == "ac_treat_2_3year" ~ "2-3 years after diagnosis",
+                                  cost_outcome == "ac_treat_3_4year" ~ "3-4 years after diagnosis",
+                                  cost_outcome == "ac_treat_4_5year" ~ "4-5 years after diagnosis",
+                                  cost_outcome == "ac_treat_5year" ~ "5-6 years after diagnosis",
+                                  cost_outcome == "diag" ~ "Diagnosis phase",
+                                  cost_outcome == "treat_0_1year" ~ "Initial phase (0-1 years)",
+                                  cost_outcome == "treat_1_2year" ~ "Continuing phase (1-2 years)",
+                                  cost_outcome == "treat_2_3year" ~ "Continuing phase (2-3 years)",
+                                  cost_outcome == "treat_3_4year" ~ "Continuing phase (3-4 years)",
+                                  cost_outcome == "treat_4_5year" ~ "Continuing phase (4-5 years)",
+                                  cost_outcome == "treat_5year" ~ "Continuing phase (5-6 years)",
+                                  cost_outcome == "eol" ~ "End of life phase",
+                                  .default = cost_outcome),
+         cost_outcome = factor(cost_outcome, levels = c("Overall costs",
+                                                        "0-6 months before diagnosis", "0-1 years after diagnosis"
+                                                        , "1-2 years after diagnosis", "2-3 years after diagnosis",
+                                                        "3-4 years after diagnosis", "4-5 years after diagnosis", "5-6 years after diagnosis",
+                                                        "Diagnosis phase", "Initial phase (0-1 years)", "Continuing phase (1-2 years)", 
+                                                        "Continuing phase (2-3 years)","Continuing phase (3-4 years)","Continuing phase (4-5 years)",
+                                                        "Continuing phase (5-6 years)",  "End of life phase")))
+
+df_net_AME <- df_net_AME_basic %>%
+  rename(Covariate = variable, `Average marginal effect` = estimate, `CI: 2.5%` = conf.low, `CI: 97.5%` = conf.high ) %>%
+  filter(`CI: 2.5%` != 0) %>%
+  mutate(across(`Average marginal effect`:`CI: 97.5%`, \(x) round(x, 1))) %>%
+      mutate(across(`Average marginal effect`:`CI: 97.5%`, \(x) scales::dollar_format(prefix = "£")(x))) %>%
+  mutate(`Average marginal effect (95% CI)` = paste0(`Average marginal effect`, " ", "(",`CI: 2.5%`, ", ", `CI: 97.5%`, ")")) %>%
+  select(cancer_type, cost_outcome, Covariate,`Average marginal effect (95% CI)`)  %>%
+  arrange(cost_outcome) %>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+
+  
+
+res_path_net_adj_PoC_annual_stage1pred <- "~/Miscellaneous/HDI/Final_results2/Net costs/Regression adjusted/average_stage_1_prediction_2025-06-19.xlsx"
+res_path_net_adj_total_stage1pred <- "~/Miscellaneous/HDI/Final_results2/Net costs/Regression adjusted/average_stage_1_prediction_total_netcosts2025-06-19.xlsx"
+
+df_net_regression_stage1 <- rbind(
+        
+  res_path_net_adj_PoC_annual_stage1pred %>% 
+    excel_sheets() %>% 
+    set_names() %>% 
+    map_df(~ read_excel(path = res_path_net_adj_PoC_annual_stage1pred, sheet = .x), .id = "Sheet") %>%
+    select(-Sheet),
+  
+  res_path_net_adj_total_stage1pred %>% 
+    excel_sheets() %>% 
+    set_names() %>% 
+    map_df(~ read_excel(path = res_path_net_adj_total_stage1pred, sheet = .x), .id = "Sheet") %>%
+    select(-Sheet)
+        
+) %>%
+  rename(cancer_type = site) %>%
+  mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                 cancer_type == "head_neck" ~ "Head and neck",
+                                 cancer_type == "liver" ~ "Liver",
+                                 cancer_type == "lung" ~ "Lung",
+                                 cancer_type == "lymphoma" ~ "Lymphoma",
+                                 cancer_type == "oesophagus" ~ "Oesophageal",
+                                 cancer_type == "ovary" ~ "Ovarian",
+                                 cancer_type == "pancreas" ~ "Pancreatic", .default = cancer_type)) %>%
+  mutate(outcome = case_when(outcome == "totalcost" ~ "Overall costs",
+                                  outcome == "ac_diag" ~ "0-6 months before diagnosis",
+                                  outcome == "ac_treat_0_1year" ~ "0-1 years after diagnosis",
+                                  outcome == "ac_treat_1_2year" ~ "1-2 years after diagnosis",
+                                  outcome == "ac_treat_2_3year" ~ "2-3 years after diagnosis",
+                                  outcome == "ac_treat_3_4year" ~ "3-4 years after diagnosis",
+                                  outcome == "ac_treat_4_5year" ~ "4-5 years after diagnosis",
+                                  outcome == "ac_treat_5year" ~ "5-6 years after diagnosis",
+                                  outcome == "diag" ~ "Diagnosis phase",
+                                  outcome == "treat_0_1year" ~ "Initial phase (0-1 years)",
+                                  outcome == "treat_1_2year" ~ "Continuing phase (1-2 years)",
+                                  outcome == "treat_2_3year" ~ "Continuing phase (2-3 years)",
+                                  outcome == "treat_3_4year" ~ "Continuing phase (3-4 years)",
+                                  outcome == "treat_4_5year" ~ "Continuing phase (4-5 years)",
+                                  outcome == "treat_5year" ~ "Continuing phase (5-6 years)",
+                                  outcome == "eol" ~ "End of life phase",
+                                  .default = outcome),
+         outcome = factor(outcome, levels = c("Overall costs",
+                                                        "0-6 months before diagnosis","0-1 years after diagnosis",
+                                                        "1-2 years after diagnosis", "2-3 years after diagnosis",
+                                                        "3-4 years after diagnosis", "4-5 years after diagnosis",
+                                                        "5-6 years after diagnosis",
+                                                        "Diagnosis phase", "Initial phase (0-1 years)",
+                                                         "Continuing phase (1-2 years)", 
+                                                        "Continuing phase (2-3 years)",
+                                                        "Continuing phase (3-4 years)",
+                                                        "Continuing phase (4-5 years)",
+                                                        "Continuing phase (5-6 years)",  "End of life phase"))) %>%
+  rename_with( ~ paste0("stage_1_", .x, recycle0 = TRUE), .cols = estimate:conf.high)
+
+
+df_net_regression_stage1_table_format  <- df_net_regression_stage1 %>%
+      mutate(across(c("stage_1_estimate", "stage_1_conf.low", "stage_1_conf.high"), \(x) round(x, 1))) %>%
+    mutate(across(c("stage_1_estimate", "stage_1_conf.low", "stage_1_conf.high"), \(x) scales::dollar_format(prefix = "£")(x))) %>%
+  mutate(average_25_975 = paste0(stage_1_estimate, " (", stage_1_conf.low, ", " ,stage_1_conf.high,")")) %>%
+  select(outcome, cancer_type, average_25_975) %>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])","\\1·\\2", .)))
+
+
+  
+
+################################################################################
+
+################################################################################
+#' _____________________________________________________________________________
+#' AMEs to absolute
+#' _____________________________________________________________________________
+
+df_net_regression_absolute <- df_net_AME_basic %>% 
+  mutate(cost_outcome = case_when(cost_outcome == "totalcost" ~ "Overall costs",
+                             cost_outcome == "ac_diag" ~ "0-6 months before diagnosis",
+                                  cost_outcome == "ac_treat_0_1year" ~ "0-1 years after diagnosis",
+                                  cost_outcome == "ac_treat_1_2year" ~ "1-2 years after diagnosis",
+                                  cost_outcome == "ac_treat_2_3year" ~ "2-3 years after diagnosis",
+                                  cost_outcome == "ac_treat_3_4year" ~ "3-4 years after diagnosis",
+                                  cost_outcome == "ac_treat_4_5year" ~ "4-5 years after diagnosis",
+                                  cost_outcome == "ac_treat_5year" ~ "5-6 years after diagnosis",
+                                  cost_outcome == "diag" ~ "Diagnosis phase",
+                                  cost_outcome == "treat_0_1year" ~ "Initial phase (0-1 years)",
+                                  cost_outcome == "treat_1_2year" ~ "Continuing phase (1-2 years)",
+                                  cost_outcome == "treat_2_3year" ~ "Continuing phase (2-3 years)",
+                                  cost_outcome == "treat_3_4year" ~ "Continuing phase (3-4 years)",
+                                  cost_outcome == "treat_4_5year" ~ "Continuing phase (4-5 years)",
+                                  cost_outcome == "treat_5year" ~ "Continuing phase (5-6 years)",
+                                  cost_outcome == "eol" ~ "End of life phase",
+                                  .default = cost_outcome)) %>%
+             filter(grepl(c("Stage"), variable)) %>%
+  left_join(df_net_regression_stage1, by = c("cancer_type" ,
+                                             "cost_outcome" = "outcome")) %>%
+  mutate(absolute_average = estimate + stage_1_estimate,
+         estimate_SE = (conf.high - conf.low) / (2*qnorm(0.975)),
+         combined_SE = sqrt( ((stage_1_std.error)^2)  + ((estimate_SE)^2) ),
+         absolute_conf_low = absolute_average - qnorm(0.975) * combined_SE,
+         absolute_conf_high = absolute_average + qnorm(0.975) * combined_SE) %>%
+  select(cancer_type, cost_outcome, variable, absolute_average, absolute_conf_low, absolute_conf_high) %>%
+bind_rows(df_net_regression_stage1 %>%
+            mutate(variable = "Stage: I") %>%
+            rename(cost_outcome = outcome,
+                   absolute_average = stage_1_estimate,
+                   absolute_conf_low = stage_1_conf.low,
+                   absolute_conf_high = stage_1_conf.high) %>%
+              select(cancer_type, cost_outcome, variable, absolute_average, absolute_conf_low, absolute_conf_high)) %>%
+  rename(Stage = variable) %>%
+  mutate(Stage = str_sub(Stage,8, -1),
+         Stage = factor(Stage, levels = c("I", "II", "III", "IV", "Missing/Unknown"))) %>%
+  arrange(cost_outcome, cancer_type, Stage) %>%
+        mutate(across(`absolute_average`:`absolute_conf_high`, \(x) round(x, 1)))
+
+write_csv(df_net_regression_absolute, file = "~/Miscellaneous/HDI/Cost generalisation/hdi_cost_outcomes.csv")
+
+df_net_regression_absolute_monthly <- df_net_regression_absolute %>%
+  filter(cost_outcome != "Overall costs") %>%
+     left_join(df_allcause_annual_and_phase_personsNmonths_8cancers %>% 
+                    select(`Cancer type`,`Stage`,
+                           `0-6 months prior to diagnosis mean proportion`:`End of life phase mean proportion`) %>%
+  rename("0-6 months before diagnosis" = "0-6 months prior to diagnosis mean proportion",
+         "0-1 years after diagnosis" = "0-1 years after diagnosis mean proportion",
+         "1-2 years after diagnosis" = "1-2 years after diagnosis mean proportion",
+         "2-3 years after diagnosis" = "2-3 years after diagnosis mean proportion",
+         "3-4 years after diagnosis" = "3-4 years after diagnosis mean proportion",
+         "4-5 years after diagnosis" = "4-5 years after diagnosis mean proportion" ,
+         "5-6 years after diagnosis" = "5-6 years after diagnosis mean proportion",
+         "Diagnosis phase" = "Diag phase mean proportion",
+         "Initial phase (0-1 years)" = "Initial treatment phase (0-1 years) mean proportion",
+         "Continuing phase (1-2 years)" = "Continuing phase (1-2 years) mean proportion",
+         "Continuing phase (2-3 years)" = "Continuing phase (2-3 years) mean proportion",
+         "Continuing phase (3-4 years)" = "Continuing phase (3-4 years) mean proportion"    ,
+         "Continuing phase (4-5 years)" = "Continuing phase (4-5 years) mean proportion",
+         "Continuing phase (5-6 years)" = "Continuing phase (5-6 years) mean proportion" ,
+          "End of life phase" = "End of life phase mean proportion") %>%
+    mutate(Stage = case_when(Stage == "1" ~ "I",
+                             Stage == "2" ~ "II",
+                             Stage == "3" ~ "III",
+                             Stage == "4" ~ "IV",
+                             .default = Stage)) %>%
+                          pivot_longer(`0-6 months before diagnosis`:`End of life phase`, names_to = "cost_outcome", values_to = "Mean proportion of phase"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type",  "Stage", "cost_outcome" )) %>%
+        mutate(`Monthly mean cost` =  round(`absolute_average`/(12 *`Mean proportion of phase`), 1),
+               `Monthly 2.5CI` =   round(absolute_conf_low/(12 *`Mean proportion of phase`), 1),
+               `Monthly 97.5CI` =  round(absolute_conf_high /(12 *`Mean proportion of phase`), 1)) %>%
+  filter(Stage %in% c("I", "II", "III", "IV")) %>%
+  mutate(cost_outcome = factor(cost_outcome, levels = c("0-6 months before diagnosis" ,
+                                          "0-1 years after diagnosis",
+                                          "1-2 years after diagnosis",
+                                          "2-3 years after diagnosis" ,
+                                          "3-4 years after diagnosis",
+                                          "4-5 years after diagnosis",
+                                          "5-6 years after diagnosis",
+                                          "Diagnosis phase",
+                                          "Initial phase (0-1 years)",
+                                          "Continuing phase (1-2 years)",
+                                          "Continuing phase (2-3 years)",
+                                          "Continuing phase (3-4 years)",
+                                          "Continuing phase (4-5 years)",
+                                          "Continuing phase (5-6 years)",
+                                          "End of life phase"))) %>%
+        mutate(Stage = forcats::fct_rev(Stage)) %>%
+  arrange(cancer_type, cost_outcome, desc(Stage))%>%
+  mutate(across(where(is.numeric), ~ gsub("([[:digit:]])[.]([[:digit:]])","\\1·\\2", .)))
+
+  
+
+
+
+################################################################################
+
+################################################################################
+#' _____________________________________________________________________________
+#' Baseline cost regression tabulations
+
+
+res_path_prediag_models <- "~/Miscellaneous/HDI/Final_results2/Net costs/Prediag results/Prediag_model_outputs_2025-04-14.xlsx"
+res_path_prediag_tabulation <- "~/Miscellaneous/HDI/Final_results2/Net costs/Prediag results/Costs_GRAIL_baseline_2025-04-14.xlsx"
+
+df_prediag_models_results <- res_path_prediag_models %>% 
+    excel_sheets() %>% 
+    set_names() %>% 
+    discard(.p=str_detect, pattern = "AME") %>%
+    map_df(~ read_excel(path = res_path_prediag_models, sheet = .x), .id = "Sheet") %>%
+  mutate(`Cancer type` = case_when(grepl("colorectal", Sheet) ~ "Colorectal", 
+                                   grepl("head_neck", Sheet) ~ "Head and neck",
+                                   grepl("liver", Sheet) ~ "Liver",
+                                   grepl("lung", Sheet) ~ "Lung",
+                                   grepl("lymphoma", Sheet) ~ "Lymphoma",
+                                   grepl("oesophagus", Sheet) ~ "Oesophageal",
+                                   grepl("ovary", Sheet) ~ "Ovarian",
+                                   grepl("pancreas", Sheet) ~ "Pancreatic", .default = NA), .before = Sheet) %>%
+    mutate(`Regression model` = case_when(grepl("2p1", Sheet) ~ "Logistic regression", 
+                                   grepl("2p2", Sheet) ~ "GLM", .default = NA), .before = Sheet) %>%
+  mutate(term = case_when(grepl("(Intercept)", term) ~ "Intercept", 
+                                    term == "age" ~ "Age",
+                                   grepl("I", term) ~ "Age^2",
+                                   grepl("gender_2", term) ~ "Gender: Female",
+                                   grepl("eth_group_mixed_other", term) ~ "Ethnicity: Mixed & Other",
+                          grepl("eth_group_asian", term) ~ "Ethnicity: Asian",
+                          grepl("eth_group_black", term) ~ "Ethnicity: Black",
+                          grepl("eth_group_unknown", term) ~ "Ethnicity: Unknown",
+                          grepl("quintile_2015_2", term) ~ "IMD quintile: 2",
+                          grepl("quintile_2015_3", term) ~ "IMD quintile: 3",
+                          grepl("quintile_2015_4", term) ~ "IMD quintile: 4",
+                          grepl("quintile_2015_5_most_deprived", term) ~ "IMD quintile: 5",
+                          grepl("chrl_tot_78_06_1", term) ~ "CCI score: 1",
+                          grepl("chrl_tot_78_06_2", term) ~ "CCI score: 2",
+                          grepl("chrl_tot_78_06_3", term) ~ "CCI score: 3",
+                          grepl("chrl_tot_78_06_4", term) ~ "CCI score: 4",
+                          grepl("final_route_2_emergency_presentation", term) ~ "Route to Diagnosis: Emergency presentation",
+                          grepl("final_route_3_other", term) ~ "Route to Diagnosis: Other",
+                          grepl("final_route_4_screening", term) ~ "Route to Diagnosis: Screening", .default = NA)) %>%
+  select(-Sheet, -p.value) %>%
+  rename(`Model covariate` = term) %>%
+   mutate(across(where(is.numeric), round, 3)) %>%
+  pivot_wider(names_from = `Regression model`, values_from = c(estimate, std.error), names_glue = "{`Regression model`}: {.value}")%>%
+     mutate(across(where(is.numeric), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .))) 
+
+
+
+df_prediag_cost_tabulations <- res_path_prediag_tabulation %>% 
+    excel_sheets() %>% 
+    set_names() %>% 
+    map_df(~ read_excel(path = res_path_prediag_tabulation, sheet = .x), .id = "Sheet") %>%
+  rename(Characteristic = `...1`,
+        `Sub-characteristic` = `...2`) %>% 
+        mutate(`Cancer type` = case_when(Sheet == "T2_costs_lung" ~ "Lung",
+                                       Sheet == "T2_costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2_costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2_costs_liver" ~ "Liver",
+                                       Sheet == "T2_costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2_costs_oesophagus" ~ "Oesophageal",
+                                       Sheet == "T2_costs_ovary" ~ "Ovarian",
+                                       Sheet == "T2_costs_pancreas" ~ "Pancreatic",
+                                       .default = Sheet )) %>%
+        select(-Sheet) %>%
+        select(Characteristic, `Sub-characteristic`, `Cancer type`, costs_2015:costs_2017) %>%
+  rename(`2015` = costs_2015,
+         `2016` = costs_2016,
+         `2017` = costs_2017) %>%
+  pivot_longer(cols = `2015`:`2017`, values_to = "values", names_to = "names") %>%
+  separate_wider_delim(values, " ", names = c("mean", "sd", "se")) %>%
+  mutate(mean = scales::dollar_format(prefix = "£")(round(as.numeric(mean),1)),
+         sd = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(sd, 2, -2)),1)),
+         se = scales::dollar_format(prefix = "£")(round(as.numeric(str_sub(se, 2, -2)),1))) %>%
+  mutate(recombined = paste0(mean, " (",sd,") {",se,"}")) %>%
+  select(-mean, -sd, -se) %>%
+  fill(Characteristic, .direction = c("down")) %>%
+  pivot_wider(names_from = "names", values_from = "recombined") %>%
+  group_by(`Cancer type`, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()%>%
+     mutate(across(where(is.character), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .)))
+
+
+
+# df_total_overall_costs <- df_net_regression_absolute %>%
+#   filter(cost_outcome == "Overall costs") %>%
+#   filter(Stage %in% c("I", "II", "III", "IV")) %>%
+#   left_join(
+#     l_allcause_descriptives_8cancers[[1]] %>%
+#       fill(`...1`, .direction = "down") %>% 
+#       filter(`...1` == "Stage at diagnosis" & `...2` %in% c("1", "2", "3", "4")) %>%
+#       mutate(Stage = case_when(`...2` == "1" ~ "I",
+#                                `...2` == "2" ~ "II", 
+#                                `...2` == "3" ~ "III", 
+#                                `...2` == "4" ~ "IV", .default = NA)) %>%
+#       pivot_longer(cols = `Lung N (%)`:`Pancreatic N (%)`, values_to = "num_patients") %>%
+#       mutate(num_patients =  str_replace(num_patients, "\\(.*",""),
+#              num_patients =  as.numeric(str_sub(num_patients, start=1, end=-2)),
+#              name =  str_sub(name, start=1, end=-7)) %>%
+#       mutate(name = case_when(name == "Head & Neck" ~ "Head and neck", .default = name)) %>%
+#       select(-`...1`, -`...2`),
+#     by = c("cancer_type" = "name", "Stage" )) %>%
+#   mutate(total_cost = num_patients * absolute_average)
+
+
+
+# df_bystage_average <- df_total_overall_costs %>%
+#   group_by(Stage) %>%
+#   summarise(total_cost_earlyVlate = sum(total_cost),
+#             total_patients_earlyVlate = sum(num_patients)) %>%
+#   ungroup() %>%
+#   mutate(average_cost_earlyVlate = total_cost_earlyVlate/total_patients_earlyVlate)
+
+
+# df_earlyVlate_average <- df_total_overall_costs %>%
+#   mutate(Stage = case_when(Stage %in% c("I", "II") ~ "Early",
+#                            Stage %in% c("III", "IV") ~ "Late", .default = NA)) %>%
+#   group_by(Stage) %>%
+#   summarise(total_cost_earlyVlate = sum(total_cost),
+#             total_patients_earlyVlate = sum(num_patients)) %>%
+#   ungroup() %>%
+#   mutate(average_cost_earlyVlate = total_cost_earlyVlate/total_patients_earlyVlate)
+
+
+```
+
+```{r}
+# Manuscript tables
+
+### Manuscript Table 1: Patient characteristics 
+write_csv(x = l_allcause_descriptives_8cancers[[1]] ,
+  file = "~/Miscellaneous/HDI/Code for publication/table_1.csv")
+               
+    
+```
+
+
+```{r}
+## Table 2
+
+write.csv(x = df_net_regression_stage1_table_format %>% 
+     pivot_wider(names_from = cancer_type, values_from = average_25_975) %>%
+  mutate(Covariate = "Stage: I", .before = outcome) %>%
+     filter(outcome == "Overall costs") %>%
+     select(-outcome) %>%
+     bind_rows(df_net_AME %>%
+                 filter(cost_outcome == "Overall costs") %>%
+                 select(-cost_outcome) %>%
+                 pivot_wider(names_from = cancer_type, values_from = `Average marginal effect (95% CI)`)) %>%
+  filter(Covariate %in% c("Stage: I", "Stage: II", "Stage: III", "Stage: IV")) %>%
+  pivot_longer(cols = "Colorectal":"Pancreatic", names_to = "Cancer type", values_to = "Cost") %>%
+  pivot_wider(names_from = "Covariate", values_from = "Cost"),
+  file = "~/Miscellaneous/HDI/Code for publication/table_2.csv")
+               
+      
+                  
+```
+
+\
+
+# Supplemental Tables
+
+## S1: patient characteristics for each cancer site by stage at diagnosis.
+
+### Supplemental Table S1a: patient characteristics by stage at diagnosis: colorectal cancer.
+
+```{r}
+#(note lung comes first then alphabetical so starting at 3)
+
+gt(l_allcause_descriptives_8cancers[[3]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+
+
+```
+
+### Supplemental Table S1b: patient characteristics by stage at diagnosis: head and neck cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[4]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+### Supplemental Table S1c: patient characteristics by stage at diagnosis: liver cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[5]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+### Supplemental Table S1d: patient characteristics by stage at diagnosis: lung cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[2]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+### Supplemental Table S1e: patient characteristics by stage at diagnosis: lymphoma cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[6]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+### Supplemental Table S1f: patient characteristics by stage at diagnosis: oesophageal cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[7]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+### Supplemental Table S1g: patient characteristics by stage at diagnosis: ovarian cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[8]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+### Supplemental Table S1h: patient characteristics by stage at diagnosis: pancreatic cancer.
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[9]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`)) |>
+  cols_align(align = "right", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  tab_source_note(source_note = "GP: general practitioner; SD: standard deviation; TWW: GP urgent cancer two-week wait referral.")
+```
+
+\
+
+## Stage completeness.
+
+\
+
+### Supplemental Table S1i: stage completeness (proportion without unknown or missing stage) by cancer type, stage, and year of diagnosis.
+
+```{r}
+gt(df_stage_missing %>% 
+     mutate(`site` = ifelse(duplicated(`site`), NA, `site`)) 
+   %>% mutate(`site` = case_when(`site` == "Head & Neck" ~ "Head and neck",.default = `site`))) |>
+  sub_missing( missing_text = "") |> cols_label(`site` = "Cancer type", `diagnosis year` = "Year of diagnosis" ) |>
+    tab_spanner(label = "Stage at diagnosis (n [%])", columns = c( `1`, `2`, `3`, `4`, `Unknown/Missing`))|>
+  cols_align(align = "right", columns = c(`diagnosis year`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+\
+
+## S2: net regression-adjusted overall hospital costs results
+
+### Supplemental Table S2a: net regression-adjusted overall hospital costs by patient characteristics and cancer type.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     pivot_wider(names_from = cancer_type, values_from = average_25_975) %>%
+  mutate(Covariate = "Stage: I", .before = outcome) %>%
+     filter(outcome == "Overall costs") %>%
+     select(-outcome) %>%
+     bind_rows(df_net_AME %>%
+                 filter(cost_outcome == "Overall costs") %>%
+                 select(-cost_outcome) %>%
+                 pivot_wider(names_from = cancer_type, values_from = `Average marginal effect (95% CI)`)),
+   rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = "Stage: I"
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression") |>
+  cols_align(align = "right", columns = `Colorectal`:`Pancreatic`) %>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+
+
+```
+
+## S3: net regression-adjusted phase of care hospital costs results
+
+### Supplemental Table S3a: net regression-adjusted phase of care hospital costs by patient characteristics: colorectal cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Colorectal") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Colorectal") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+  
+```
+
+### Supplemental Table S3b: net regression-adjusted phase of care hospital costs by patient characteristics: head and neck cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Head and neck") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Head and neck") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+  
+```
+
+### Supplemental Table S3c: net regression-adjusted phase of care hospital costs by patient characteristics: liver cancer.
+
+```{r}
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Liver") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Liver") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S3d: net regression-adjusted phase of care hospital costs by patient characteristics: lung cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Lung") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Lung") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+
+```
+
+### Supplemental Table S3e: net regression-adjusted phase of care hospital costs by patient characteristics: lymphoma cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Lymphoma") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Lymphoma") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+
+```
+
+### Supplemental Table S3f: net regression-adjusted phase of care hospital costs by patient characteristics: oesophageal cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Oesophageal") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Oesophageal") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S3g: net regression-adjusted phase of care hospital costs by patient characteristics: ovarian cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Ovarian") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Median (2.5th and 97.5th percentile)", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Ovarian") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Median (2.5th and 97.5th percentile)")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S3h: net regression-adjusted phase of care hospital costs by patient characteristics: pancreatic cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+     filter(grepl("phase", outcome))%>% 
+     filter(cancer_type == "Pancreatic") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("phase"), cost_outcome)) %>%
+    filter(cancer_type == "Pancreatic") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns = `Diagnosis phase`:`End of life phase`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S3i: mean proportion of phase of care observed.
+
+```{r}
+# gt(df_allcause_annual_and_phase_personsNmonths_8cancers %>%
+#      select(`Cancer type`, Stage,  `Diag phase mean proportion`:`End of life phase mean proportion`) %>%
+#      mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`)) %>%
+#      rename_with(~stringr::str_replace(.,pattern = 'mean proportion',replacement =':Mean proportion'),
+#                      dplyr::contains('mean proportion')) %>%
+#      mutate(across(where(is.numeric), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+#        "\\1·\\2", .)))) |>
+#   sub_missing( missing_text = "")|>
+#   cols_align(align = "right", columns =  `Diag phase :Mean proportion`:`End of life phase :Mean proportion`) %>%
+#       tab_spanner_delim(delim = ":", reverse = TRUE)
+
+
+gt(df_allcause_annual_and_phase_personsNmonthscensored_8cancers %>%
+     mutate(across(`Diag phase:mean follow-up observed (%)`:`End of life phase:mean follow-up observed (%)`, ~ .x * 100)) %>%
+          select(`Cancer type`, Stage,  `Diag phase:mean follow-up observed (%)`:`End of life phase:mean follow-up observed (%)`,
+                 `Initial treatment phase (0-1 years):moved to EOL (%)`:`End of life phase:12 months in phase (%)` ) %>%
+     select(`Cancer type`, Stage, contains("Diag phase"), contains("Initial treatment phase (0-1 years)"),
+            contains("Continuing phase (1-2 years)"), contains("Continuing phase (2-3 years)"),
+            contains("Continuing phase (3-4 years)"), contains("Continuing phase (4-5 years)"),
+            contains("Continuing phase (5-6 years)"), contains("End of life")) %>%
+     select(-`Diag phase:mean follow-up observed (%)`,
+            -`Initial treatment phase (0-1 years):censored (%)`,
+            -`Continuing phase (1-2 years):censored (%)`) %>%
+     mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`)) %>%
+     mutate(across(where(is.numeric),  round, 0)) %>%
+     mutate(across(where(is.numeric), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .)))) |>
+  sub_missing( missing_text = "")|>
+  tab_spanner_delim(delim = ":", reverse = FALSE) %>%
+  tab_source_note(source_note = "Censoring occurs once the end of the follow-up period is reached (31 Dec 2019)") 
+
+
+
+```
+
+## S4: net regression-adjusted annual period hospital cost results
+
+### Supplemental Table S4a: net regression-adjusted annual period hospital costs by patient characteristics: colorectal cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Colorectal") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Colorectal") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression") |>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`) %>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+
+```
+
+### Supplemental Table S4b: net regression-adjusted annual period hospital costs by patient characteristics: head and neck cancer.
+
+```{r}
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Head and neck") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Head and neck") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`) %>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S4c: net regression-adjusted annual period hospital costs by patient characteristics: liver cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Liver") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Liver") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S4d: net regression-adjusted annual period hospital costs by patient characteristics: lung cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Lung") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Lung") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`) %>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S4e: net regression-adjusted annual period hospital costs by patient characteristics: lymphoma cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Lymphoma") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Lymphoma") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+
+```
+
+### Supplemental Table S4f: net regression-adjusted annual period hospital costs by patient characteristics: oesophageal cancer.
+
+```{r}
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Oesophageal") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Oesophageal") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`) %>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S4g: net regression-adjusted annual period hospital costs by patient characteristics: ovarian cancer.
+
+```{r}
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Ovarian") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Ovarian") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`) %>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S4h: net regression-adjusted annual period hospital costs by patient characteristics: pancreatic cancer.
+
+```{r}
+
+gt(df_net_regression_stage1_table_format %>% 
+filter(grepl(c("diagnosis"), outcome)) %>%
+  filter(cancer_type == "Pancreatic") %>%
+     arrange(outcome) %>%
+     pivot_wider(names_from = "outcome", values_from = "average_25_975") %>%
+     mutate(Covariate = "Stage: I", .before = cancer_type) %>%
+  select(-cancer_type) %>%
+    bind_rows(df_net_AME %>% 
+    filter(grepl(c("diagnosis"), cost_outcome)) %>%
+    filter(cancer_type == "Pancreatic") %>% 
+    select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)),
+rowname_col = "Covariate" ) %>%
+  tab_row_group(
+    label = "Average predicted cost (95% CI)",
+    rows = contains("Stage: I")
+  ) %>%
+    tab_row_group(
+    label = "Average marginal effect (95% CI): Increase in costs relative to stage I",
+    rows = c( "Stage: II", "Stage: III", "Stage: IV")
+  ) %>%
+  row_group_order(groups = c("Average predicted cost (95% CI)", "Average marginal effect (95% CI): Increase in costs relative to stage I")) |>
+  tab_options(row_group.default_label = "Average marginal effect (95% CI): covariates, potential confounders included in regression")|>
+  cols_align(align = "right", columns =  `0-6 months before diagnosis`:`5-6 years after diagnosis`)%>%
+  tab_source_note(source_note = "CCI: Charlson comorbidity index; CI: confidence interval; IMD: index of multiple deprivation") %>%
+  tab_source_note(source_note = "Age was considered a continuous covariate, giving the average marginal effect per additional year of age. All other covariates were considered binary variables with reference categories: Stage: I; Gender: Male; CCI score: 0; Ethnicity: White; IMD quintile: 1 (least deprived)")
+
+```
+
+### Supplemental Table S4i: mean proportion of annual period observed.
+
+```{r}
+# gt(df_allcause_annual_and_phase_personsNmonths_8cancers %>%
+#      select(`Cancer type`, Stage,`0-6 months prior to diagnosis mean proportion`:`5-6 years after diagnosis mean proportion`) %>%
+#      mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`))%>%
+#      rename_with(~stringr::str_replace(.,pattern = 'mean proportion',replacement =':Mean proportion'),
+#                      dplyr::contains('mean proportion')) %>%
+#      mutate(across(where(is.numeric), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+#        "\\1·\\2", .)))) |>
+#   sub_missing( missing_text = "")|>
+#   cols_align(align = "right", columns =  `0-6 months prior to diagnosis :Mean proportion`:`5-6 years after diagnosis :Mean proportion`)%>%
+#       tab_spanner_delim(delim = ":", reverse = TRUE)
+# 
+
+
+gt(df_allcause_annual_and_phase_personsNmonthscensored_8cancers %>%
+     mutate(across(`0-6 months prior to diagnosis:mean follow-up observed (%)`:`5-6 years after diagnosis:mean follow-up observed (%)`, ~ .x * 100)) %>%
+          select(`Cancer type`, Stage,  `0-6 months prior to diagnosis:mean follow-up observed (%)`:`5-6 years after diagnosis:mean follow-up observed (%)`,
+                 `0-1 years after diagnosis:died in period (%)`:`5-6 years after diagnosis:censored (%)` ) %>%
+     select(`Cancer type`, Stage, contains("0-6"), contains("0-1 years"),
+            contains("1-2 years"), contains("2-3 years"),
+            contains("3-4 years"), contains("4-5 years"),
+            contains("5-6 years")) %>%
+     select(-`0-6 months prior to diagnosis:mean follow-up observed (%)`,
+            -`0-1 years after diagnosis:censored (%)`,
+            -`1-2 years after diagnosis:censored (%)`) %>%
+     mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`)) %>%
+     mutate(across(where(is.numeric),  round, 0)) %>%
+     mutate(across(where(is.numeric), ~ gsub("([[:digit:]])[.]([[:digit:]])",
+       "\\1·\\2", .)))) |>
+  sub_missing( missing_text = "")|>
+  tab_spanner_delim(delim = ":", reverse = FALSE) %>%
+  tab_source_note(source_note = "Censoring occurs once the end of the follow-up period is reached (31 Dec 2019)") 
+
+
+
+
+```
+
+
+
+
+## S5: baseline costs results
+
+### Supplemental Table S5a: regression summaries for the baseline costs prediction models.
+
+```{r}
+gt(df_prediag_models_results %>%
+     mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`)) %>%
+     select(`Cancer type`, `Model covariate`, `Logistic regression: estimate`, `Logistic regression: std.error`, `GLM: estimate`, `GLM: std.error`))|> 
+  sub_missing( missing_text = "")|>    cols_align(align = "right", columns = `Logistic regression: estimate`:`GLM: std.error`)%>%
+    tab_source_note(source_note = "CCI: Charlson comorbidity index; GLM: generalized linear model; IMD: index of multiple deprivation")
+
+
+
+```
+
+### Supplemental Table S5b: average baseline costs by year of diagnosis: Colorectal cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Colorectal") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`) %>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5c: average baseline costs by year of diagnosis: head and neck cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Head and neck") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5d: average baseline costs by year of diagnosis: liver cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Liver") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5e: average baseline costs by year of diagnosis: lung cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Lung") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5f: average baseline costs by year of diagnosis: lymphoma cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Lymphoma") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5g: average baseline costs by year of diagnosis: oesophageal cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Oesophageal") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5h: average baseline costs by year of diagnosis: ovarian cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Ovarian") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### Supplemental Table S5i: average baseline costs by year of diagnosis: pancreatic cancer.
+
+```{r}
+
+gt(df_prediag_cost_tabulations %>% 
+     filter(`Cancer type` == "Pancreatic") %>%
+     select(-`Cancer type`)) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Baseline costs by year of diagnosis, mean (sd) {se}", columns = `2015`:`2017`)|>   
+  cols_align(align = "right", columns = `2015`:`2017`)%>%
+    tab_source_note(source_note = "GP: general practitioner; IQR: interquartile range; SD: standard deviation; SE: standard error; TWW: two week wait")
+
+
+
+```
+
+### S6: monthly hospital costs results
+
+### Supplemental Table S6a: monthly net regression-adjusted hospital costs
+
+```{r}
+
+gt(df_net_regression_absolute_monthly %>%
+     mutate(mean_25_975 = paste0(`Monthly mean cost`, " (", `Monthly 2.5CI`, ", " ,`Monthly 97.5CI`,")")) %>%
+     select(cancer_type , cost_outcome, Stage, mean_25_975) %>%
+     pivot_wider(names_from = "Stage", values_from = "mean_25_975") %>%
+     rename(`Cancer type` = cancer_type,
+            `Annual period/phase` = cost_outcome) %>%
+       mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`))) |> 
+  sub_missing( missing_text = "") %>%
+  tab_spanner(label = "Stage", columns = `I`:`IV`)|>   
+  cols_align(align = "right", columns = `I`:`IV`)%>%
+    cols_align(align = "left", columns = `Cancer type`:`Annual period/phase`) 
+
+
+
+```
+
+```{r}
+
+df_N_cancertypestage <- l_net_descriptives_8cancers[[1]] %>%
+  fill(`...1`, .direction = "down") %>%
+  filter(`...1` == "Stage at diagnosis") %>%
+  filter(`...2` != "Unknown/Missing") %>% 
+  rename(Stage = `...2`) %>%
+  select(-`...1`) %>%
+  pivot_longer(`Lung N (%)`:`Pancreas N (%)`, names_to = "cancer_type", values_to = "N") %>%
+  mutate(Stage = case_when(Stage == "1" ~ "I",
+                           Stage == "2" ~ "II",
+                           Stage == "3" ~ "III",
+                           Stage == "4" ~ "IV", .default = NA)) %>%
+  mutate(cancer_type = case_when(grepl(c("Lung"), cancer_type) ~ "Lung",
+                                 grepl(c("Colorectal"), cancer_type) ~ "Colorectal",
+                                 grepl(c("Head_neck"), cancer_type) ~ "Head and neck",
+                                 grepl(c("Liver"), cancer_type) ~ "Liver",
+                                 grepl(c("Lymphoma"), cancer_type) ~ "Lymphoma",
+                                 grepl(c("Oesophagus"), cancer_type) ~ "Oesophageal",
+                                 grepl(c("Ovary"), cancer_type) ~ "Ovarian",
+                                  grepl(c("Pancreas"), cancer_type) ~ "Pancreatic", .default = NA)) %>%
+  mutate(N = as.numeric(stringr::str_replace(N, "(?s) .*", "") )) %>%
+  mutate(N = format(N , nsmall=0, big.mark=","))
+
+
+Figure_1_net_overall_cost <- df_net_regression_absolute %>%
+        filter(cost_outcome == "Overall costs") %>%
+       filter(Stage != "Missing/Unknown") %>%
+    left_join(df_N_cancertypestage, by = c("cancer_type", "Stage")) %>%
+    mutate(N = paste0("n = ", N)) %>%
+        ggplot() +
+        geom_bar(aes(y = absolute_average, x = Stage, group = Stage, fill = Stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = Stage, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+         facet_wrap(~cancer_type,  ncol= 2) +
+        #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(limits = c(-10000,50000), breaks = c(0, 10000, 20000, 30000, 40000, 50000),labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#D29A22", "#628592", "#666666", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        geom_hline(yintercept=0)  +
+        guides(fill="none", colour = "none")+
+        labs(fill = "", x = "Stage at diagnosis", y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+               panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+              ) +
+        geom_text(mapping = aes(x = Stage, y = -5000, label = N ), size= 3) 
+
+# Add roboto font for Helen
+# library(sysfonts)
+# library(showtext)
+# font_add_google(name = "Roboto", family = "roboto")
+# showtext_auto()
+
+
+
+Helen_Figure_1_net_overall_cost <- df_net_regression_absolute %>%
+        filter(cost_outcome == "Overall costs") %>%
+       filter(Stage != "Missing/Unknown") %>%
+    left_join(df_N_cancertypestage, by = c("cancer_type", "Stage")) %>%
+    filter(cancer_type %in% c("Colorectal", "Head and neck",  "Lymphoma", "Ovarian")) %>%
+    #  filter(cancer_type %in% c("Liver", "Lung",  "Oesophageal", "Pancreatic")) %>%
+ # mutate(cancer_type = factor(cancer_type, levels = c("Colorectal", "Head and neck", "Lymphoma", "Ovarian", "Liver", "Lung", "Oesophageal", "Pancreatic"))) %>%
+  # mutate(cancer_type = factor(cancer_type, levels = c("Colorectal", "Liver", "Head and neck","Liver",  "Lymphoma","Oesophageal", "Ovarian", "Pancreatic"))) %>%
+    mutate(N = paste0("n = ", N)) %>%
+        ggplot() +
+        geom_bar(aes(y = absolute_average, x = Stage, group = Stage, fill = Stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = Stage, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+         facet_wrap(~cancer_type,  ncol= 4) +
+        #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(limits = c(-10000,50000), breaks = c(0, 10000, 20000, 30000, 40000, 50000),labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#D29A22", "#628592", "#666666", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        geom_hline(yintercept=0)  +
+        guides(fill="none", colour = "none")+
+        labs(fill = "", x = "Stage at diagnosis", y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+               panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()
+              ) +
+        geom_text(mapping = aes(x = Stage, y = -5000, label = N ), size= 3) 
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "Landscape_goodprog_fig_1.png"), Helen_Figure_1_net_overall_cost, device = "png",
+       width = 300,
+       height = 100,
+       units = "mm")
+
+
+
+
+
+
+
+
+# Figure 1, The overall costs
+
+Figure_1_net_overall_cost <- df_net_regression_absolute %>%
+        filter(cost_outcome == "Overall costs") %>%
+       filter(Stage != "Missing/Unknown") %>%
+        ggplot() +
+        geom_bar(aes(y = absolute_average, x = Stage, group = Stage, fill = Stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = Stage, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+         facet_wrap(~cancer_type,  ncol= 2) +
+        #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#D29A22", "#628592", "#666666", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        geom_hline(yintercept=0)  +
+        guides(fill="none", colour = "none")+
+        labs(fill = "", x = "Stage at diagnosis", y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.ticks.y=element_blank())
+
+# 
+# 
+# Figure_1_net_overall_cost <- df_net_regression_absolute %>%
+#     mutate(absolute_conf_low = case_when(Stage == "I" ~ NA, .default = absolute_conf_low),
+#          absolute_conf_high = case_when(Stage == "I" ~ NA, .default = absolute_conf_high)) %>%
+#         filter(cost_outcome == "Overall costs") %>%
+#        filter(Stage != "Missing/Unknown") %>%
+#   mutate(lower = case_when(Stage == "II" ~ lag(absolute_average, 1),
+#                            Stage == "III" ~ lag(absolute_average, 2),
+#                            Stage == "IV" ~ lag(absolute_average, 3),
+#                            .default = 0)) %>%
+#         ggplot() +
+#         geom_segment(aes(x = Stage, xend = Stage, y = lower, yend = absolute_average, colour = Stage),
+#                  position= position_dodge(0.1),
+#                  stat = "identity",
+#                  size = 10) +
+#         geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = Stage, group = Stage),
+#                       position= position_dodge(0.1), width = 0.2, colour = "black",) +
+#         geom_hline(data = df_net_regression_absolute %>% 
+#                      filter(Stage == "I") %>% 
+#                              filter(cost_outcome == "Overall costs") %>%
+#        filter(Stage != "Missing/Unknown") %>%
+#          group_by(cancer_type),
+#              mapping = aes(yintercept = absolute_average, group = Stage), linetype = "dashed") +
+#          geom_text(data = data.frame(x = "I", y = 40000, cancer_type = "Colorectal", label = "Avg. cost\nprediction"), 
+#                    aes(x = x, y = y, label = label), size = 4) +
+#          geom_text(data = data.frame(x = "III", y = 7000, cancer_type = "Colorectal", label = "Avg. difference to stage I (95% CI)"), 
+#                    aes(x = x, y = y, label = label), size = 4) +
+#          geom_segment(data = data.frame(x = "I", xend = "I", y = 30000, yend = 23000, cancer_type = "Colorectal"),
+#                                         aes(x = x, y = y, xend = xend, yend = yend),
+#                   arrow = arrow(length = unit(0.1, "cm"))) +
+#            geom_segment(data = data.frame(x = "III", xend = "II", y = 13000, yend = 19000, cancer_type = "Colorectal"),
+#                                         aes(x = x, y = y, xend = xend, yend = yend),
+#                   arrow = arrow(length = unit(0.1, "cm"))) +
+#              geom_segment(data = data.frame(x = "III", xend = "III", y = 13000, yend = 19000, cancer_type = "Colorectal"),
+#                                         aes(x = x, y = y, xend = xend, yend = yend),
+#                   arrow = arrow(length = unit(0.1, "cm"))) +
+#              geom_segment(data = data.frame(x = "III", xend = "IV", y = 13000, yend = 19000, cancer_type = "Colorectal"),
+#                                         aes(x = x, y = y, xend = xend, yend = yend),
+#                   arrow = arrow(length = unit(0.1, "cm"))) +
+#          facet_wrap(~cancer_type,  ncol= 2) +
+#         #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+#         scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+#         scale_colour_manual(values = c("#D29A22", "#628592", "#666666", "#3B1C52")) +
+#         #, guide = guide_legend(reverse = TRUE)) +
+#         geom_hline(yintercept=0)  +      
+#         guides(fill="none", colour = "none")+
+#         labs(colour = "", x = "Stage at diagnosis", y = "Average patient cost") +
+#         theme_bw() +
+#         theme(axis.title = element_text(face = "bold", size = 17),
+#               strip.background = element_rect(fill="white"),
+#               strip.text = element_text(face = "bold", size = 13),
+#               axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+#               axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+#               axis.ticks.y=element_blank())
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_1.png"), Figure_1_net_overall_cost, device = "png",
+       width = 200,
+       height = 200,
+       units = "mm")
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_1.eps"), Figure_1_net_overall_cost, device = "eps",
+       width = 200,
+       height = 200,
+       units = "mm")
+
+```
+
+```{r}
+# Figure 2, Phase of care
+# Figure_2_net_PoC_cost <- df_net_regression_absolute %>%
+#   filter(cost_outcome %in% c( "Diagnosis phase", "Initial phase (0-1 years)", "Continuing phase (1-2 years)", 
+#                               "Continuing phase (2-3 years)",  "Continuing phase (3-4 years)", "Continuing phase (4-5 years)",
+#                               "Continuing phase (5-6 years)", "End of life phase")) %>%
+#   mutate(cost_outcome = case_when(cost_outcome == "Initial phase (0-1 years)" ~"Initial phase\n(0-1 years)" ,
+#                               cost_outcome == "Continuing phase (1-2 years)" ~ "Continuing phase\n(1-2 years)", 
+#                               cost_outcome == "Continuing phase (2-3 years)" ~ "Continuing phase\n(2-3 years)",
+#                               cost_outcome == "Continuing phase (3-4 years)" ~"Continuing phase\n(3-4 years)",
+#                               cost_outcome == "Continuing phase (4-5 years)" ~ "Continuing phase\n(4-5 years)",
+#                               cost_outcome == "Continuing phase (5-6 years)" ~ "Continuing phase\n(5-6 years)",
+#                               .default = cost_outcome)) %>%
+#   mutate(cost_outcome = factor(cost_outcome, levels = c( "Diagnosis phase", "Initial phase\n(0-1 years)", "Continuing phase\n(1-2 years)", 
+#                               "Continuing phase\n(2-3 years)", "Continuing phase\n(3-4 years)", "Continuing phase\n(4-5 years)",
+#                               "Continuing phase\n(5-6 years)", "End of life phase"))) %>%
+#        filter(Stage != "Missing/Unknown") %>%
+#           ggplot() +
+#         geom_bar(aes(y = absolute_average, x = cancer_type, group = Stage, fill = Stage),
+#                  position= position_dodge(0.5),
+#                  stat = "identity",
+#                  width = .5) +
+#         geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = cancer_type, group = Stage),
+#                       position= position_dodge(0.5), width = 0.2, colour = "black",) +
+#         facet_grid(rows = vars(cost_outcome) , switch = NULL, scales = "fixed") +
+#         #coord_flip() +
+#         scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+#   scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+#         scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = FALSE)) +
+#         labs(fill = "Stage at diagnosis", x = NULL, y = "Average patient costs (95% CI)") +
+#         theme_bw() +
+#         theme(legend.position="bottom",
+#               axis.title = element_text(face = "bold", size = 17),
+#               strip.background = element_rect(fill="white"),
+#               strip.text.y = element_text(angle = 0, size = 11),
+#               strip.text = element_text( size = 11),
+#               axis.text.x = element_text(angle = 0, size = 11),
+#               axis.text.y = element_text(angle = 0, size = 11) )  
+
+
+Figure_2_net_PoC_cost <- df_net_regression_absolute %>%
+  filter(cost_outcome %in% c( "Diagnosis phase", "Initial phase (0-1 years)", "Continuing phase (1-2 years)", 
+                              "Continuing phase (2-3 years)",  "Continuing phase (3-4 years)", "Continuing phase (4-5 years)",
+                              "Continuing phase (5-6 years)", "End of life phase")) %>%
+  mutate(cost_outcome = case_when(cost_outcome == "Initial phase (0-1 years)" ~"Initial\n(0-1y)" ,
+                              cost_outcome == "Continuing phase (1-2 years)" ~ "Continuing\n(1-2y)", 
+                              cost_outcome == "Continuing phase (2-3 years)" ~ "Continuing\n(2-3y)",
+                              cost_outcome == "Continuing phase (3-4 years)" ~ "Continuing\n(3-4y)",
+                              cost_outcome == "Continuing phase (4-5 years)" ~ "Continuing\n(4-5y)",
+                              cost_outcome == "Continuing phase (5-6 years)" ~ "Continuing\n(5-6y)",
+                              cost_outcome == "End of life phase" ~ "EoL",
+                              cost_outcome == "Diagnosis phase" ~ "Diagnosis",
+                              .default = cost_outcome)) %>%
+  mutate(cost_outcome = factor(cost_outcome, levels = c( "Diagnosis", "Initial\n(0-1y)", "Continuing\n(1-2y)", 
+                              "Continuing\n(2-3y)", "Continuing\n(3-4y)", "Continuing\n(4-5y)",
+                              "Continuing\n(5-6y)", "EoL"))) %>%
+       filter(Stage != "Missing/Unknown") %>%
+          ggplot() +
+        geom_bar(aes(y = absolute_average, x = fct_rev(Stage), group = fct_rev(Stage), fill = fct_rev(Stage)),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = fct_rev(Stage), group = fct_rev(Stage)),
+                      position= position_dodge(0.5), width = 0.2, colour = "black") +
+        facet_grid(cols = vars(cost_outcome), rows = vars(cancer_type) , switch = "y", scales = "fixed") +
+        coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"), breaks = c(0,30000), limits = c(-10000,40000)) +
+        scale_fill_manual(values = c( "#3B1C52", "#666666","#628592", "#D29A22"), guide = guide_legend(reverse = TRUE)) +
+        #scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y.left = element_text(face = "bold",angle = 0, size = 10),
+               strip.text.x = element_text(face = "bold", angle = 0, size = 10),
+              strip.text = element_text( size = 10),
+              axis.text.x = element_text(angle = 0, size = 9, hjust = 0.6),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank()) 
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_2.png"), Figure_2_net_PoC_cost, device = "png",
+       width = 200,
+       height = 170,
+       units = "mm")
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_2.eps"), Figure_2_net_PoC_cost, device = "eps",
+       width = 200,
+       height = 170,
+       units = "mm")
+
+## Annual period cost equivalent graph
+
+Figure_X_net_annual_cost <- df_net_regression_absolute %>%
+  filter(cost_outcome %in% c(  "0-1 years after diagnosis", "1-2 years after diagnosis",
+                              "2-3 years after diagnosis", "3-4 years after diagnosis", "4-5 years after diagnosis")) %>%
+  mutate(cost_outcome = factor(cost_outcome, levels = c(  "0-1 years after diagnosis", "1-2 years after diagnosis",
+                              "2-3 years after diagnosis", "3-4 years after diagnosis", "4-5 years after diagnosis"))) %>%
+       filter(Stage != "Missing/Unknown") %>%
+          ggplot() +
+        geom_bar(aes(y = absolute_average, x = fct_rev(Stage), group = fct_rev(Stage), fill = fct_rev(Stage)),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = fct_rev(Stage), group = fct_rev(Stage)),
+                      position= position_dodge(0.5), width = 0.2, colour = "black") +
+        facet_grid(cols = vars(cost_outcome), rows = vars(cancer_type) , switch = "y", scales = "fixed") +
+        #coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"), breaks = c(0,30000), limits = c(-10000,40000)) +
+        scale_fill_manual(values = c( "#3B1C52", "#666666","#628592", "#D29A22"), guide = guide_legend(reverse = TRUE)) +
+        #scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y.left = element_text(face = "bold",angle = 0, size = 10),
+               strip.text.x = element_text(face = "bold", angle = 0, size = 10),
+              strip.text = element_text( size = 10),
+              axis.text.x = element_text(angle = 0, size = 9, hjust = 0.6),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank()) 
+
+Figure_X_net_annual_cost <- df_net_regression_absolute %>%
+   filter(cost_outcome %in% c(  "0-1 years after diagnosis", "1-2 years after diagnosis",
+                              "2-3 years after diagnosis", "3-4 years after diagnosis", "4-5 years after diagnosis")) %>%
+  mutate(cost_outcome = factor(cost_outcome, levels = c(  "0-1 years after diagnosis", "1-2 years after diagnosis",
+                              "2-3 years after diagnosis", "3-4 years after diagnosis", "4-5 years after diagnosis"))) %>%
+       filter(Stage != "Missing/Unknown") %>%
+          ggplot() +
+        geom_bar(aes(y = absolute_average, x = cancer_type, group = Stage, fill = Stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = cancer_type, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+        facet_grid(rows = vars(cost_outcome) , switch = NULL, scales = "fixed") +
+        #coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = FALSE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y = element_text(angle = 0, size = 11),
+              strip.text = element_text( size = 11),
+              axis.text.x = element_text(angle = 0, size = 11),
+              axis.text.y = element_text(angle = 0, size = 11) )
+
+ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", "annual.png"), Figure_X_net_annual_cost, device = "png",
+       width = 200,
+       height = 250,
+       units = "mm")
+
+```
+
+```{r}
+
+
+Figure_3_net_PoC_cost_monthly <- df_net_regression_absolute_monthly %>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[·]([[:digit:]])","\\1.\\2", .))) %>%
+  mutate(across(absolute_average:`Monthly 97.5CI`, as.numeric)) %>%
+  filter(cost_outcome %in% c("Initial phase (0-1 years)", "End of life phase", "0-1 years after diagnosis")) %>%
+    mutate(cost_outcome = case_when(cost_outcome == "Initial phase (0-1 years)" ~ "A) Phase of care: Initial (0-1 years)",
+                                    cost_outcome == "End of life phase" ~ "C) Phase of care: End of life",
+                                    cost_outcome == "0-1 years after diagnosis" ~ "B) Annual cost: 0-1 years after diagnosis", .default = cost_outcome)) %>%
+  mutate(cost_outcome = factor(cost_outcome, levels = c( "A) Phase of care: Initial (0-1 years)",
+                                                         "B) Annual cost: 0-1 years after diagnosis",
+                                                         "C) Phase of care: End of life"))) %>%
+  ggplot() +
+   geom_bar(aes(y = `Monthly mean cost`, x = cancer_type, group = fct_rev(Stage), fill = fct_rev(Stage)),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+          geom_errorbar(aes(ymax = `Monthly 97.5CI`, ymin = `Monthly 2.5CI`, x = cancer_type, group = fct_rev(Stage)),
+                      position= position_dodge(0.5), width = 0.2, colour = "black") +
+          facet_wrap(~ cost_outcome, nrow = 3, scales = "fixed") +
+        #facet_grid(rows = vars(cost_outcome) , switch = NULL, scales = "fixed") +
+        #coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+         # scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = FALSE)) +
+
+        scale_fill_manual(values = c( "#D29A22", "#628592", "#666666", "#3B1C52"), guide = guide_legend(reverse = FALSE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average monthly costs") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y = element_text(angle = 0, size = 11),
+              strip.text = element_text( face = "bold", size = 11),
+              axis.text.x = element_text(angle = 0, size = 11),
+              axis.text.y = element_text(angle = 0, size = 11) )  
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_3.png"), Figure_3_net_PoC_cost_monthly, device = "png",
+       width = 170,
+       height = 150,
+       units = "mm")
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_3.eps"), Figure_3_net_PoC_cost_monthly, device = "eps",
+       width = 170,
+       height = 150,
+       units = "mm")
+
+
+
+# Helen slides
+
+HelenFigure_3_net_PoC_cost_monthly <- df_net_regression_absolute_monthly %>%
+  mutate(across(where(is.character), ~ gsub("([[:digit:]])[·]([[:digit:]])","\\1.\\2", .))) %>%
+  mutate(across(absolute_average:`Monthly 97.5CI`, as.numeric)) %>%
+  filter(cost_outcome %in% c("0-1 years after diagnosis")) %>%
+    mutate(cost_outcome = case_when(cost_outcome == "0-1 years after diagnosis" ~ "Annual cost: 0-1 years after diagnosis", .default = cost_outcome)) %>%
+  mutate(cost_outcome = factor(cost_outcome, levels = c("Annual cost: 0-1 years after diagnosis"))) %>%
+  ggplot() +
+   geom_bar(aes(y = `Monthly mean cost`, x = cancer_type, group = fct_rev(Stage), fill = fct_rev(Stage)),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+          geom_errorbar(aes(ymax = `Monthly 97.5CI`, ymin = `Monthly 2.5CI`, x = cancer_type, group = fct_rev(Stage)),
+                      position= position_dodge(0.5), width = 0.2, colour = "black") +
+          #facet_wrap(~ cost_outcome, nrow = 3, scales = "fixed") +
+        #facet_grid(rows = vars(cost_outcome) , switch = NULL, scales = "fixed") +
+        #coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+         # scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = FALSE)) +
+
+        scale_fill_manual(values = c( "#D29A22", "#628592", "#666666", "#3B1C52"), guide = guide_legend(reverse = FALSE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average monthly costs") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y = element_text(angle = 0, size = 13),
+              strip.text = element_text( face = "bold", size = 13),
+              axis.text.x = element_text(face = "bold", angle = 0, size = 13),
+              axis.text.y = element_text(angle = 0, size = 13) )  
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_3_Helen.png"), HelenFigure_3_net_PoC_cost_monthly, device = "png",
+       width = 300,
+       height = 150,
+       units = "mm")
+
+
+
+```
+
+```{r}
+# Figure S1, Cost difference across the four methods
+
+df_total_difference_compare <- rbind( 
+        
+        df_allcause_unadj_total_costs_basic %>% 
+                pivot_longer(cols = `2014`:`2017`, names_to = "year") %>%
+                separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                                     too_few = "align_start") %>%
+                mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+                       value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+                       value_mean = as.numeric(value_mean)) %>%
+          fill(Characteristic, .direction = "down") %>%
+                filter(grepl(c("Stage at diagnosis"), Characteristic)) %>%
+                rename(stage = `Sub-characteristic`) %>%
+                select(cancer_type, stage, year, value_mean, value_sd) %>%
+                mutate(across(where(is.character), as.factor)) %>%
+                mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+                filter(stage != "0" & stage != "Unknown/Missing") %>%
+                filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic")) %>%
+                filter(year == "2014") %>%
+                select(cancer_type, stage, value_mean, value_sd) %>%
+                # Add number on for SE calc
+                left_join(l_allcause_descriptives_8cancers[[1]][27:30 ,2:10] %>% 
+                                  rename(stage = `...2`) %>%
+                                  pivot_longer(`Lung N (%)`:`Pancreatic N (%)`, values_to = "N", names_to = "cancer_type") %>%
+                                  mutate(across(cancer_type:N, \(x) word(x,1))) %>% mutate(N = as.numeric(N)) %>%
+                                  mutate(cancer_type = case_when(cancer_type == "Head" ~ "Head and neck",
+                                                                 .default = cancer_type))) %>%
+                pivot_wider(names_from = stage, names_prefix = "Stage_", values_from = c("value_mean", "value_sd", "N") ) %>%
+                mutate(mean_Stage1_2 = value_mean_Stage_2 - value_mean_Stage_1,
+                       se_Stage1_2 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_2^2)/N_Stage_2)),
+                       mean_Stage1_3 = value_mean_Stage_3 - value_mean_Stage_1,
+                       se_Stage1_3 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_3^2)/N_Stage_3)),
+                       mean_Stage1_4 = value_mean_Stage_4 - value_mean_Stage_1,
+                       se_Stage1_4 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_4^2)/N_Stage_4))) %>%
+                select(cancer_type, mean_Stage1_2, se_Stage1_2,mean_Stage1_3,se_Stage1_3, mean_Stage1_4, se_Stage1_4) %>%
+                pivot_longer(mean_Stage1_2:se_Stage1_4, names_to = "type_stage", values_to = "estimate") %>%
+                separate_wider_delim(type_stage, "_", names = c("outcome", "stage"), too_many = "merge")%>%
+                mutate(stage = str_sub(stage,-1,-1)) %>%
+                pivot_wider(names_from = "outcome", values_from = "estimate") %>%
+                mutate(value_2.5CI  = mean - qnorm(0.975) * se,
+                       value_97.5CI  = mean + qnorm(0.975) * se) %>%
+                mutate(stage = case_when(stage == "2" ~ "II",
+                                         stage == "3" ~ "III",
+                                         stage == "4" ~ "IV")) %>%
+                mutate(analysis_type = "All-cause unadjusted") %>%
+                mutate(across(where(is.factor), as.character)) %>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type),
+        
+        
+        df_allcause_AME_basic %>%
+           filter(grepl(c("Stage"), variable)) %>%
+        filter(variable != "Stage: Missing/Unknown") %>%
+        filter(grepl("totalcost", cost_outcome)) %>%
+        mutate(cost_outcome = case_when(cost_outcome == "totalcost" ~ "Total cost",
+                                        .default = NA ) ) %>%
+        mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                       cancer_type == "head_neck" ~ "Head and neck",
+                                       cancer_type == "liver" ~ "Liver",
+                                       cancer_type == "lung" ~ "Lung",
+                                       cancer_type == "lymphoma" ~ "Lymphoma",
+                                       cancer_type == "oesophagus" ~ 'Oesophageal',
+                                       cancer_type == "ovary" ~ "Ovarian",
+                                       cancer_type == "pancreas" ~ "Pancreatic",
+                                       .default = NA) )  %>%
+                rename(stage = variable) %>%
+                mutate(stage = case_when(stage == "Stage: II" ~ "II",
+                                         stage == "Stage: III" ~ "III",
+                                         stage == "Stage: IV" ~ "IV")) %>%
+                mutate(analysis_type = "All-cause covariate-adjusted") %>%
+                rename(mean = estimate,
+                       value_2.5CI = conf.low,
+                       value_97.5CI = conf.high)%>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type),
+        
+        
+        df_net_unadj_total_costs_basic %>% 
+                pivot_longer(cols = `2014`:`2017`, names_to = "year") %>%
+                separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                                     too_few = "align_start") %>%
+                mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+                       value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+                       value_mean = as.numeric(value_mean)) %>%
+                fill(Characteristic, .direction = "down") %>%
+                filter(grepl(c("Stage at diagnosis"), Characteristic)) %>%
+                rename(stage = `Sub-characteristic`) %>%
+                select(cancer_type, stage, year, value_mean, value_sd) %>%
+                mutate(across(where(is.character), as.factor)) %>%
+                mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+                filter(stage != "0" & stage != "Unknown/Missing") %>%
+                filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic")) %>%
+                filter(year == "2014") %>%
+                select(cancer_type, stage, value_mean, value_sd) %>%
+                # Add number on for SE calc
+                left_join(l_allcause_descriptives_8cancers[[1]][27:30 ,2:10] %>% 
+                                  rename(stage = `...2`) %>%
+                                  pivot_longer(`Lung N (%)`:`Pancreatic N (%)`, values_to = "N", names_to = "cancer_type") %>%
+                                  mutate(across(cancer_type:N, \(x) word(x,1))) %>% mutate(N = as.numeric(N)) %>%
+                                  mutate(cancer_type = case_when(cancer_type == "Head_neck" ~ "Head and neck",
+                                                                 .default = cancer_type))) %>%
+                pivot_wider(names_from = stage, names_prefix = "Stage_", values_from = c("value_mean", "value_sd", "N") ) %>%
+                mutate(mean_Stage1_2 = value_mean_Stage_2 - value_mean_Stage_1,
+                       se_Stage1_2 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_2^2)/N_Stage_2)),
+                       mean_Stage1_3 = value_mean_Stage_3 - value_mean_Stage_1,
+                       se_Stage1_3 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_3^2)/N_Stage_3)),
+                       mean_Stage1_4 = value_mean_Stage_4 - value_mean_Stage_1,
+                       se_Stage1_4 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_4^2)/N_Stage_4))) %>%
+                select(cancer_type, mean_Stage1_2, se_Stage1_2,mean_Stage1_3,se_Stage1_3, mean_Stage1_4, se_Stage1_4) %>%
+                pivot_longer(mean_Stage1_2:se_Stage1_4, names_to = "type_stage", values_to = "estimate") %>%
+                separate_wider_delim(type_stage, "_", names = c("outcome", "stage"), too_many = "merge") %>%
+                mutate(stage = str_sub(stage,-1,-1)) %>%
+                pivot_wider(names_from = "outcome", values_from = "estimate") %>%
+                mutate(value_2.5CI  = mean - qnorm(0.975) * se,
+                       value_97.5CI  = mean + qnorm(0.975) * se) %>%
+                mutate(stage = case_when(stage == "2" ~ "II",
+                                         stage == "3" ~ "III",
+                                         stage == "4" ~ "IV")) %>%
+                mutate(analysis_type = "Net unadjusted") %>%
+                mutate(across(where(is.factor), as.character)) %>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type),
+        
+        
+      df_net_AME_basic %>%
+          filter(grepl(c("Stage"), variable)) %>%
+        filter(variable != "Stage: Missing/Unknown") %>%
+        filter(grepl("Overall cost", cost_outcome)) %>%
+        mutate(cost_outcome = case_when(cost_outcome == "Overall costs" ~ "Total cost",
+                                        .default = NA ) ) %>%
+                rename(stage = variable) %>%
+                mutate(stage = case_when(stage == "Stage: II" ~ "II",
+                                         stage == "Stage: III" ~ "III",
+                                         stage == "Stage: IV" ~ "IV")) %>%
+                mutate(analysis_type = "Net covariate-adjusted") %>%
+                rename(mean = estimate,
+                       value_2.5CI = conf.low,
+                       value_97.5CI = conf.high)%>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type)
+)
+
+
+Figure_S1_total_difference_compare <- df_total_difference_compare %>%
+        mutate(analysis_type = factor(analysis_type, levels = c("Net covariate-adjusted", "Net unadjusted","All-cause covariate-adjusted", "All-cause unadjusted"))) %>%
+        ggplot() +
+        geom_bar(aes(y = mean, x = stage, group = stage, fill = stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = value_97.5CI, ymin = value_2.5CI, x = stage, group = stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+        facet_grid(rows = vars(analysis_type), cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        geom_hline(yintercept=0)  +      
+        guides(fill="none", colour = "none")+
+        labs(fill = "", x = "Stage at diagnosis", y = "Cost difference relative to stage I") +
+        theme_bw() +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              axis.text.x = element_text(size = 11),
+              strip.background.x = element_rect(fill="white"),
+              strip.background.y = element_rect(fill="white"),
+              strip.text.x = element_text(  size = 11),
+              axis.text.y = element_text(size = 11),
+              strip.text.y = element_text(  size = 11))
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_S1.png"), Figure_S1_total_difference_compare, device = "png",
+       width = 270,
+       height = 250,
+       units = "mm")
+
+```
+
+```{r}
+# Figure S2, net annual
+Figure_S2_net_annual_cost <- df_net_regression_absolute %>%
+  mutate(absolute_conf_low = case_when(Stage == "I" ~ NA, .default = absolute_conf_low),
+         absolute_conf_high = case_when(Stage == "I" ~ NA, .default = absolute_conf_high)) %>%
+  filter(!grepl(c("phase|Overall"), cost_outcome)) %>%
+    mutate(cost_outcome = case_when(cost_outcome == "0-6 months before diagnosis" ~"0-6 months\nbefore diagnosis" ,
+                              cost_outcome == "0-1 years after diagnosis" ~ "0-1 years\nafter diagnosis", 
+                              cost_outcome == "1-2 years after diagnosis" ~ "1-2 years\nafter diagnosis" ,
+                              cost_outcome == "2-3 years after diagnosis" ~ "2-3 years\nafter diagnosis",
+                              cost_outcome == "3-4 years after diagnosis" ~ "3-4 years\nafter diagnosis",
+                              cost_outcome == "4-5 years after diagnosis" ~ "4-5 years\nafter diagnosis",
+                              cost_outcome == "5-6 years after diagnosis" ~ "5-6 years\nafter diagnosis",
+                              .default = cost_outcome)) %>%
+    mutate(cost_outcome = factor(cost_outcome, levels = c( "0-6 months\nbefore diagnosis", "0-1 years\nafter diagnosis",
+   "1-2 years\nafter diagnosis", "2-3 years\nafter diagnosis",
+   "3-4 years\nafter diagnosis","4-5 years\nafter diagnosis",
+   "5-6 years\nafter diagnosis"))) %>%
+       filter(Stage != "Missing/Unknown") %>%
+          ggplot() +
+        geom_bar(aes(y = absolute_average, x = cancer_type, group = Stage, fill = Stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = cancer_type, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+        facet_grid(rows = vars(cost_outcome) , switch = NULL, scales = "fixed") +
+        #coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = FALSE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y = element_text(angle = 0, size = 11),
+              strip.text = element_text( size = 11),
+              axis.text.x = element_text(angle = 0, size = 11),
+              axis.text.y = element_text(angle = 0, size = 11) )  
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_S2.png"), Figure_S2_net_annual_cost, device = "png",
+       width = 170,
+       height = 200,
+       units = "mm")
+
+
+```
+
+
+# Figure S3
+```{r}
+
+
+Figure_3_net_PoC_diagnostic_cost <- df_net_regression_absolute %>%
+  filter(cost_outcome %in% c( "Diagnosis phase"))%>%
+       filter(Stage != "Missing/Unknown") %>%
+          ggplot() +
+        geom_bar(aes(y = absolute_average, x = fct_rev(Stage), group = fct_rev(Stage), fill = fct_rev(Stage)),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = absolute_conf_high, ymin = absolute_conf_low, x = fct_rev(Stage), group = fct_rev(Stage)),
+                      position= position_dodge(0.5), width = 0.2, colour = "black") +
+        facet_grid(cols = vars(cost_outcome), rows = vars(cancer_type) , switch = "y", scales = "fixed") +
+        coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"), breaks = c(0, 2000,4000), limits = c(0,4000)) +
+        scale_fill_manual(values = c( "#3B1C52", "#666666","#628592", "#D29A22"), guide = guide_legend(reverse = TRUE)) +
+        #scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Average patient costs (95% CI)") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text.y.left = element_text(face = "bold",angle = 0, size = 11),
+               strip.text.x = element_text(face = "bold", angle = 0, size = 11),
+              strip.text = element_text( size = 11),
+              axis.text.x = element_text(angle = 0, size = 9, hjust = 0.6),
+              axis.text.y = element_blank(),
+              axis.ticks.y = element_blank()) 
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_S3.png"), Figure_3_net_PoC_diagnostic_cost, device = "png",
+       width = 170,
+       height = 150,
+       units = "mm")
+
+
+```
+
+
+
+
+
+
+

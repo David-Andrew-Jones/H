@@ -1,0 +1,1118 @@
+---
+format: docx
+execute: 
+  echo: TRUE
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(readxl, quietly = TRUE)
+library(gt, quietly = TRUE)
+library(openxlsx, quietly = TRUE)
+
+uptake <- 70
+```
+
+---
+title: "Uptake scenario `r uptake`%: Impact of stage-shift on treatment pathways following the introduction of a Multi-Cancer Early Detection screening programme in England - a modelling study"
+format:
+   docx: 
+    output-file: "Impact of stage-shift on treatment pathways results: X uptake"
+    output-ext:  "docx"
+---
+
+# 1 Stage shift from the Interception model (adapted for England data)
+
+### 1.1 Table 1. Stage shift (incidence rate per 100,000 population, 95% CIs) in prevalent round and steady-state screening programme (age-weighted lifetime incidence rate)
+
+```{r}
+
+# Read in intereception model stage shift
+df_intercept_model_output <- b <- readxl::read_xlsx(paste0("~/Miscellaneous/Treatments/interception_model_results/",
+                                                      list.files(path = "~/Miscellaneous/Treatments/interception_model_results", pattern = paste0( uptake )))) %>%
+        # reformat to long with stage 
+        pivot_longer(!NCRAS_Draw:model_type, names_to = "outcome_type", values_to = "number") %>%
+        # Create stage column
+        mutate(stage = readr::parse_number(outcome_type),
+               outcome_type = as.factor(gsub("[^a-zA-Z]", "", outcome_type))) %>%
+        # Pivot back to wide and rename variables
+        pivot_wider(names_from = outcome_type, values_from = number) %>%
+        rename(`IRper100 prev round pre MCED` = weightedstartstageSA,
+               `IRper100 prev round post MCED` = weightedendstageSA,
+               `IRper100 SS pre MCED` = weightedstartstage,
+               `IRper100 SS post MCED` = weightedendstage,
+               `Ratio IRper100 SS` = weightedstagechange) %>%
+        mutate(`Ratio IRper100 prev round` = `IRper100 prev round post MCED` / `IRper100 prev round pre MCED` ) %>%
+        select(-c(scenario:model_type)) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 5))) %>%
+        mutate(across(NCRAS_Draw:stage, \(x) as.factor(x))) %>%
+  ### Missing in previous iteration - need to drop [other] cancer type as this is not found in NCRAS data
+  filter(NCRAS_Draw != "[OTHER]")
+
+df_table_1 <- df_intercept_model_output %>% mutate(across(where(is.numeric), \(x) round(x, 1)))
+# GT table for word output
+gt::gt(df_table_1)
+
+# Excel output
+excel_output <- createWorkbook()
+addWorksheet(excel_output, sheetName = "1. Stage-shift proportions")
+writeData(excel_output, sheet = "1. Stage-shift proportions", df_table_1)
+
+
+```
+
+# 2. Apply modelled stage-shift to 2014-2019 incidence (including by IMD)
+
+### 2.1 Table 2. Stage-shifted incidence (incidence rate per 100,000 population, 95% CIs)
+
+```{r}
+
+# Read in incidence data from NCRAS
+df_England_Inc_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Inc Stage") %>% 
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6)
+
+# Join incidence data to interception model IR ratios
+df_England_Inc_joined_intercept <- df_England_Inc_14to19 %>%
+        # All ages being 50-79
+        filter(`Age at diagnosis` == "All ages") %>%
+        # Standardised cancer namees
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        # Join by type and stage
+        left_join(df_intercept_model_output, 
+                  by = c("Cancer type" = "NCRAS_Draw", "Stage at diagnosis" = "stage")) %>%
+        # Change NA ratios (i.e. those not modeled by the intception mode) to 1 to assume no change
+        mutate(across(`Ratio IRper100 SS`:`Ratio IRper100 prev round`,
+                      ~ case_when(is.na(.) ~ 1, .default = .)   )) %>%
+        # Calculate number of cancer diagnosed in prev and SS round based on no. tumours in standard care and the IR ratios
+        mutate(`Prev no. of tumours diagnosed` = `Annual number of tumours diagnosed` * 
+                 `Ratio IRper100 prev round`,
+               `SS no. of tumours diagnosed` = `Annual number of tumours diagnosed` * 
+                 `Ratio IRper100 SS`) %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Annual number of tumours diagnosed`,
+               `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`)
+
+# Add all cancer row and calculate changes
+
+df_England_Inc_joined_intercept <- rbind(
+  df_England_Inc_joined_intercept %>%
+    group_by(`Stage at diagnosis`) %>%
+    summarise(across(`Annual number of tumours diagnosed`:`SS no. of tumours diagnosed`, \(x) sum(x))) %>%
+    mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`),
+  df_England_Inc_joined_intercept) %>%
+        # Calculate % change in the annual number of cancers diagnosed campred to SoC
+        mutate(`Prev % change in no. diagnosed` = ((`Prev no. of tumours diagnosed` - `Annual number of tumours diagnosed`) / `Annual number of tumours diagnosed`) * 100,
+               `SS % change in no. diagnosed` = ((`SS no. of tumours diagnosed` - `Annual number of tumours diagnosed`) / `Annual number of tumours diagnosed`) * 100) %>%
+        rename(`SoC no. of tumours diagnosed` = `Annual number of tumours diagnosed`) %>%
+        select(`Cancer type`, `Stage at diagnosis`, `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `Prev % change in no. diagnosed` , `SS no. of tumours diagnosed`, `SS % change in no. diagnosed` ) %>%
+        mutate(across(where(is.character), as.factor))
+
+# GT table for word output
+df_table_2 <- df_England_Inc_joined_intercept %>% mutate(across(where(is.numeric), \(x) round(x, 1)))
+gt::gt(df_table_2)
+
+# Excel output
+addWorksheet(excel_output, sheetName = "2. Stage-shifted incidence")
+writeData(excel_output, sheet = "2. Stage-shifted incidence", df_table_2)
+
+
+################################################################################
+## Repeat for IMD
+
+df_England_IncXIMD_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Inc X IMD") %>% 
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6)
+
+df_England_IncXIMD_joined_intercept <- df_England_IncXIMD_14to19 %>%
+        filter(`Age at diagnosis` == "All ages") %>%
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        left_join(df_intercept_model_output, by = c("Cancer type" = "NCRAS_Draw", "Stage at diagnosis" = "stage")) %>%
+        mutate(across(`Ratio IRper100 SS`:`Ratio IRper100 prev round`, ~ case_when(is.na(.) ~ 1, .default = .)   )) %>%
+        mutate(`Prev no. of tumours diagnosed` = `Annual number of tumours diagnosed` * `Ratio IRper100 prev round`,
+               `SS no. of tumours diagnosed` = `Annual number of tumours diagnosed` * `Ratio IRper100 SS`) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, `Stage at diagnosis`, `Annual number of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`) 
+
+## Add all cancer row and calculate changes
+df_England_IncXIMD_joined_intercept <- rbind(df_England_IncXIMD_joined_intercept %>%
+                                                     group_by(`Index of Multiple Deprivation Quintile`,`Stage at diagnosis`) %>%
+                                                     summarise(across(`Annual number of tumours diagnosed`:`SS no. of tumours diagnosed`, \(x) sum(x))) %>%
+                                                     mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`),
+                                             df_England_IncXIMD_joined_intercept) %>%
+        mutate(`Prev % change in no. diagnosed` = ((`Prev no. of tumours diagnosed` - `Annual number of tumours diagnosed`) / `Annual number of tumours diagnosed`) * 100,
+               `SS % change in no. diagnosed` = ((`SS no. of tumours diagnosed` - `Annual number of tumours diagnosed`) / `Annual number of tumours diagnosed`) * 100) %>%
+        rename(`SoC no. of tumours diagnosed` = `Annual number of tumours diagnosed`) %>%
+        select(`Index of Multiple Deprivation Quintile`,`Cancer type`, `Stage at diagnosis`, `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `Prev % change in no. diagnosed` , `SS no. of tumours diagnosed`, `SS % change in no. diagnosed` ) %>%
+        mutate(across(where(is.character), as.factor))
+
+################################################################################
+## Repeat for Cancer alliance
+
+df_England_IncXCA_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Inc X Alliance") %>% 
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6)
+
+df_England_IncXCA_joined_intercept <- df_England_IncXCA_14to19 %>%
+        filter(`Age at diagnosis` == "All ages") %>%
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        left_join(df_intercept_model_output, by = c("Cancer type" = "NCRAS_Draw", "Stage at diagnosis" = "stage")) %>%
+        mutate(across(`Ratio IRper100 SS`:`Ratio IRper100 prev round`, ~ case_when(is.na(.) ~ 1, .default = .)   )) %>%
+        mutate(`Prev no. of tumours diagnosed` = `Annual number of tumours diagnosed` * `Ratio IRper100 prev round`,
+               `SS no. of tumours diagnosed` = `Annual number of tumours diagnosed` * `Ratio IRper100 SS`) %>%
+        select(`Cancer type`, `Cancer Alliance`, `Stage at diagnosis`, `Annual number of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`) 
+
+## Add all cancer row and calculate changes
+df_England_IncXCA_joined_intercept <- rbind(df_England_IncXCA_joined_intercept %>%
+                                                     group_by(`Cancer Alliance`,`Stage at diagnosis`) %>%
+                                                     summarise(across(`Annual number of tumours diagnosed`:`SS no. of tumours diagnosed`, \(x) sum(x))) %>%
+                                                     mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`),
+                                             df_England_IncXCA_joined_intercept) %>%
+        mutate(`Prev % change in no. diagnosed` = ((`Prev no. of tumours diagnosed` - `Annual number of tumours diagnosed`) / `Annual number of tumours diagnosed`) * 100,
+               `SS % change in no. diagnosed` = ((`SS no. of tumours diagnosed` - `Annual number of tumours diagnosed`) / `Annual number of tumours diagnosed`) * 100) %>%
+        rename(`SoC no. of tumours diagnosed` = `Annual number of tumours diagnosed`) %>%
+        select(`Cancer Alliance`, `Cancer type`, `Stage at diagnosis`, `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `Prev % change in no. diagnosed` , `SS no. of tumours diagnosed`, `SS % change in no. diagnosed` ) %>%
+        mutate(across(where(is.character), as.factor))
+
+
+```
+
+# 3. Apply treatment proportions to stage-shifted incidence/numbers
+
+```{r}
+# Read in treatment data from NCRAS
+df_England_treatmentXstage_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Treat Stage") %>%
+        mutate(`Number of tumours treated` = as.numeric(`Number of tumours treated`)) %>%
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6) %>%
+        mutate(`Annual number of tumours treated` = `Number of tumours treated`/ 6) %>%
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        select(-c(  `Number of tumours diagnosed`, `Number of tumours treated`, `Proportion (%)`:`UCI`)) 
+
+# check to see if number diagnosed is the same as the number treated for the 8 categories (YES)
+check <-  df_England_treatmentXstage_14to19 %>%
+        filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))) %>%
+  group_by(`Cancer type`, `Stage at diagnosis`) %>%
+  summarise(total = sum(`Annual number of tumours treated`))
+
+# Combine with the incidence and stage shift dataframe
+
+df_treatentXstage_joined_intercept <- df_England_treatmentXstage_14to19 %>%
+  # Merge on the incidence and stage shift dataframe
+  left_join(df_England_Inc_joined_intercept, by = c("Cancer type" , "Stage at diagnosis" )) %>%
+  mutate(prev_multiplier = (`Prev no. of tumours diagnosed`/`SoC no. of tumours diagnosed`),
+         SS_multiplier = (`SS no. of tumours diagnosed`/`SoC no. of tumours diagnosed`)) %>%
+  # For each treatment type, calculate numbers for the prev and SS rounds 
+  mutate(`Prev no. of tumours treated` = `Annual number of tumours treated` * prev_multiplier,
+         `SS no. of tumours treated` = `Annual number of tumours treated` * SS_multiplier) %>%
+  rename(`SoC no. of tumours treated` = `Annual number of tumours treated`)
+
+# check to see if number treated in prev round for the 8 categories is the same as is the same as the number diagnosed (YES)
+check <-  df_treatentXstage_joined_intercept %>%
+        filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))) %>%
+  group_by(`Cancer type`, `Stage at diagnosis`) %>%
+  summarise(total = sum(`Prev no. of tumours treated`))
+
+# Create dataframe for "volume" results (anyy resection/chemo/radio)
+df_3treatentXstage_joined_intercept <- df_treatentXstage_joined_intercept %>% 
+        filter(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))  %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        ## order the columns
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+  rbind(.,  (.) %>% 
+        group_by(`Stage at diagnosis`, `Treatment modality`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE))) %>%
+                mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`) %>% ungroup()) %>% 
+        mutate(`Cancer type` = fct_relevel(`Cancer type` , "All cancers combined")) %>%
+        arrange(`Cancer type`)
+
+## Check to make sure all cancer numbers equal what they should YES
+check <- df_3treatentXstage_joined_intercept %>% filter(`Cancer type` == "All cancers combined") %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE)))
+
+check2 <- df_3treatentXstage_joined_intercept %>% filter(`Cancer type` != "All cancers combined") %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE)))
+
+# Create dataframe for combinations of treatments
+df_8treatentXstage_joined_intercept <- df_treatentXstage_joined_intercept %>% 
+        filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy")))%>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        ## order the columns
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+  rbind(.,  (.) %>% 
+        group_by(`Stage at diagnosis`, `Treatment modality`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE))) %>%
+                mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`) %>% ungroup()) %>% 
+        mutate(`Cancer type` = fct_relevel(`Cancer type` , "All cancers combined")) %>%
+        arrange(`Cancer type`)
+
+
+## Check to make sure all cancer numbers equal what they should (yes)
+check <- df_8treatentXstage_joined_intercept   %>% 
+        group_by(`Cancer type`, `Stage at diagnosis`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE)))
+
+
+################################################################################
+## Do the same including IMD
+
+df_England_treatmentXstageIMD_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Treat Stage X IMD") %>%
+        mutate(`Number of tumours treated` = as.numeric(`Number of tumours treated`)) %>%
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6) %>%
+        mutate(`Annual number of tumours treated` = `Number of tumours treated`/ 6) %>%
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        select(-c( `Annual number of tumours diagnosed`, `Number of tumours diagnosed`, `Number of tumours treated`, `Proportion (%)`:`UCI`)) 
+
+
+df_treatentXstageIMD_joined_intercept <- df_England_treatmentXstageIMD_14to19 %>%
+        left_join(df_England_IncXIMD_joined_intercept, by = c("Index of Multiple Deprivation Quintile","Cancer type" , "Stage at diagnosis" )) %>%
+        ungroup() %>% 
+        mutate(`Prev no. of tumours treated` = `Annual number of tumours treated` * (`Prev no. of tumours diagnosed`/`SoC no. of tumours diagnosed`),
+               `SS no. of tumours treated` = `Annual number of tumours treated` * (`SS no. of tumours diagnosed`/`SoC no. of tumours diagnosed`)) %>%
+        rename(`SoC no. of tumours treated` = `Annual number of tumours treated`) 
+
+
+
+df_3treatentXstageIMD_joined_intercept <- df_treatentXstageIMD_joined_intercept %>% 
+        filter(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))  %>%
+        mutate(across(where(is.character), as.factor)) %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Index of Multiple Deprivation Quintile`,`Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+  rbind(.,  (.) %>% 
+        group_by(`Stage at diagnosis`, `Index of Multiple Deprivation Quintile`, `Treatment modality`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE))) %>%
+                mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`) %>% ungroup()) %>% 
+        mutate(`Cancer type` = fct_relevel(`Cancer type` , "All cancers combined")) %>%
+        arrange(`Cancer type`)
+
+
+df_8treatentXstageIMD_joined_intercept <- df_treatentXstageIMD_joined_intercept %>% 
+        filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        ## order the columns
+        select(`Cancer type`, `Stage at diagnosis`, `Index of Multiple Deprivation Quintile`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+  rbind(.,  (.) %>% 
+        group_by(`Stage at diagnosis`, `Index of Multiple Deprivation Quintile`,`Treatment modality`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE))) %>%
+                mutate(`Cancer type` = "All cancers combined", .before = `Stage at diagnosis`) %>% ungroup()) %>% 
+        mutate(`Cancer type` = fct_relevel(`Cancer type` , "All cancers combined")) %>%
+        arrange(`Cancer type`)
+
+
+################################################################################
+## Do the same with Charlson score - note, no differentiation by stage
+
+# Need to create an incidence dataframe of all stages
+df_England_Inc_joined_intercept_allstage <- df_England_Inc_joined_intercept %>% 
+        select(`Cancer type`, `Stage at diagnosis` , contains("no. of tumours diagnosed")) %>%
+        group_by(`Cancer type`) %>%
+        summarise(across(contains("no. of tumours diagnosed"), \(x) sum(x)))
+
+df_England_treatmentXCharlson_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Treat Charlson") %>%
+        mutate(`Number of tumours treated` = as.numeric(`Number of tumours treated`)) %>%
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6) %>%
+        mutate(`Annual number of tumours treated` = `Number of tumours treated`/ 6) %>%
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        select(-c( `Annual number of tumours diagnosed`, `Number of tumours diagnosed`, `Number of tumours treated`, `Proportion (%)`:`UCI`))
+
+
+df_treatentXCharlson_joined_intercept <- df_England_treatmentXCharlson_14to19 %>%
+        # Merge on the incidence and stage shift dataframe
+        left_join(df_England_Inc_joined_intercept_allstage, by = c("Cancer type" )) %>%
+        # For each treatment type, calculate numbers for the prev and SS rounds 
+        mutate(`Prev no. of tumours treated` = `Annual number of tumours treated` * (`Prev no. of tumours diagnosed`/`SoC no. of tumours diagnosed`),
+               `SS no. of tumours treated` = `Annual number of tumours treated` * (`SS no. of tumours diagnosed`/`SoC no. of tumours diagnosed`)) %>%
+        rename(`SoC no. of tumours treated` = `Annual number of tumours treated`)
+
+# Create dataframe for "volume" results (anyy resection/chemo/radio)
+df_3treatentXCharlson_joined_intercept <- df_treatentXCharlson_joined_intercept %>% 
+        filter(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))  %>% 
+        mutate(across(where(is.character), as.factor))%>% 
+        ## order the columns
+        select(`Cancer type`, `Charlson comorbidity index`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+  rbind(.,  (.) %>% 
+        group_by(`Charlson comorbidity index`, `Treatment modality`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE))) %>%
+                mutate(`Cancer type` = "All cancers combined", .before = `Charlson comorbidity index`) %>% ungroup()) %>% 
+        mutate(`Cancer type` = fct_relevel(`Cancer type` , "All cancers combined")) %>%
+        arrange(`Cancer type`)
+
+
+# Create dataframe for combinations of treatments
+df_8treatentXCharlson_joined_intercept <- df_treatentXCharlson_joined_intercept %>% 
+        filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        ## order the columns
+        select(`Cancer type`, `Charlson comorbidity index`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+  rbind(.,  (.) %>% 
+        group_by(`Charlson comorbidity index`, `Treatment modality`) %>%
+        summarise(across(`SoC no. of tumours diagnosed`:`SS no. of tumours treated`, ~ sum(.x, na.rm = TRUE))) %>%
+                mutate(`Cancer type` = "All cancers combined", .before = `Charlson comorbidity index`) %>% ungroup()) %>% 
+        mutate(`Cancer type` = fct_relevel(`Cancer type` , "All cancers combined")) %>%
+        arrange(`Cancer type`)
+
+
+################################################################################
+## Do the same for Cancer Alliance
+
+df_England_treatmentXstageCA_14to19 <- readxl::read_xlsx("~/Miscellaneous/Treatments/20231110_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData.xlsx", sheet = "Treat Stage X Alliance") %>%
+        mutate(`Number of tumours treated` = as.numeric(`Number of tumours treated`)) %>%
+        mutate(`Annual number of tumours diagnosed` = `Number of tumours diagnosed`/ 6) %>%
+        mutate(`Annual number of tumours treated` = `Number of tumours treated`/ 6) %>%
+        mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "Colon/Rectum",
+                                         `Cancer type` == "Headneck" ~ "Head and Neck",
+                                         `Cancer type` == "Liver" ~ "Liver/Bile-duct" ,
+                                         `Cancer type` == "Oesophagus" ~ "Esophagus",
+                                         `Cancer type` == "Urothelial" ~ 	"Urothelial Tract",
+                                         .default = `Cancer type`)) %>%
+        select(-c( `Annual number of tumours diagnosed`, `Number of tumours diagnosed`, `Number of tumours treated`, `Proportion (%)`:`UCI`)) 
+
+
+df_treatentXstageCA_joined_intercept <- df_England_treatmentXstageCA_14to19 %>%
+        left_join(df_England_IncXCA_joined_intercept, by = c("Cancer Alliance" ,"Cancer type" , "Stage at diagnosis" )) %>%
+        ungroup() %>% 
+        mutate(`Prev no. of tumours treated` = `Annual number of tumours treated` * (`Prev no. of tumours diagnosed`/`SoC no. of tumours diagnosed`),
+               `SS no. of tumours treated` = `Annual number of tumours treated` * (`SS no. of tumours diagnosed`/`SoC no. of tumours diagnosed`)) %>%
+        rename(`SoC no. of tumours treated` = `Annual number of tumours treated`) 
+
+df_3treatentXstageCA_joined_intercept <- df_treatentXstageCA_joined_intercept %>% 
+        filter(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))  %>%
+        mutate(across(where(is.character), as.factor))%>% 
+        ## order the columns
+        select(`Cancer Alliance`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`)
+
+df_8treatentXstageCA_joined_intercept <- df_treatentXstageCA_joined_intercept %>% 
+        filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        ## order the columns
+        select(`Cancer Alliance`,`Cancer type`, `Stage at diagnosis`, `Treatment modality`,
+               `SoC no. of tumours diagnosed`, `Prev no. of tumours diagnosed`, `SS no. of tumours diagnosed`,
+               `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) 
+
+```
+
+# 3.1 Total volume (resection, chemotherapy, radiotherapy)
+
+Total number and % of cancers treated with each modality under usual care (resection, chemotherapy, radiotherapy) represents overall volume based on current treatment landscape. Cancers can be treated with more than one modality (not mutually exclusive categories). Applying the proportion of cancers treated with each modality to the stage-shifted numbers represents the impact of stage shift on overall treatment volume (assumes no change in stage-specific treatment type). Absolute numbers are the total for the 6-year period, but average annual numbers will be presented.
+
+### Table 3.1 Total annual treatment volume with usual care (N, %) and change with stage shift from MCED screening (N) by cancer type and stage - prevalent round and steady state
+
+```{r}
+
+df_table_3.1 <- df_3treatentXstage_joined_intercept %>%
+        # calculate % of patients who receive treatment modality in their treatment
+        mutate(`SoC % treated` = paste0("(", round((`SoC no. of tumours treated` / `SoC no. of tumours diagnosed`) * 100), ")")) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        unite("SoC no. of tumours treated (%)" ,  c('SoC no. of tumours treated', 'SoC % treated'), sep=' ' ) %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated (%)` , `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated (%)`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} no.") %>%
+        rename_with(~str_c(., " (%)"), contains("SoC")) %>%
+        select(`Cancer type`, `Stage at diagnosis`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy"))
+
+# GT table for word output
+gt::gt(df_table_3.1 %>% arrange(`Stage at diagnosis`)) %>%
+        tab_spanner_delim(delim = ":", columns = `Tumour resection: SoC no. (%)`:`Radiotherapy: SS no.` ,
+                          split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+# Excel output
+addWorksheet(excel_output, sheetName = "3.1. Tx vol (N) prev&SS")
+writeData(excel_output, sheet = "3.1. Tx vol (N) prev&SS", df_table_3.1)
+
+
+```
+
+# 3.2 Treatment combinations
+
+Treatment modality combinations are mutually exclusive (sum to 100%): Tumour resection only Chemo only (update: chemo, immuno/targeted therapy) Radiotherapy only (update: curative, palliative) Resection + chemo Resection + radio Chemo + radio Resection + radio + chemo Other care
+
+### Table 3.2.1 Standard of care distribution of treatment modality combinations (N, %) by cancer type and stage (NCRAS data)
+
+```{r}
+
+# First, present the SoC distribution of treatment combinations
+df_table_3.2.1 <- df_8treatentXstage_joined_intercept %>%
+        mutate(`SoC % of total tumour treated` = round((`SoC no. of tumours treated` / `SoC no. of tumours diagnosed`) * 100), 1) %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC % of total tumour treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC % of total tumour treated`), names_glue ="{`Treatment modality`}: % of SoC treatments") %>%
+        select(`Cancer type`,`Stage at diagnosis`,`Tumour resection only: % of SoC treatments`,`Tumour resection and chemotherapy: % of SoC treatments`,
+               `Tumour resection and radiotherapy: % of SoC treatments`,`Tumour resection, radiotherapy and chemotherapy: % of SoC treatments`,
+               `Chemotherapy and radiotherapy: % of SoC treatments`,
+               `Radiotherapy only: % of SoC treatments`,`Chemotherapy only: % of SoC treatments`, `Other care: % of SoC treatments`)
+
+# GT table for word output
+gt::gt(df_table_3.2.1) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("last", "first"), limit = NULL, reverse = TRUE)
+
+# Excel output
+addWorksheet(excel_output, sheetName = "3.2.1 NCRAS Tx combo")
+writeData(excel_output, sheet = "3.2.1 NCRAS Tx combo", df_table_3.2.1)
+
+```
+
+### Table 3.2.2 Distribution of treatment modality combinations with stage shift from MCED screening (N) by cancer type and stage - prevalent round & steady-state
+
+```{r}
+
+df_table_3.2.2 <- df_8treatentXstage_joined_intercept %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Stage at diagnosis`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care"))
+
+gt::gt(df_table_3.2.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "3.2.2. Tx combi (N) prev&SS")
+writeData(excel_output, sheet = "3.2.2. Tx combi (N) prev&SS", df_table_3.2.2)  
+
+```
+
+### Table 3.3.1 Distribution of SoC total treatment volume (N, %) by IMD quintile, stage and cancer type
+
+```{r}
+
+df_table_3.3.1 <- df_3treatentXstageIMD_joined_intercept %>%
+        # calculate % of patients who receive treatment modality in their treatment
+        mutate(`SoC % treated` = paste0("(", round((`SoC no. of tumours treated` / `SoC no. of tumours diagnosed`) * 100), ")")) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        unite("SoC no. of tumours treated (%)" ,  c('SoC no. of tumours treated', 'SoC % treated'), sep=' ' ) %>%
+        select(`Index of Multiple Deprivation Quintile`,`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated (%)`) %>%
+        # Organise with IMD as columns for comparability
+        pivot_wider(names_from = `Index of Multiple Deprivation Quintile`, values_from = c(`SoC no. of tumours treated (%)`), names_glue ="IMD Quntile {`Index of Multiple Deprivation Quintile`}: {.value}") 
+
+# GT table for word output
+gt::gt(df_table_3.3.1) %>%
+        tab_spanner_delim(delim = ":", columns = `IMD Quntile 1 - most deprived: SoC no. of tumours treated (%)`:`IMD Quntile 5 - least deprived: SoC no. of tumours treated (%)` ,
+                          split = c("first", "last"), limit = NULL, reverse = TRUE)
+
+# Excel output
+addWorksheet(excel_output, sheetName = "3.3.1 NCRAS Tx vol X IMD")
+writeData(excel_output, sheet = "3.3.1 NCRAS Tx vol X IMD", df_table_3.3.1)
+
+```
+
+### Table 3.3.2 Distribution of SoC treatment modality combinations (N, %) by IMD quintile, stage and cancer type
+
+```{r}
+
+# SoC distribution of treatment combinations
+df_table_3.3.2 <- df_8treatentXstageIMD_joined_intercept %>%
+        mutate(`SoC % treated` = paste0("(", round((`SoC no. of tumours treated` / `SoC no. of tumours diagnosed`) * 100), ")")) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        unite("SoC no. of tumours treated (%)" ,  c('SoC no. of tumours treated', 'SoC % treated'), sep=' ' ) %>%
+        select(`Index of Multiple Deprivation Quintile`,`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated (%)`) %>%
+        # Organise with IMD as columns for comparability
+        pivot_wider(names_from = `Index of Multiple Deprivation Quintile`, values_from = c(`SoC no. of tumours treated (%)`), names_glue ="IMD Quntile {`Index of Multiple Deprivation Quintile`}: {.value}") %>%
+        mutate(`Treatment modality` = factor(`Treatment modality`, levels = c("Tumour resection only","Tumour resection and chemotherapy",
+               "Tumour resection and radiotherapy","Tumour resection, radiotherapy and chemotherapy",
+               "Chemotherapy and radiotherapy",
+               "Radiotherapy only","Chemotherapy only", "Other care"))) %>%
+        group_by(`Cancer type`, `Stage at diagnosis`) %>%
+        arrange(`Treatment modality`, .by_group = TRUE ) %>%
+        ungroup()
+
+# GT table for word output
+gt::gt(df_table_3.3.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("last", "first"), limit = NULL, reverse = TRUE)
+
+# Excel output
+addWorksheet(excel_output, sheetName = "3.3.2 NCRAS Tx combo X IMD")
+writeData(excel_output, sheet = "3.3.2 NCRAS Tx combo X IMD", df_table_3.3.2)
+
+```
+
+### Table 3.4.1 Distribution of SoC total treatment volume (N, %) by comorbidity score and cancer type.
+
+```{r}
+
+df_table_3.4.1 <- df_3treatentXCharlson_joined_intercept %>%
+        # calculate % of patients who receive treatment modality in their treatment
+        mutate(`SoC % treated` = paste0("(", round((`SoC no. of tumours treated` / `SoC no. of tumours diagnosed`) * 100), ")")) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        unite("SoC no. of tumours treated (%)" ,  c('SoC no. of tumours treated', 'SoC % treated'), sep=' ' ) %>%
+        select(`Charlson comorbidity index`,`Cancer type`, `Treatment modality`, `SoC no. of tumours treated (%)`) %>%
+        # Organise with IMD as columns for comparability
+        pivot_wider(names_from = `Charlson comorbidity index`, values_from = c(`SoC no. of tumours treated (%)`), names_glue ="Charlson Comorbidity Index score {`Charlson comorbidity index`}: {.value}") %>%
+        group_by(`Cancer type`) %>%
+        arrange(`Treatment modality`, .by_group = TRUE)
+
+# GT table for word output
+gt::gt(df_table_3.4.1) %>%
+        tab_spanner_delim(delim = ":", columns = `Charlson Comorbidity Index score 0: SoC no. of tumours treated (%)`:`Charlson Comorbidity Index score 3+: SoC no. of tumours treated (%)` ,
+                          split = c("first", "last"), limit = NULL, reverse = TRUE)
+
+# Excel output
+addWorksheet(excel_output, sheetName = "3.4.1 NCRAS Tx vol X CCI")
+writeData(excel_output, sheet = "3.4.1 NCRAS Tx vol X CCI", df_table_3.4.1)
+
+```
+
+### Table 3.4.2 Distribution of SoC treatment modality combinations (N, %) by comorbidity score, stage and cancer type. N.B. % is for cancer total not by CCI
+
+```{r}
+
+# SoC distribution of treatment combinations
+df_table_3.4.2 <- df_8treatentXCharlson_joined_intercept %>%
+        mutate(`SoC % treated` = paste0("(", round((`SoC no. of tumours treated` / `SoC no. of tumours diagnosed`) * 100), ")")) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        unite("SoC no. of tumours treated (%)" ,  c('SoC no. of tumours treated', 'SoC % treated'), sep=' ' ) %>%
+        select(`Charlson comorbidity index`,`Cancer type`, `Treatment modality`, `SoC no. of tumours treated (%)`) %>%
+        # Organise with CCI as columns for comparability
+        pivot_wider(names_from = `Charlson comorbidity index`, values_from = c(`SoC no. of tumours treated (%)`), names_glue ="Charlson Comorbidity Index score {`Charlson comorbidity index`}: {.value}") %>%
+        mutate(`Treatment modality` = factor(`Treatment modality`, levels = c("Tumour resection only","Tumour resection and chemotherapy",
+               "Tumour resection and radiotherapy","Tumour resection, radiotherapy and chemotherapy",
+               "Chemotherapy and radiotherapy",
+               "Radiotherapy only","Chemotherapy only", "Other care"))) %>%
+        group_by(`Cancer type`) %>%
+        arrange(`Treatment modality`, .by_group = TRUE ) %>%
+        ungroup()
+
+# GT table for word output
+gt::gt(df_table_3.4.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("last", "first"), limit = NULL, reverse = TRUE)
+
+
+# Excel output
+addWorksheet(excel_output, sheetName = "3.4.2 NCRAS Tx combo X CCI")
+writeData(excel_output, sheet = "3.4.2 NCRAS Tx combo X CCI", df_table_3.4.2)
+
+```
+
+# 4. Results (1/2) Main summary tables
+
+## 4.1 Resection, chemotherapy and radiotherapy treatment volumes
+
+### Table 4.1.1 Overall annual treatment volume for each cancer (all stages) and % change with MCED screening - prevalent round
+
+```{r}
+
+df_table_4.1.1 <- df_3treatentXstage_joined_intercept %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, contains("SoC"), contains("Prev")) %>%
+        mutate(`Tumour resection: Change (%)` = ((`Tumour resection: Prev round (no.)`-`Tumour resection: SoC (no.)`)/`Tumour resection: SoC (no.)`) * 100,
+               `Chemotherapy: Change (%)` = ((`Chemotherapy: Prev round (no.)`-`Chemotherapy: SoC (no.)`)/`Chemotherapy: SoC (no.)`) * 100,
+               `Radiotherapy: Change (%)` = ((`Radiotherapy: Prev round (no.)`-`Radiotherapy: SoC (no.)`)/`Radiotherapy: SoC (no.)`) * 100) %>%
+        #mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy"))
+
+gt::gt(df_table_4.1.1) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "4.1.1 Tx vol (%) prev")
+writeData(excel_output, sheet = "4.1.1 Tx vol (%) prev", df_table_4.1.1)
+
+  
+```
+
+### Table 4.1.2 Overall annual treatment volume for each cancer (all stages) and % change with MCED screening - steady state
+
+```{r}
+
+df_table_4.1.2 <- df_3treatentXstage_joined_intercept %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, contains("SoC"), contains("SS")) %>%
+        mutate(`Tumour resection: Change (%)` = ((`Tumour resection: SS (no.)`-`Tumour resection: SoC (no.)`)/`Tumour resection: SoC (no.)`) * 100,
+               `Chemotherapy: Change (%)` = ((`Chemotherapy: SS (no.)`-`Chemotherapy: SoC (no.)`)/`Chemotherapy: SoC (no.)`) * 100,
+               `Radiotherapy: Change (%)` = ((`Radiotherapy: SS (no.)`-`Radiotherapy: SoC (no.)`)/`Radiotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy"))
+
+gt::gt(df_table_4.1.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "4.1.2 Tx vol (%) SS")
+writeData(excel_output, sheet = "4.1.2 Tx vol (%) SS", df_table_4.1.2)
+
+
+###################
+# Figures For EDCC abstract
+
+EDCC <- df_table_4.1.1 %>%
+  rename( `Tumour resection: Prev change (%)`=`Tumour resection: Change (%)`,
+          `Chemotherapy: Prev change (%)`=`Chemotherapy: Change (%)`,
+          `Radiotherapy: Prev change (%)`=`Radiotherapy: Change (%)`) %>%
+  left_join(df_table_4.1.2 %>%
+              rename( `Tumour resection: SS change (%)`=`Tumour resection: Change (%)`,
+                      `Chemotherapy: SS change (%)`=`Chemotherapy: Change (%)`,
+                      `Radiotherapy: SS change (%)`=`Radiotherapy: Change (%)`) %>%
+              select(-contains("SoC")), by = c("Cancer type")) %>%
+    pivot_longer(-`Cancer type`, names_to = "outcome", values_to = "change") %>%
+    separate_wider_delim(cols = "outcome", delim = ":", names_sep = "") %>%
+  rename(`Treatment modality` = outcome1,
+         `Outcome type` = outcome2)
+  
+# All cancers  
+EDCC_fig1_allcancer <- EDCC %>%
+  filter(grepl("change", `Outcome type`) & `Cancer type` == "All cancers combined") %>%
+  ggplot() +
+        geom_bar(aes(x = forcats::fct_rev(`Treatment modality`), y = change, fill = `Outcome type`), position= position_dodge(0.5), stat = "identity", width = .5) +
+        labs(fill = "Screening round", x = "Treatment modality", y = "Percentage (%) change in volume") +
+        theme_bw() +
+        theme(text = element_text(size = 18, face="bold")) +
+        scale_fill_discrete(labels=c("Prevalent", "Steady state"),
+        type=c("#3B1C52","#94724F"))
+  
+
+# Select cancer for resection
+
+EDCC_fig1_resection <- EDCC %>%
+  filter(grepl("change", `Outcome type`)) %>%
+    filter(`Treatment modality` == "Tumour resection") %>%
+  filter(`Cancer type` %in% c("Colon/Rectum", "Head and Neck", "Liver/Bile Duct", "Lung", "Esophagus", "Pancreas")) %>%
+  ggplot() +
+        geom_bar(aes(x = `Cancer type`, y = change, fill = `Outcome type`), position= position_dodge(0.5), stat = "identity", width = .5) +
+        labs(title = "Tumour resection", fill = "Screening round", x = "Cancer type", y = "Percentage (%) change in volume") +
+        theme_bw() +
+        theme(text = element_text(size = 18, face="bold")) +
+        scale_fill_discrete(labels=c("Prevalent", "Steady state"),
+        type=c("#3B1C52","#94724F"))
+
+EDCC_fig1_chemo <- EDCC %>%
+  filter(grepl("change", `Outcome type`)) %>%
+    filter(`Treatment modality` == "Chemotherapy") %>%
+  filter(`Cancer type` %in% c("Colon/Rectum", "Head and Neck", "Lung", "Esophagus", "Ovary", "Pancreas")) %>%
+  ggplot() +
+        geom_bar(aes(x = `Cancer type`, y = change, fill = `Outcome type`), position= position_dodge(0.5), stat = "identity", width = .5) +
+        labs(title = "Chemotherapy", fill = "Screening round", x = "Cancer type", y = "Percentage (%) change in volume") +
+        theme_bw() +
+        theme(text = element_text(size = 18, face="bold")) +
+        scale_fill_discrete(labels=c("Prevalent", "Steady state"),
+        type=c("#3B1C52","#94724F"))
+
+EDCC_fig1_radio <- EDCC %>%
+  filter(grepl("change", `Outcome type`)) %>%
+    filter(`Treatment modality` == "Radiotherapy") %>%
+  filter(`Cancer type` %in% c("Head and Neck", "Lung", "Lymphoma", "Esophagus", "Pancreas", "Prostate")) %>%
+  ggplot() +
+        geom_bar(aes(x = `Cancer type`, y = change, fill = `Outcome type`), position= position_dodge(0.5), stat = "identity", width = .5) +
+        labs(title = "Radiotherapy", fill = "Screening round", x = "Cancer type", y = "Percentage (%) change in volume") +
+        theme_bw() +
+        theme(text = element_text(size = 18, face="bold")) +
+        scale_fill_discrete(labels=c("Prevalent", "Steady state"),
+        type=c("#3B1C52","#94724F"))
+
+
+```
+
+## 4.2 Treatment modality combinations: Mutually exclusive (sum to 100%): Tumour resection only, Chemo only (chemo, immuno/targeted therapy), Radiotherapy only (curative, palliative), Resection + chemo, Resection + radio, Chemo + radio, Resection + radio + chemo, Other care,
+
+```{r}
+# No longer used :### Table 4.2.1 Total annual treatment combinations (N) for each cancer type by stage: SoC, prevalent round and steady state
+
+
+df_table_4.2.1 <- df_8treatentXstage_joined_intercept %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Stage at diagnosis`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care"))
+
+# gt::gt(df_table_4.2.1) %>%
+#         tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+# addWorksheet(excel_output, sheetName = "4.2.1 Tx combi (N) prev&SS")
+# writeData(excel_output, sheet = "4.2.1 Tx combi (N) prev&SS", df_table_4.2.1)  
+
+```
+
+### 4.2.1 Annual treatment volume for treatment modality combination, for each cancer (all stages) and % change with MCED screening - prevalent round
+
+```{r}
+
+df_table_4.2.1 <- df_8treatentXstage_joined_intercept %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, contains("SoC"), contains("Prev")) %>%
+        mutate(`Tumour resection only: Change (%)` = ((`Tumour resection only: Prev round (no.)`-`Tumour resection only: SoC (no.)`)/`Tumour resection only: SoC (no.)`) * 100,
+               `Chemotherapy only: Change (%)` = ((`Chemotherapy only: Prev round (no.)`-`Chemotherapy only: SoC (no.)`)/`Chemotherapy only: SoC (no.)`) * 100,
+               `Radiotherapy only: Change (%)` = ((`Radiotherapy only: Prev round (no.)`-`Radiotherapy only: SoC (no.)`)/`Radiotherapy only: SoC (no.)`) * 100,
+               `Tumour resection and chemotherapy: Change (%)` = ((`Tumour resection and chemotherapy: Prev round (no.)`-`Tumour resection and chemotherapy: SoC (no.)`)/`Tumour resection and chemotherapy: SoC (no.)`) * 100,
+               `Tumour resection and radiotherapy: Change (%)` = ((`Tumour resection and radiotherapy: Prev round (no.)`-`Tumour resection and radiotherapy: SoC (no.)`)/`Tumour resection and radiotherapy: SoC (no.)`) * 100,
+               `Chemotherapy and radiotherapy: Change (%)` = ((`Chemotherapy and radiotherapy: Prev round (no.)`-`Chemotherapy and radiotherapy: SoC (no.)`)/`Chemotherapy and radiotherapy: SoC (no.)`) * 100,
+               `Other care: Change (%)` = ((`Other care: Prev round (no.)`-`Other care: SoC (no.)`)/`Other care: SoC (no.)`) * 100,
+               `Tumour resection, radiotherapy and chemotherapy: Change (%)` = ((`Tumour resection, radiotherapy and chemotherapy: Prev round (no.)`-`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`)/`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care") )
+
+gt::gt(df_table_4.2.1) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "4.2.1 Tx combi (%) prev")
+writeData(excel_output, sheet = "4.2.1 Tx combi (%) prev", df_table_4.2.1)
+  
+```
+
+### Table 4.2.2 Annual treatment volume for treatment modality combination, for each cancer (all stages) and % change with MCED screening - steady state
+
+```{r}
+
+df_table_4.2.2 <- df_8treatentXstage_joined_intercept %>%
+        select(`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, contains("SoC"), contains("SS")) %>%
+        mutate(`Tumour resection only: Change (%)` = ((`Tumour resection only: SS (no.)`-`Tumour resection only: SoC (no.)`)/`Tumour resection only: SoC (no.)`) * 100,
+               `Chemotherapy only: Change (%)` = ((`Chemotherapy only: SS (no.)`-`Chemotherapy only: SoC (no.)`)/`Chemotherapy only: SoC (no.)`) * 100,
+               `Radiotherapy only: Change (%)` = ((`Radiotherapy only: SS (no.)`-`Radiotherapy only: SoC (no.)`)/`Radiotherapy only: SoC (no.)`) * 100,
+               `Tumour resection and chemotherapy: Change (%)` = ((`Tumour resection and chemotherapy: SS (no.)`-`Tumour resection and chemotherapy: SoC (no.)`)/`Tumour resection and chemotherapy: SoC (no.)`) * 100,
+               `Tumour resection and radiotherapy: Change (%)` = ((`Tumour resection and radiotherapy: SS (no.)`-`Tumour resection and radiotherapy: SoC (no.)`)/`Tumour resection and radiotherapy: SoC (no.)`) * 100,
+               `Chemotherapy and radiotherapy: Change (%)` = ((`Chemotherapy and radiotherapy: SS (no.)`-`Chemotherapy and radiotherapy: SoC (no.)`)/`Chemotherapy and radiotherapy: SoC (no.)`) * 100,
+               `Other care: Change (%)` = ((`Other care: SS (no.)`-`Other care: SoC (no.)`)/`Other care: SoC (no.)`) * 100,
+               `Tumour resection, radiotherapy and chemotherapy: Change (%)` = ((`Tumour resection, radiotherapy and chemotherapy: SS (no.)`-`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`)/`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care") )
+
+gt::gt(df_table_4.2.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "4.2.2 Tx combi (%) SS")
+writeData(excel_output, sheet = "4.2.2 Tx combi (%) SS", df_table_4.2.2)
+
+```
+
+################################################################################ 
+
+# 5. Sensitivity analysis
+
+## 5.1 Summary tables by IMD
+
+Table 5.1.1 Overall annual treatment volume for each cancer (all stages) and % change with MCED screening - prevalent round
+
+```{r}
+
+df_table_5.1.1 <- df_3treatentXstageIMD_joined_intercept %>%
+        select(`Index of Multiple Deprivation Quintile`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by( `Cancer type`, `Index of Multiple Deprivation Quintile`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("SoC"), contains("Prev")) %>%
+        mutate(`Tumour resection: Change (%)` = ((`Tumour resection: Prev round (no.)`-`Tumour resection: SoC (no.)`)/`Tumour resection: SoC (no.)`) * 100,
+               `Chemotherapy: Change (%)` = ((`Chemotherapy: Prev round (no.)`-`Chemotherapy: SoC (no.)`)/`Chemotherapy: SoC (no.)`) * 100,
+               `Radiotherapy: Change (%)` = ((`Radiotherapy: Prev round (no.)`-`Radiotherapy: SoC (no.)`)/`Radiotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy")) %>%
+        ungroup()
+
+gt::gt(df_table_5.1.1) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.1.1 Tx IMD vol (%) prev")
+writeData(excel_output, sheet = "5.1.1 Tx IMD vol (%) prev", df_table_5.1.1)
+  
+```
+
+Table 5.1.2 Overall annual treatment volume for each cancer (all stages) and % change with MCED screening - steady state
+
+```{r}
+
+df_table_5.1.2 <- df_3treatentXstageIMD_joined_intercept %>%
+        select(`Index of Multiple Deprivation Quintile`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`, `Index of Multiple Deprivation Quintile`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("SoC"), contains("SS")) %>%
+        mutate(`Tumour resection: Change (%)` = ((`Tumour resection: SS (no.)`-`Tumour resection: SoC (no.)`)/`Tumour resection: SoC (no.)`) * 100,
+               `Chemotherapy: Change (%)` = ((`Chemotherapy: SS (no.)`-`Chemotherapy: SoC (no.)`)/`Chemotherapy: SoC (no.)`) * 100,
+               `Radiotherapy: Change (%)` = ((`Radiotherapy: SS (no.)`-`Radiotherapy: SoC (no.)`)/`Radiotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy"))%>%
+        ungroup()
+
+gt::gt(df_table_5.1.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.1.2 Tx IMD vol (%) SS")
+writeData(excel_output, sheet = "5.1.2 Tx IMD vol (%) SS", df_table_5.1.2)
+
+```
+
+Table 5.1.3 Annual treatment volume for treatment modality combination, for each cancer (all stages) and % change with MCED screening - prevalent round
+
+```{r}
+
+df_table_5.1.3 <- df_8treatentXstageIMD_joined_intercept %>%
+        select(`Index of Multiple Deprivation Quintile`,`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`, `Index of Multiple Deprivation Quintile`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("SoC"), contains("Prev")) %>%
+        mutate(`Tumour resection only: Change (%)` = ((`Tumour resection only: Prev round (no.)`-`Tumour resection only: SoC (no.)`)/`Tumour resection only: SoC (no.)`) * 100,
+               `Chemotherapy only: Change (%)` = ((`Chemotherapy only: Prev round (no.)`-`Chemotherapy only: SoC (no.)`)/`Chemotherapy only: SoC (no.)`) * 100,
+               `Radiotherapy only: Change (%)` = ((`Radiotherapy only: Prev round (no.)`-`Radiotherapy only: SoC (no.)`)/`Radiotherapy only: SoC (no.)`) * 100,
+               `Tumour resection and chemotherapy: Change (%)` = ((`Tumour resection and chemotherapy: Prev round (no.)`-`Tumour resection and chemotherapy: SoC (no.)`)/`Tumour resection and chemotherapy: SoC (no.)`) * 100,
+               `Tumour resection and radiotherapy: Change (%)` = ((`Tumour resection and radiotherapy: Prev round (no.)`-`Tumour resection and radiotherapy: SoC (no.)`)/`Tumour resection and radiotherapy: SoC (no.)`) * 100,
+               `Chemotherapy and radiotherapy: Change (%)` = ((`Chemotherapy and radiotherapy: Prev round (no.)`-`Chemotherapy and radiotherapy: SoC (no.)`)/`Chemotherapy and radiotherapy: SoC (no.)`) * 100,
+               `Other care: Change (%)` = ((`Other care: Prev round (no.)`-`Other care: SoC (no.)`)/`Other care: SoC (no.)`) * 100,
+               `Tumour resection, radiotherapy and chemotherapy: Change (%)` = ((`Tumour resection, radiotherapy and chemotherapy: Prev round (no.)`-`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`)/`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care") ) %>%
+        ungroup()
+
+gt::gt(df_table_5.1.3) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.1.3 Tx IMD combi (%) prev")
+writeData(excel_output, sheet = "5.1.3 Tx IMD combi (%) prev", df_table_5.1.3)
+  
+```
+
+Table 5.1.4 Annual treatment volume for treatment modality combination, for each cancer (all stages) and % change with MCED screening - steady state
+
+```{r}
+
+df_table_5.1.4 <- df_8treatentXstageIMD_joined_intercept %>%
+        select(`Index of Multiple Deprivation Quintile`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`,`Index of Multiple Deprivation Quintile`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("SoC"), contains("SS")) %>%
+        mutate(`Tumour resection only: Change (%)` = ((`Tumour resection only: SS (no.)`-`Tumour resection only: SoC (no.)`)/`Tumour resection only: SoC (no.)`) * 100,
+               `Chemotherapy only: Change (%)` = ((`Chemotherapy only: SS (no.)`-`Chemotherapy only: SoC (no.)`)/`Chemotherapy only: SoC (no.)`) * 100,
+               `Radiotherapy only: Change (%)` = ((`Radiotherapy only: SS (no.)`-`Radiotherapy only: SoC (no.)`)/`Radiotherapy only: SoC (no.)`) * 100,
+               `Tumour resection and chemotherapy: Change (%)` = ((`Tumour resection and chemotherapy: SS (no.)`-`Tumour resection and chemotherapy: SoC (no.)`)/`Tumour resection and chemotherapy: SoC (no.)`) * 100,
+               `Tumour resection and radiotherapy: Change (%)` = ((`Tumour resection and radiotherapy: SS (no.)`-`Tumour resection and radiotherapy: SoC (no.)`)/`Tumour resection and radiotherapy: SoC (no.)`) * 100,
+               `Chemotherapy and radiotherapy: Change (%)` = ((`Chemotherapy and radiotherapy: SS (no.)`-`Chemotherapy and radiotherapy: SoC (no.)`)/`Chemotherapy and radiotherapy: SoC (no.)`) * 100,
+               `Other care: Change (%)` = ((`Other care: SS (no.)`-`Other care: SoC (no.)`)/`Other care: SoC (no.)`) * 100,
+               `Tumour resection, radiotherapy and chemotherapy: Change (%)` = ((`Tumour resection, radiotherapy and chemotherapy: SS (no.)`-`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`)/`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Index of Multiple Deprivation Quintile`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care") )
+
+gt::gt(df_table_5.1.4) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.1.4 Tx IMD combi (%) SS")
+writeData(excel_output, sheet = "5.1.4 Tx IMD combi (%) SS", df_table_5.1.4)
+
+  
+```
+
+################################################################################ 
+
+## 5.2 Cancer alliance
+
+Table 5.2.1 Overall annual treatment volume for each cancer (all stages) and % change with MCED screening - prevalent round
+
+```{r}
+
+df_table_5.2.1 <- df_3treatentXstageCA_joined_intercept %>%
+        select(`Cancer Alliance`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by( `Cancer type`, `Cancer Alliance`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("SoC"), contains("Prev")) %>%
+        mutate(`Tumour resection: Change (%)` = ((`Tumour resection: Prev round (no.)`-`Tumour resection: SoC (no.)`)/`Tumour resection: SoC (no.)`) * 100,
+               `Chemotherapy: Change (%)` = ((`Chemotherapy: Prev round (no.)`-`Chemotherapy: SoC (no.)`)/`Chemotherapy: SoC (no.)`) * 100,
+               `Radiotherapy: Change (%)` = ((`Radiotherapy: Prev round (no.)`-`Radiotherapy: SoC (no.)`)/`Radiotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy")) %>%
+        ungroup()
+
+gt::gt(df_table_5.2.1) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.2.1 Tx CA vol (%) prev")
+writeData(excel_output, sheet = "5.2.1 Tx CA vol (%) prev", df_table_5.2.1)
+  
+```
+
+Table 5.2.2 Overall annual treatment volume for each cancer (all stages) and % change with MCED screening - steady state
+
+```{r}
+
+df_table_5.2.2 <- df_3treatentXstageCA_joined_intercept %>%
+        select(`Cancer Alliance`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`, `Cancer Alliance`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("SoC"), contains("SS")) %>%
+        mutate(`Tumour resection: Change (%)` = ((`Tumour resection: SS (no.)`-`Tumour resection: SoC (no.)`)/`Tumour resection: SoC (no.)`) * 100,
+               `Chemotherapy: Change (%)` = ((`Chemotherapy: SS (no.)`-`Chemotherapy: SoC (no.)`)/`Chemotherapy: SoC (no.)`) * 100,
+               `Radiotherapy: Change (%)` = ((`Radiotherapy: SS (no.)`-`Radiotherapy: SoC (no.)`)/`Radiotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("Tumour resection"), contains("Chemotherapy"), contains("Radiotherapy"))%>%
+        ungroup()
+
+gt::gt(df_table_5.2.2) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.2.2 Tx CA vol (%) SS")
+writeData(excel_output, sheet = "5.2.2 Tx CA vol (%) SS", df_table_5.2.2)
+
+```
+
+Table 5.1.3 Annual treatment volume for treatment modality combination, for each cancer (all stages) and % change with MCED screening - prevalent round
+
+```{r}
+
+df_table_5.2.3 <- df_8treatentXstageCA_joined_intercept %>%
+        select(`Cancer Alliance`,`Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`, `Cancer Alliance`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("SoC"), contains("Prev")) %>%
+        mutate(`Tumour resection only: Change (%)` = ((`Tumour resection only: Prev round (no.)`-`Tumour resection only: SoC (no.)`)/`Tumour resection only: SoC (no.)`) * 100,
+               `Chemotherapy only: Change (%)` = ((`Chemotherapy only: Prev round (no.)`-`Chemotherapy only: SoC (no.)`)/`Chemotherapy only: SoC (no.)`) * 100,
+               `Radiotherapy only: Change (%)` = ((`Radiotherapy only: Prev round (no.)`-`Radiotherapy only: SoC (no.)`)/`Radiotherapy only: SoC (no.)`) * 100,
+               `Tumour resection and chemotherapy: Change (%)` = ((`Tumour resection and chemotherapy: Prev round (no.)`-`Tumour resection and chemotherapy: SoC (no.)`)/`Tumour resection and chemotherapy: SoC (no.)`) * 100,
+               `Tumour resection and radiotherapy: Change (%)` = ((`Tumour resection and radiotherapy: Prev round (no.)`-`Tumour resection and radiotherapy: SoC (no.)`)/`Tumour resection and radiotherapy: SoC (no.)`) * 100,
+               `Chemotherapy and radiotherapy: Change (%)` = ((`Chemotherapy and radiotherapy: Prev round (no.)`-`Chemotherapy and radiotherapy: SoC (no.)`)/`Chemotherapy and radiotherapy: SoC (no.)`) * 100,
+               `Other care: Change (%)` = ((`Other care: Prev round (no.)`-`Other care: SoC (no.)`)/`Other care: SoC (no.)`) * 100,
+               `Tumour resection, radiotherapy and chemotherapy: Change (%)` = ((`Tumour resection, radiotherapy and chemotherapy: Prev round (no.)`-`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`)/`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care") ) %>%
+        ungroup()
+
+gt::gt(df_table_5.2.3) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.2.3 Tx CA combi (%) prev")
+writeData(excel_output, sheet = "5.2.3 Tx CA combi (%) prev", df_table_5.2.3)
+  
+```
+
+Table 5.1.4 Annual treatment volume for treatment modality combination, for each cancer (all stages) and % change with MCED screening - steady state
+
+```{r}
+
+df_table_5.2.4 <- df_8treatentXstageCA_joined_intercept %>%
+        select(`Cancer Alliance`, `Cancer type`, `Stage at diagnosis`, `Treatment modality`, `SoC no. of tumours treated`, `Prev no. of tumours treated`, `SS no. of tumours treated`) %>%
+        rename(`SoC` = `SoC no. of tumours treated`,
+               `Prev round`= `Prev no. of tumours treated`,
+               `SS`= `SS no. of tumours treated`) %>%
+        pivot_wider(names_from = `Treatment modality`, values_from = c(`SoC`, `Prev round`, `SS`), names_glue ="{`Treatment modality`}: {.value} (no.)") %>%
+        group_by(`Cancer type`,`Cancer Alliance`) %>%
+        summarise(across(contains(":"), \(x) sum(x))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("SoC"), contains("SS")) %>%
+        mutate(`Tumour resection only: Change (%)` = ((`Tumour resection only: SS (no.)`-`Tumour resection only: SoC (no.)`)/`Tumour resection only: SoC (no.)`) * 100,
+               `Chemotherapy only: Change (%)` = ((`Chemotherapy only: SS (no.)`-`Chemotherapy only: SoC (no.)`)/`Chemotherapy only: SoC (no.)`) * 100,
+               `Radiotherapy only: Change (%)` = ((`Radiotherapy only: SS (no.)`-`Radiotherapy only: SoC (no.)`)/`Radiotherapy only: SoC (no.)`) * 100,
+               `Tumour resection and chemotherapy: Change (%)` = ((`Tumour resection and chemotherapy: SS (no.)`-`Tumour resection and chemotherapy: SoC (no.)`)/`Tumour resection and chemotherapy: SoC (no.)`) * 100,
+               `Tumour resection and radiotherapy: Change (%)` = ((`Tumour resection and radiotherapy: SS (no.)`-`Tumour resection and radiotherapy: SoC (no.)`)/`Tumour resection and radiotherapy: SoC (no.)`) * 100,
+               `Chemotherapy and radiotherapy: Change (%)` = ((`Chemotherapy and radiotherapy: SS (no.)`-`Chemotherapy and radiotherapy: SoC (no.)`)/`Chemotherapy and radiotherapy: SoC (no.)`) * 100,
+               `Other care: Change (%)` = ((`Other care: SS (no.)`-`Other care: SoC (no.)`)/`Other care: SoC (no.)`) * 100,
+               `Tumour resection, radiotherapy and chemotherapy: Change (%)` = ((`Tumour resection, radiotherapy and chemotherapy: SS (no.)`-`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`)/`Tumour resection, radiotherapy and chemotherapy: SoC (no.)`) * 100) %>%
+        mutate(across(where(is.numeric), \(x) round(x, 1))) %>%
+        select(`Cancer type`, `Cancer Alliance`, contains("Tumour resection only"), contains("Tumour resection and chemotherapy"),
+               contains("Tumour resection and radiotherapy"), contains("Tumour resection, radiotherapy and chemotherapy"),
+               contains("Chemotherapy and radiotherapy"), contains("Radiotherapy only"),
+               contains("Chemotherapy only"), contains("Other care") )
+
+gt::gt(df_table_5.2.4) %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+addWorksheet(excel_output, sheetName = "5.2.4 Tx CA combi (%) SS")
+writeData(excel_output, sheet = "5.2.4 Tx CA combi (%) SS", df_table_5.2.4)
+
+
+saveWorkbook(excel_output, paste0("~/Miscellaneous/Treatments/", uptake,"%_participation_results_tables.xlsx"), overwrite = TRUE)
+
+  
+```

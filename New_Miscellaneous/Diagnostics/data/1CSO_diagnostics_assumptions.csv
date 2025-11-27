@@ -1,0 +1,19 @@
+﻿CSO_type,2WW_pathway,diagnostic_imaging_1,diagnostic_imaging_2,staging_imaging_1,CSO_incorrect_imaging
+Anus,Lower GI,Flexi Sigmoidoscopy,NA,NA,CT
+Bladder and Urothelial Tract,Urology,Cystoscopy,NA,NA,CT
+Bone and Soft Tissue,Sarcoma,MRI,NA,NA,CT
+Breast,Urgent breast,Non-obstetric Ultrasound,NA,NA,CT
+Cervix,Gynaecological,Biopsy,NA,NA,CT
+Colon and Rectum,Lower GI,Colonoscopy,NA,NA,CT
+Haematopoietic or lymphatic system,Haematology,Biopsy,NA,NA,CT
+Head and Neck,Head and neck,Gastroscopy,Non-obstetric Ultrasound,NA,CT
+Kidney,Urology,CT,NA,NA,CT
+Liver and Bile Duct,Upper GI,CT,NA,NA,CT
+Lung,Lung,CT,NA,NA,CT
+Melanoma,Skin,Biopsy,NA,NA,CT
+Ovary,Gynaecological,Non-obstetric Ultrasound,NA,NA,CT
+Pancreas and Gallbladder,Upper GI,CT,NA,NA,CT
+Prostate,Urology,MRI,NA,NA,CT
+Stomach and Esophagus,Upper GI,Gastroscopy,NA,NA,CT
+Thyroid Gland,Head and neck,Non-obstetric Ultrasound,NA,NA,CT
+Uterus,Gynaecological,Non-obstetric Ultrasound,NA,NA,CT

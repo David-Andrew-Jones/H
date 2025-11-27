@@ -1,0 +1,829 @@
+---
+title: "Cost generalisation"
+format:
+   docx: 
+    output-file: "cost generalisation"
+    output-ext:  "docx"
+editor: visual
+execute:
+  warning: false
+  echo: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(dplyr, quietly = TRUE)
+library(readr, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(tidyr, quietly = TRUE)
+library(stringr, quietly = TRUE)
+library(purrr, quietly = TRUE)
+library(readxl, quietly = TRUE)
+library(gt, quietly = TRUE)
+library(GalleriCEmodel, quietly = TRUE)
+
+```
+
+```{r, warning=FALSE}
+#' _____ Load in data
+
+df_all_combo_template <- expand.grid(`Cancer type` = c( "Anal", "Bladder", "Breast", "Cervical", "Colorectal",
+                                                        "Head and neck", "Kidney", "Liver", "Lung", "Lymphoma","Oesophageal", "Ovarian",
+                                                        "Pancreatic", "Prostate", "Stomach", "Urothelial Tract", "Uterine", "[OTHER]"),
+                                     Stage = c("I", "II", "III", "IV", "Unknown/missing"))
+
+
+#' Costs
+df_HDI_costs_master <- read_csv(file = "~/Miscellaneous/HDI/Cost generalisation/hdi_cost_outcomes.csv")
+#' Treatment proportions
+df_treat_14to19_master <- readxl::read_xlsx("~/Miscellaneous/Treatments/20241205_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData_ext.xlsx", sheet = "Treat Stage") 
+#' Net survival
+source("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/01_prep_England5year_net_surv.R")
+
+surv_50to79 <- surv_full %>%
+        rename(Cancer = `Cancer site`, Stage = `Stage at diagnosis`, Age = `Age group`,
+                                  Years = `Years since diagnosis`, n_patients = `Number of patients`,
+                                  CSS =`Net survival (%)`) %>%
+        select(Cancer, Stage, Years, CSS, Age, Sex, Subtype, n_patients) %>% #sex + subtype included to be filtered later
+        mutate(CSS = CSS/100) %>% #changes survival from % to prob as in SEER dataset
+       #mutate(Years = Years*12) %>% #converts to months
+        filter(Stage != "All stages combined") %>% #filter out all stages as not in SEER dataset
+        mutate(Stage = case_when(Stage == 1 ~ "I",
+                                 Stage == 2 ~ "II",
+                                 Stage == 3 ~ "III",
+                                 Stage == 4 ~ "IV",
+                                 Stage == "Unstageable/unknown/missing" ~ "Unknown/missing",
+                                 .default = NA)) %>%
+        mutate(Age = paste0(Age, ' years') ) %>%
+        mutate(NCRAS_Draw=case_when(
+                Cancer %in% c("uterus") ~ "Uterine",
+                Cancer %in% c("ovary") ~ "Ovarian",
+                Cancer %in% c("cervix") ~ "Cervical",
+                Cancer %in% c("prostate") ~ "Prostate",
+                Cancer %in% c("breast") ~ "Breast",
+                Cancer %in% c("thyroid") ~ "Thyroid",
+                Cancer %in% c("stomach") ~ "Stomach",
+                Cancer %in% c("sarcoma") ~ "Sarcoma",
+                Cancer %in% c("pancreas") ~ "Pancreatic",
+                Cancer %in% c("melanoma") ~ "Melanoma",
+                Cancer %in% c("lymphoma") ~ "Lymphoma",
+                Cancer %in% c("lung") ~ "Lung",
+                Cancer %in% c("kidney") ~ "Kidney",
+                Cancer %in% c("gallbladder") ~ "Gallbladder",
+                Cancer %in% c("bladder") ~ "Bladder",
+                Cancer %in% c("anus") ~ "Anal",
+                Cancer %in% c("head_and_neck") ~ 'Head and neck',
+                Cancer %in% c("colon-rectum") ~ "Colorectal",
+                Cancer %in% c("lymphoid leukaemia") ~ "Lymphoid Leukemia",
+                Cancer %in% c("lymphoid_leukaemia") ~ "Lymphoid Leukemia",
+                Cancer %in% c("liver-bile_duct")  ~ "Liver",
+                Cancer %in% c("liver/bile duct")  ~ "Liver",
+                Cancer %in% c("myeloid_neoplasm") ~ "Myeloid Neoplasm",
+                Cancer %in% c("oesophagus") ~ "Oesophageal",
+                Cancer %in% c("plasma_cell_neoplasm") ~ "Plasma Cell Neoplasm",
+                Cancer %in% c("urothelial_tract") ~ "Urothelial Tract",
+                Cancer %in% c("other") ~ "[OTHER]",
+                TRUE~Cancer
+        )) %>%
+        filter(
+                (NCRAS_Draw %in% c("Uterine", "Ovarian", "Cervical") & Sex=="Female") |
+                        (NCRAS_Draw %in% c("Prostate") & Sex=="Male") |
+                        (NCRAS_Draw %in% c( "Anal", "Bladder","Breast", "Colorectal", "Gallbladder",
+                                            "Head and neck", "Kidney", "Liver", "Lung", "Lymphoma", "Melanoma","Oesophageal",
+                                            "Pancreatic", "Stomach", "Thyroid", "Urothelial Tract" , "[OTHER]") & Sex=="Persons")
+        ) %>%
+        mutate(CSS = case_when(CSS>1 ~ 1,
+                               .default = CSS)) %>% #filter out all the different subtypes - use 'all combined' (for cancers with 1+ subtype) OR "N/A"
+        filter(Subtype == "N/A" | Subtype == "All combined" ) %>% #if cancer has sub-types, it will be 'All combined', otherwise N/A
+        select(-Cancer) %>%
+        mutate(`Age group` = gsub('.{6}$','', Age)) %>% #to take off the " years" at the end
+        select(-Age) %>%
+        rename(Age = `Age group`) %>%
+        filter(Age == "50-79") %>%
+        group_by(NCRAS_Draw, Stage, Years) %>% #select stage, cancer, Months, to ensure selecting within a type
+        mutate(CSS_imp = na.locf(CSS, na.rm = FALSE)) %>% #search for the most recent non-NA prior (order means it is getting older values)
+        mutate(CSS = na.locf(CSS_imp, na.rm = FALSE, fromLast = TRUE)) %>% #next observation carried backwards - for when there is no older age group
+        ungroup() %>%
+        select(Age, Sex, NCRAS_Draw, Stage, Years, CSS, n_patients) %>% #select variables to be written out
+        mutate(across(where(is.character), as.factor))
+
+library(purrr)
+fill_in <- function(prev, new) {
+        if_else(prev < new, prev, new)
+}
+
+df_surv_formatted_50to79 <- surv_50to79 %>%
+        mutate(CSS = round(CSS, 3)) %>%
+        group_by(Age, Sex, NCRAS_Draw, Stage) %>%
+        mutate(CSS_adjusted = accumulate(CSS, fill_in)) %>%
+        mutate(start = lag(Years, default = 0)) %>%
+        rename(stop = Years) %>%
+        ungroup() %>%
+        mutate(across(c(Age, NCRAS_Draw), as.character),
+               across(c(Age, NCRAS_Draw), as.factor) ) %>%
+        filter(Age == "50-79")
+
+
+```
+
+```{r}
+#' _____ Filter data and combine
+
+df_HDI_overall_costs <- df_HDI_costs_master %>% filter(cost_outcome == "Overall costs") %>%
+                mutate(Stage = case_when(Stage ==  "Missing/Unknown" ~ "Unknown/missing",
+                                                .default = Stage)) %>%
+        select(-absolute_conf_high,-absolute_conf_low,-cost_outcome)
+
+#' 'Other' treatment proportions
+df_treat_14to19 <- df_treat_14to19_master %>% filter(`Treatment modality` == "Other care") %>% select(`Cancer type`, `Stage at diagnosis`, Proportion) %>%
+        mutate(`Stage at diagnosis` = case_when(`Stage at diagnosis` == 1 ~ "I",
+                                                `Stage at diagnosis` == 2 ~ "II",
+                                                `Stage at diagnosis` == 3 ~ "III",
+                                                `Stage at diagnosis` == 4 ~ "IV",
+                                                `Stage at diagnosis` == "X" ~ "Unknown/missing",
+                                                .default = NA)) %>%
+        mutate(`Cancer type` =case_when(`Cancer type`  %in% c("Uterus") ~ "Uterine",
+                                      `Cancer type`  %in% c("Ovary") ~ "Ovarian",
+                                      `Cancer type`  %in% c("Cervix") ~ "Cervical",
+                                      `Cancer type`  %in% c("Pancreas") ~ "Pancreatic",
+                                      `Cancer type`  %in% c("Anus") ~ "Anal",
+                                      `Cancer type`  %in% c("Colon") ~ "Colorectal", # Note - using Colon for colorectal
+                                      `Cancer type`  %in% c("Headneck") ~ 'Head and neck',
+                                      `Cancer type`  %in% c("Oesophagus") ~ "Oesophageal",
+                                      `Cancer type`  %in% c("Urothelial") ~ "Urothelial Tract",
+                                      .default = `Cancer type`)) %>%
+         mutate(Proportion = as.numeric(Proportion))
+
+#' Net survival at 1 year
+df_surv_1y3y <- df_surv_formatted_50to79 %>% filter(stop == 1 | stop == 3) %>% select(NCRAS_Draw, Stage, stop, CSS_adjusted) %>% mutate(CSS_adjusted = as.numeric(CSS_adjusted))
+
+#' Combine
+df_cost_surv_treat_master <- df_all_combo_template %>%
+        left_join(df_HDI_overall_costs, by = c("Cancer type" = "cancer_type", "Stage")) %>%
+        left_join(df_surv_1y3y, by = c("Cancer type" = "NCRAS_Draw", "Stage")) %>%
+        left_join(df_treat_14to19, by = c("Cancer type", "Stage" = "Stage at diagnosis"))
+
+
+df_diff_cost_surv_treat_master <- df_cost_surv_treat_master %>%
+          pivot_wider(names_from = "stop", values_from = c("CSS_adjusted")) %>%
+          pivot_wider(names_from = "Stage", values_from = c("absolute_average","1", "3","Proportion")) %>%
+  mutate(`diffcost_I to II` = absolute_average_II-absolute_average_I,
+         `diffcost_II to III` = absolute_average_III-absolute_average_II,
+         `diffcost_III to IV` = absolute_average_IV-absolute_average_III,
+         `diffsurv1_I to II` = `1_II`-`1_I`,
+         `diffsurv1_II to III` = `1_III`-`1_II`,
+         `diffsurv1_III to IV` = `1_IV`-`1_III`,
+         `diffsurv3_I to II` = `3_II`-`3_I`,
+         `diffsurv3_II to III` = `3_III`-`3_II`,
+         `diffsurv3_III to IV` = `3_IV`-`3_III`,
+         `difftreat_I to II` = Proportion_II-Proportion_I,
+        `difftreat_II to III` = Proportion_III-Proportion_II,
+         `difftreat_III to IV` = Proportion_IV-Proportion_III) %>%
+   select(`Cancer type`, `diffcost_I to II`:`difftreat_III to IV`) %>%
+  pivot_longer(cols = `diffcost_I to II`:`difftreat_III to IV`, names_to = "Var", values_to = "vals") %>%
+  separate_wider_delim(cols = "Var", delim = "_", names = c("Variable" , "Stage")) %>%
+  pivot_wider(names_from = "Variable", values_from = "vals") 
+
+df_diff_cost_surv_treat_costed <- df_diff_cost_surv_treat_master %>% 
+    filter(!is.na(diffcost)) 
+
+
+df_cost_surv_treat_costed <- df_cost_surv_treat_master %>% filter(!is.na(absolute_average))
+
+```
+
+In the Cost by Stage study, healthcare costs are estimated for eight cancer types: colorectal, head and neck, liver, lung, lymphoma, oesophageal, ovarian and pancreatic. For each, the average cancer-related overall hospital costs at each given stage was estimated based on data for individuals diagnosed between 2013-2017, with healthcare records to the end of 2019.
+
+This leaves 10 cancer types not account for in the cost effectiveness model (CEM): anal, bladder, breast (not distinguishing between HR-positive and negative), cervical, kidney, prostate, stomach, urothelial, uterine, and "other". Additionally, we may want to consider how the estimated costs might have changed in the years since the study follow-up ended.
+
+Ideally, to be able to both generalise and extrapolate, a functional model would be built which relates certain characteristics of the cancer (as defined by type and stage) to healthcare costs. In the Cost by Stage study, survival posited as likely main mediator of costs. Below survival, as it relates to the cost estimates from the Cost by Stage study, is explored to see if a functional model may be feasibly to created noting the inevitable issue with such an approach, that we do not have much 'information' to create a model on, only 8 cancer types and 4 stages.
+
+## Base data: average overall net costs
+
+Below, the absolute average overall net hospital cost results from the Cost by Stage study are given. The figure suggests three patterns:
+
+(a) Colorectal, head and neck, lymphoma: costs increase with each stage: "increasing (I \< II \< III \< IV)"
+(b) Ovarian: costs increase to stage III: "increasing to III (I \< II \< III \> IV)"
+(c) Liver, lung, oesophageal and pancreatic cancer: an inverted U shape pattern: "increasing to II (I \< II \> III \> IV)"
+
+```{r}
+
+gt::gt(df_cost_surv_treat_costed %>% filter(Stage != "Unknown/missing" & stop == "1") %>% select(`Cancer type`, Stage, absolute_average) %>% pivot_wider(names_from = Stage, values_from = absolute_average))
+
+
+df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "1") %>%
+        ggplot(aes(y = absolute_average, x = Stage, group = `Cancer type`, color = `Cancer type`)) +
+        geom_line() +
+        ggrepel::geom_text_repel(df_cost_surv_treat_costed %>% filter(Stage == "IV" & stop == "1") , 
+                                 mapping = aes( color = `Cancer type`, label = `Cancer type`), size =2.5,
+        direction = "y", hjust = -1, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+    segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+        theme_bw(base_size = 12) +
+        theme( legend.position = "none") +
+        labs( x = "Stage", y = "Average overall cost") +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27", "#546741","#202020","#E0E0E0")) +
+         scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"),
+                            breaks = c(0,10000,20000,30000,40000,50000), limits = c(0,50000)) +
+
+    expand_limits(x= c(1, 5))
+
+```
+
+## 1.1 Base data: 1-year net survival
+
+The groupings seem to follow how 'aggressive' the cancer type is. Below 1-year net survival is given for the 8 cancer types, followed by all the cancer types together. This later graph demonstrates just how aggressive liver, lung, oesophageal and pancreatic cancers are compared nearly all other types.
+
+```{r}
+
+gt::gt(df_cost_surv_treat_master %>% filter(Stage != "Unknown/missing" &stop == 1) %>% select(`Cancer type`, Stage, CSS_adjusted) %>% pivot_wider(names_from = Stage, values_from = CSS_adjusted))
+
+
+temp_fig1 <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "1") %>%
+        ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`, color = `Cancer type`)) +
+        geom_line() +
+        ggrepel::geom_text_repel(df_cost_surv_treat_costed %>% filter(Stage == "IV" & stop == "1") , 
+                                 mapping = aes( color = `Cancer type`, label = `Cancer type`),size =2.5,
+        direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+    segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+        theme_bw(base_size = 12) +
+        theme( legend.position = "none") +
+        labs( x = "Stage", y = "1-year net survival") +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27", "#546741","#202020","#E0E0E0")) +
+         scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+    expand_limits(x= c(1, 5))
+
+# temp_fig2 <- df_cost_surv_treat_master %>%
+#         filter(Stage != "Unknown/missing" & stop == "1") %>%
+#         filter(is.na(absolute_average) ) %>%
+#         ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`)) +
+#         geom_line() +
+#         ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV" & stop == "1") %>%
+#         filter(is.na(absolute_average) ) , 
+#                                  mapping = aes( label = `Cancer type`), size =2.5,
+#         direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+#     segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+#         theme_bw(base_size = 12) +
+#         theme( legend.position = "none") +
+#         labs( x = "Stage", y = "1-year net survival") +
+#          scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+#     expand_limits(x= c(1, 5))
+
+temp_fig3 <- df_cost_surv_treat_master %>%
+        filter(Stage != "Unknown/missing" & stop == "3") %>%
+  mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "[Colorectal]",
+                                   `Cancer type` == "Head and neck" ~ "[Head and neck]", 
+                                   `Cancer type` == "Liver" ~ "[Liver]", 
+                                   `Cancer type` == "Lung" ~ "[Lung]", 
+                                   `Cancer type` == "Lymphoma" ~ "[Lymphoma]", 
+                                   `Cancer type` == "Oesophageal" ~ "[Oesophageal]", 
+                                   `Cancer type` == "Ovarian" ~ "[Ovarian]", 
+                                   `Cancer type` == "Pancreatic" ~ "[Pancreatic]", 
+                                   `Cancer type` == "Anal" ~ "[Anal]",
+                                   `Cancer type` == "[OTHER]" ~ "Other", 
+                                   .default = `Cancer type`)) %>%
+  mutate(`Cancer type` = as.character(`Cancer type`), `Cancer type` = as.factor(`Cancer type`)) %>%
+        # filter(is.na(absolute_average) ) %>%
+         ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`, color = `Cancer type` )) +
+        geom_line() +
+       geom_point() +
+        ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV" & stop == "3") %>%
+  mutate(`Cancer type` = case_when(`Cancer type` == "Colorectal" ~ "[Colorectal]",
+                                   `Cancer type` == "Head and neck" ~ "[Head and neck]", 
+                                   `Cancer type` == "Liver" ~ "[Liver]", 
+                                   `Cancer type` == "Lung" ~ "[Lung]", 
+                                   `Cancer type` == "Lymphoma" ~ "[Lymphoma]", 
+                                   `Cancer type` == "Oesophageal" ~ "[Oesophageal]", 
+                                   `Cancer type` == "Ovarian" ~ "[Ovarian]", 
+                                   `Cancer type` == "Pancreatic" ~ "[Pancreatic]", 
+                                   `Cancer type` == "Anal" ~ "[Anal]",
+                                   `Cancer type` == "[OTHER]" ~ "Other", 
+                                   .default = `Cancer type`)) %>%
+  mutate(`Cancer type` = as.character(`Cancer type`), `Cancer type` = as.factor(`Cancer type`)), 
+                                 mapping = aes( color = `Cancer type`, label = `Cancer type`),size =4,
+        direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+    segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+        theme_bw(18) +
+        theme( legend.position = "none") +
+        labs( x = "Stage", y = "1-year net survival") +
+   scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27", "#546741","#202020","black",
+               "blue","orange","purple","lightgreen","darkgrey","pink","lightblue","darkblue","#E0E0E0","brown"),
+    # breaks = c("Colorectal", "Head and neck", "Liver", "Lung", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic",
+    #            "Anal", "Bladder", "Cervical", "Kidney", "Stomach", "Prostate", "Breast","Urothelial Tract" , "Uterine", "[OTHER]" ),
+     breaks = c("[Colorectal]", "[Head and neck]", "[Liver]", "[Lung]", "[Lymphoma]", "[Oesophageal]", "[Ovarian]", "[Pancreatic]",
+               "Anal", "Bladder", "Cervical", "Kidney", "Stomach", "Prostate", "Breast","Urothelial Tract" , "Uterine", "Other" )
+  ) +
+         scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+    expand_limits(x= c(1, 5))
+# 
+# temp_fig3 <- df_cost_surv_treat_master %>%
+#         filter(Stage != "Unknown/missing" & stop == "1") %>%
+#         # filter(is.na(absolute_average) ) %>%
+#          ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`, color = `Cancer type` )) +
+#         geom_line() +
+#        geom_point() +
+#         ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV" & stop == "1") , 
+#                                  mapping = aes( color = `Cancer type`, label = `Cancer type`),size =4,
+#         direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+#     segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+#         theme_bw(14) +
+#         theme( legend.position = "none") +
+#         labs( x = "Stage", y = "1-year net survival") +
+#    scale_color_manual(values = c("#D29A22", "#D29A22", "#D29A22", "#D29A22", "#D29A22", "#D29A22","#D29A22","#D29A22",
+#                "black","black","black","black","black","black","black","black","black","black"),
+#     breaks = c("Colorectal", "Head and neck", "Liver", "Lung", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic",
+#                "Anal", "Bladder", "Cervical", "Kidney", "Stomach", "Prostate", "Breast","Urothelial Tract" , "Uterine", "[OTHER]" )
+#   ) +
+#          scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+#     expand_limits(x= c(1, 5))
+
+ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", "3y_surv.png"), temp_fig3, device = "png",
+       width = 200,
+       height = 200,
+       units = "mm")
+
+#patchwork::wrap_plots(temp_fig1, temp_fig2, temp_fig3, ncol =1, heights = 2)
+
+temp_fig1
+
+# temp_fig2
+
+temp_fig3
+
+```
+
+## 1.2 Base data: 3-year net survival
+
+More long-term survival is another option which might better capture potential for cure. Below 3-year net survival data is shown.
+
+```{r}
+
+temp_fig1 <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "3") %>%
+        ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`, color = `Cancer type`)) +
+        geom_line() +
+        ggrepel::geom_text_repel(df_cost_surv_treat_costed %>% filter(Stage == "IV" & stop == "3") , 
+                                 mapping = aes( color = `Cancer type`, label = `Cancer type`),size =2.5,
+        direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+    segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+        theme_bw(base_size = 12) +
+        theme( legend.position = "none") +
+        labs( x = "Stage", y = "1-year net survival") +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27", "#546741","#202020","#E0E0E0")) +
+         scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+    expand_limits(x= c(1, 5))
+# 
+# temp_fig2 <- df_cost_surv_treat_master %>%
+#         filter(Stage != "Unknown/missing" & stop == "3") %>%
+#         filter(is.na(absolute_average) ) %>%
+#         ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`)) +
+#         geom_line() +
+#         ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV" & stop == "3") %>%
+#         filter(is.na(absolute_average) ) , 
+#                                  mapping = aes( label = `Cancer type`),size =2.5,
+#         direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+#     segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+#         theme_bw(base_size = 12) +
+#         theme( legend.position = "none") +
+#         labs( x = "Stage", y = "1-year net survival") +
+#          scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+#     expand_limits(x= c(1, 5))
+
+temp_fig3 <- df_cost_surv_treat_master %>%
+        filter(Stage != "Unknown/missing" & stop == "3") %>%
+        # filter(is.na(absolute_average) ) %>%
+         ggplot(aes(y = CSS_adjusted, x = Stage, group = `Cancer type`, color = `Cancer type` )) +
+        geom_line() +
+        ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV" & stop == "3") , 
+                                 mapping = aes( color = `Cancer type`, label = `Cancer type`), size =2.5,
+        direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+    segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+        theme_bw(base_size = 12) +
+        theme( legend.position = "none") +
+        labs( x = "Stage", y = "1-year net survival") +
+   scale_color_manual(
+    values = c("#D29A22", "#D29A22", "#D29A22", "#D29A22", "#D29A22", "#D29A22","#D29A22","#D29A22",
+               "black","black","black","black","black","black","black","black","black","black"),
+    breaks = c("Colorectal", "Head and neck", "Liver", "Lung", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic",
+               "Anal", "Bladder", "Cervical", "Kidney", "Stomach", "Prostate", "Breast","Urothelial Tract" , "Uterine", "Sarcoma" )
+  ) +
+         scale_y_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+    expand_limits(x= c(1, 5))
+
+#patchwork::wrap_plots(temp_fig1, temp_fig2, temp_fig3, ncol =1, heights = 2)
+
+temp_fig1
+# 
+# temp_fig2
+
+temp_fig3
+
+```
+
+## 2 Association between costs and survival
+
+The following figures provide visualisation of the relationship between the the estimated costs and survival, across all stages and then by stage. The association between stage and cost appears very much linked to stage: The relationship between costs and survival at stage III and IV seem linear and positive, although with slightly different slopes. The relationship is inverted for stage I and II. Both 1-year and 3-year survival give similar patterns.
+
+## 2.1 1-year net survival
+
+```{r}
+## Scatter plots - association
+
+temp_fig1 <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "1") %>%
+        ggplot() +
+        geom_point(aes(y = absolute_average, x = CSS_adjusted, color = Stage)) +
+        geom_smooth(aes(y = absolute_average, x = CSS_adjusted, color = Stage), method = lm, se = TRUE, fullrange = TRUE) + 
+                theme_bw(base_size = 12) +
+        labs( x = "1y Net survival", y = "Average overall cost") +
+        facet_grid(~ Stage) +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27")) +
+        scale_x_continuous(breaks = c(0.5,1), limits = c(0,1)) +
+        scale_y_continuous(breaks = c(0,25000,50000), limits = c(0,50000), labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) + 
+  theme(legend.position="none")
+
+temp_fig2 <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "1") %>%
+        ggplot() +
+        geom_point(aes(y = absolute_average, x = CSS_adjusted, color = Stage)) +
+        geom_smooth(aes(y = absolute_average, x = CSS_adjusted), method = lm, se = TRUE, fullrange = TRUE) + 
+                theme_bw(base_size = 12) +
+        labs( x = NULL, y = "Average overall cost") +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27")) +
+        scale_x_continuous(breaks = c(0,0.5,1), limits = c(0,1)) +
+        scale_y_continuous(breaks = c(0,25000,50000), limits = c(0,50000), labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+   theme(legend.position="none")
+
+patchwork::wrap_plots(temp_fig2, temp_fig1, ncol =1, heights = 2)
+
+```
+
+## 2.2 3-year net survival
+
+```{r}
+## Scatter plots - association
+
+temp_fig1 <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "3") %>%
+        ggplot() +
+        geom_point(aes(y = absolute_average, x = CSS_adjusted, color = Stage)) +
+        geom_smooth(aes(y = absolute_average, x = CSS_adjusted, color = Stage), method = lm, se = TRUE, fullrange = TRUE) + 
+                theme_bw(base_size = 12) +
+        labs( x = "3y Net survival", y = "Average overall cost") +
+        facet_grid(~ Stage) +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27")) +
+        scale_x_continuous(breaks = c(0.5,1), limits = c(0,1)) +
+        scale_y_continuous(breaks = c(0,25000,50000), limits = c(0,50000)) + 
+  theme(legend.position="none")
+
+temp_fig2 <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "3") %>%
+        ggplot() +
+        geom_point(aes(y = absolute_average, x = CSS_adjusted, color = Stage)) +
+        geom_smooth(aes(y = absolute_average, x = CSS_adjusted), method = lm, se = TRUE, fullrange = TRUE) + 
+                theme_bw(base_size = 12) +
+        labs( x = NULL, y = "Average overall cost") +
+        scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27")) +
+        scale_x_continuous(breaks = c(0,0.5,1), limits = c(0,1)) +
+        scale_y_continuous(breaks = c(0,25000,50000), limits = c(0,50000)) +
+   theme(legend.position="none")
+
+patchwork::wrap_plots(temp_fig2, temp_fig1, ncol =1, heights = 2)
+
+```
+
+## 3. Building a crude model based on survival
+
+The association between survival and costs appears to differ by stage. Therefore below, four separate linear regression models are specified based on the different survival periods and different ways of incorporating stage: (1) 1 year survival, stage interacts with survival with a dummy variable for each stage (2) 1 year survival, stage interacts with survival based on a late stage (III and IV) dummy variable (3) 3 year survival, stage interacts with survival with a dummy variable for each stage (4) 3 year survival, stage interacts with survival based on a late stage (III and IV) dummy variable
+
+For each regression model, cost predictions for each cancer type and stage combinations are then created. The below graph shows the actual vs predicted costs for the eight cancer types estimates in the Cost by Stage study.
+
+```{r}
+
+f_plot_absoluteVSpred <- function(data, title_string){
+  
+  data %>% 
+  filter(!is.na(absolute_average)) %>%
+    ggplot(aes(x = fit, y = absolute_average, colour = Stage)) +
+  geom_point() +
+  geom_abline(intercept=0, slope=1) +
+    scale_colour_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592")) +
+  labs(x='Predicted Values', y='Actual Values', title= title_string) +
+                  theme_bw(base_size = 10) +
+    theme(plot.title = element_text(size = 9)) +
+  scale_y_continuous(breaks = c(0,25000,50000), limits = c(0,50000), labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"))  +
+  scale_x_continuous(breaks = c(0,25000,50000), limits = c(0,50000), labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) 
+}
+
+f_plot_absolute_costs <- function(data, title_string){
+  
+  data %>%
+  mutate(cost = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average, .default = fit)) %>%
+    mutate(upr = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  NA, .default = upr)) %>%
+    mutate(lwr = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  NA, .default = lwr)) %>%
+        ggplot() +
+        geom_bar(aes(y = cost, x = Stage, group = Stage, fill = Stage), position= position_dodge(0.5), stat = "identity", width = .5) +
+          geom_errorbar(aes(ymax = upr, ymin = lwr, x = Stage, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+         facet_wrap(~`Cancer type` ,  ncol= 2) +
+        #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "", x = "Stage at diagnosis", y = "Actual (eight cancers) and predicted (ten cancers) costs" ,  title = title_string) +
+        theme_bw(base_size = 12) +
+    theme(plot.title = element_text(size=14)) +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.ticks.y=element_blank())
+}
+
+
+f_plot_difference_costs <- function(data, title_string){
+  
+  data %>% mutate(cost = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average,
+                          .default = fit)) %>%
+  select(`Cancer type`, Stage, cost) %>%
+  pivot_wider(names_from = "Stage", values_from = "cost") %>%
+  mutate(`I to II` = `II` - `I`, `I to III` = `III` - `I`, `I to IV` = `IV` - `I`) %>%
+  select(`Cancer type`, `I to II`:`I to IV`) %>%
+  pivot_longer(cols = `I to II`:`I to IV`, names_to = "Stage", values_to = "Cost difference") %>%
+        ggplot() +
+        geom_bar(aes(y = `Cost difference`, x = Stage, group = Stage, fill = Stage), position= position_dodge(0.5), stat = "identity", width = .5) +
+          geom_hline(yintercept=0)  +      
+         facet_wrap(~`Cancer type` ,  ncol= 2) +
+        #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "", x = "Stage at diagnosis", y = "Actual (eight cancers) and predicted (ten cancers) cost difference",  title = title_string) +
+        theme_bw(base_size = 12) +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.ticks.y=element_blank())
+}
+
+```
+
+```{r}
+
+# (1) 1 year survival, stage interacts with survival with a dummy variable for each stage
+df_cost_surv1y_treat_costed_stagealldum <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "1") %>%
+  mutate(StageII_dum = case_when(Stage %in% c("II") ~ 1, .default = 0),
+         StageIII_dum = case_when(Stage %in% c("III") ~ 1, .default = 0),
+         StageIV_dum = case_when(Stage %in% c("IV") ~ 1, .default = 0))
+
+reg_fit_surv1y_stagealldum <- lm(absolute_average ~CSS_adjusted * factor(StageII_dum) + CSS_adjusted * factor(StageIII_dum) + CSS_adjusted * factor(StageIV_dum) , data = df_cost_surv1y_treat_costed_stagealldum)
+
+res_1y_surv_predictions_stagealldum <- df_cost_surv_treat_master %>%
+  filter(Stage != "Unknown/missing" & stop == "1") %>%
+  mutate(StageII_dum = case_when(Stage %in% c("II") ~ 1, .default = 0),
+         StageIII_dum = case_when(Stage %in% c("III") ~ 1, .default = 0),
+         StageIV_dum = case_when(Stage %in% c("IV") ~ 1, .default = 0)) %>%
+  bind_cols( predict(reg_fit_surv1y_stagealldum, newdata = .,  interval = "confidence",level = 0.95))
+
+
+fig_1y_predVSactual_stagealldum <- f_plot_absoluteVSpred(res_1y_surv_predictions_stagealldum, '(1) 1y survival, all stage dummies')
+fig_1y_predictions_stagealldum <- f_plot_absolute_costs(res_1y_surv_predictions_stagealldum, '(1) 1y survival, all stage dummies')
+fig_1y_cost_difference_stagealldum <- f_plot_difference_costs(res_1y_surv_predictions_stagealldum, '(1) 1y survival, all stage dummies')
+
+# (2) 1 year survival, stage interacts with survival based on a late stage (III and IV) dummy variable 
+df_cost_surv1y_treat_costed_stagelatedum <- df_cost_surv_treat_costed %>%
+  filter(Stage != "Unknown/missing" & stop == "1") %>%
+  mutate(StageLate_dum = case_when(Stage %in% c("I", "II") ~ 0, .default = 1))
+
+reg_fit_surv1y_stagelatedum <- lm(absolute_average ~ CSS_adjusted * factor(StageLate_dum) , data = df_cost_surv1y_treat_costed_stagelatedum)
+
+res_1y_surv_predictions_stagelatedum <- df_cost_surv_treat_master %>%
+  filter(Stage != "Unknown/missing" & stop == "1") %>%
+  mutate(StageLate_dum = case_when(Stage %in% c("I", "II") ~ 0, .default = 1)) %>%
+  bind_cols( predict(reg_fit_surv1y_stagelatedum, newdata = .,  interval = "confidence",level = 0.95))
+
+fig_1y_predVSactual_stagelatedum <- f_plot_absoluteVSpred(res_1y_surv_predictions_stagelatedum, '(2) 1y survival, late stage dummy')
+fig_1y_predictions_stagelatedum <- f_plot_absolute_costs(res_1y_surv_predictions_stagelatedum, '(2) 1y survival, late stage dummy')
+fig_1y_cost_difference_stagelatedum <- f_plot_difference_costs(res_1y_surv_predictions_stagelatedum, '(2) 1y survival, late stage dummy')
+
+
+# (3) 3 year survival, stage interacts with survival with a dummy variable for each stage
+df_cost_surv3y_treat_costed_stagealldum <- df_cost_surv_treat_costed %>%
+        filter(Stage != "Unknown/missing" & stop == "3") %>%
+  mutate(StageII_dum = case_when(Stage %in% c("II") ~ 1, .default = 0),
+         StageIII_dum = case_when(Stage %in% c("III") ~ 1, .default = 0),
+         StageIV_dum = case_when(Stage %in% c("IV") ~ 1, .default = 0))
+
+reg_fit_surv3y_stagealldum <- lm(absolute_average ~CSS_adjusted * factor(StageII_dum) + CSS_adjusted * factor(StageIII_dum) + CSS_adjusted * factor(StageIV_dum) , data = df_cost_surv3y_treat_costed_stagealldum)
+
+res_3y_surv_predictions_stagealldum <- df_cost_surv_treat_master %>%
+  filter(Stage != "Unknown/missing" & stop == "3") %>%
+  mutate(StageII_dum = case_when(Stage %in% c("II") ~ 1, .default = 0),
+         StageIII_dum = case_when(Stage %in% c("III") ~ 1, .default = 0),
+         StageIV_dum = case_when(Stage %in% c("IV") ~ 1, .default = 0)) %>%
+  bind_cols( predict(reg_fit_surv3y_stagealldum, newdata = .,  interval = "confidence",level = 0.95))
+
+
+fig_3y_predVSactual_stagealldum <- f_plot_absoluteVSpred(res_3y_surv_predictions_stagealldum, '(3) 3y survival, all stage dummies')
+fig_3y_predictions_stagealldum <- f_plot_absolute_costs(res_3y_surv_predictions_stagealldum, '(3) 3y survival, all stage dummies')
+fig_3y_cost_difference_stagealldum <- f_plot_difference_costs(res_3y_surv_predictions_stagealldum, '(3) 3y survival, all stage dummies')
+
+
+# (4) 3 year survival, stage interacts with survival based on a late stage (III and IV) dummy variable 
+df_cost_surv3y_treat_costed_stagelatedum <- df_cost_surv_treat_costed %>%
+  filter(Stage != "Unknown/missing" & stop == "3") %>%
+  mutate(StageLate_dum = case_when(Stage %in% c("I", "II") ~ 0, .default = 1))
+
+reg_fit_surv3y_stagelatedum <- lm(absolute_average ~ CSS_adjusted * factor(StageLate_dum) , data = df_cost_surv3y_treat_costed_stagelatedum)
+
+res_3y_surv_predictions_stagelatedum <- df_cost_surv_treat_master %>%
+  filter(Stage != "Unknown/missing" & stop == "3") %>%
+  mutate(StageLate_dum = case_when(Stage %in% c("I", "II") ~ 0, .default = 1)) %>%
+  bind_cols( predict(reg_fit_surv3y_stagelatedum, newdata = .,  interval = "confidence",level = 0.95))
+
+fig_3y_predVSactual_stagelatedum <- f_plot_absoluteVSpred(res_3y_surv_predictions_stagelatedum, '(4) 3y survival, late stage dummy')
+fig_3y_predictions_stagelatedum <- f_plot_absolute_costs(res_3y_surv_predictions_stagelatedum, '(4) 3y survival, late stage dummy')
+fig_3y_cost_difference_stagelatedum <- f_plot_difference_costs(res_3y_surv_predictions_stagelatedum, '(4) 3y survival, late stage dummy')
+
+
+```
+
+## 3.1 Actual vs predicted costs for the eight cancer types
+
+```{r}
+
+patchwork::wrap_plots(fig_1y_predVSactual_stagealldum, fig_1y_predVSactual_stagelatedum,  fig_3y_predVSactual_stagealldum, fig_3y_predVSactual_stagelatedum ,
+                      ncol = 2, heights = 2, widths = 2, guides = "collect") & theme(legend.position = 'bottom')
+
+
+```
+
+Both models (1) and (3) with dummy variables for each stage seems to produce better predictions relative to the actual.
+
+Next, the below plots show the pattern of differences in cost to stage I (actual for the eight costed cancer and model predictions for the ten uncosted cancers) for each of the four models
+
+## 3.2 Differences in costs to stage 1 for the 1-year net survival models
+
+```{r, fig.height=15, fig.width=15}
+patchwork::wrap_plots(fig_1y_cost_difference_stagealldum, fig_1y_cost_difference_stagelatedum  , ncol = 2,  guides = "collect", heights = 4)  & theme(legend.position = 'bottom')
+
+```
+
+## 3.3 Differences in costs to stage 1 for the 3-year net survival models
+
+```{r, fig.height=15, fig.width=15}
+patchwork::wrap_plots(fig_3y_cost_difference_stagealldum, fig_3y_cost_difference_stagelatedum  , ncol = 2,  guides = "collect", heights = 4)  & theme(legend.position = 'bottom')
+
+```
+
+It again appears that the models in which stage interacts with survival through a dummy variable for each stage gives the most congruent predictions. Whether 1-year or 3-year survival is used seems to make little difference
+
+Categorising all the cancer types into the previously mentioned patterns gives us:
+
+## 3.4 Cost pattern by cancer type
+
+```{r}
+df_qual_table <- data.frame(
+  `(a) Increasing (I < II < III < IV)` = c("Colorectal", "Head and neck", "Lymphoma", "Prostate", "", "", "", "", ""),
+  `(b) Increasing to III (I < II < III > IV)` = c("Ovarian", "Anal", "Bladder", "Breast", "Cervical", "Kidney", "Other", "Urothelial tract", "Uterine"),
+  `(c) Increasing to II (I < II > III > IV)` = c("Liver", "Lung", "Oesophageal", "Pancreatic", "Stomach", "", "", "", ""),
+                        check.names=FALSE
+)
+
+gt(df_qual_table) %>%
+    tab_style(
+    style = "font-weight: bold",
+    locations = cells_column_labels()
+  ) %>%
+  tab_style(
+    style = cell_fill(color = "lightgrey"),
+    locations = cells_body(
+      columns = `(a) Increasing (I < II < III < IV)`,
+      rows = `(a) Increasing (I < II < III < IV)` %in% c("Colorectal", "Head and neck", "Lymphoma")) )%>%
+  tab_style(
+    style = cell_fill(color = "lightgrey"),
+    locations = cells_body(
+      columns = `(b) Increasing to III (I < II < III > IV)`,
+      rows = `(b) Increasing to III (I < II < III > IV)` %in% c("Ovarian"))) %>%
+  tab_style(
+    style = cell_fill(color = "lightgrey"),
+    locations = cells_body(
+      columns = `(c) Increasing to II (I < II > III > IV)`,
+      rows = `(c) Increasing to II (I < II > III > IV)` %in% c("Liver", "Lung", "Oesophageal", "Pancreatic")))
+
+
+
+```
+
+```{r}
+# NOT USED
+## Scatter plots - association
+
+#Looking instead at the relationship between cost differences between stage (e.g. Stage II cost - stage I cost) and survival difference (e.g. Stage II survival - stage I survival) #seems to give a more uniform linear association accross the stages
+# 
+# temp_fig1 <- df_diff_cost_surv_treat_costed %>%
+#       filter(Stage != "Unknown/missing") %>%
+#         ggplot() +
+#         geom_point(aes(y = diffcost, x = diffsurv, color = fct_rev(Stage))) +
+#         geom_smooth(aes(y = diffcost, x = diffsurv, color = fct_rev(Stage)), method = lm, se = TRUE, fullrange = TRUE) + 
+#                 theme_bw(base_size = 12) +
+#         labs( x = "Difference in net survival", y = "Difference in cost", title = "Scatter by stage difference") +
+#         facet_grid(~ Stage) +
+#         scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27"), guide="none") +
+#         scale_x_continuous(breaks = c(-.6,-.4,-0.2,0,0.2), limits = c(-0.6,0.2)) +
+#         scale_y_continuous(breaks = c(-30000,-20000,-10000,0,10000,20000), limits = c(-30000,20000)) 
+# 
+# 
+# temp_fig2 <- df_diff_cost_surv_treat_costed %>%
+#       filter(Stage != "Unknown/missing") %>%
+#         ggplot() +
+#         geom_point(aes(y = diffcost, x = diffsurv, color = fct_rev(Stage))) +
+#         geom_smooth(aes(y = diffcost, x = diffsurv), method = lm, se = TRUE, fullrange = TRUE) + 
+#                 theme_bw(base_size = 12) +
+#         labs(title = "Scatter across all stage diferences", x = "Difference in net survival", y = "Difference in cost", color = "Stage difference") +
+#         scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27"),  guide="none") +
+#         scale_x_continuous(breaks = c(-.6,-.4,-0.2,0,0.2), limits = c(-0.6,0.2)) +
+#         scale_y_continuous(breaks = c(-30000,-20000,-10000,0,10000,20000), limits = c(-30000,20000)) 
+# 
+# #patchwork::wrap_plots(temp_fig2, temp_fig1, ncol =1, heights = 2)
+
+```
+
+```{r,fig.height=15}
+
+# [NOT USED]
+
+## Base data: Proportion of patient not reveiving surgery/radiotherapy/SACT
+# 
+# From the 'Impact of MCED screening on treatment demand' study, we also know that a surprisingly high proportion of late stage cancers do not receive either surgery, radiotherapy or systemic anti-cancer therapy (SACT). Below, data on the proportion of cancers by type and stage that do not receive these treatments is provided based on incidences from 2014 to 2019 (from the 'Impact of MCED screening on treatment demand' study).
+# 
+# gt::gt(df_cost_surv_treat_master %>%  filter(Stage != "Unknown/missing" &stop == 1) %>% select(`Cancer type`, Stage, Proportion) %>% pivot_wider(names_from = Stage, values_from = Proportion))
+# 
+# temp_fig1 <- df_cost_surv_treat_costed %>%
+#         filter(Stage != "Unknown/missing") %>%
+#         ggplot(aes(y = Proportion, x = Stage, group = `Cancer type`, color = `Cancer type`)) +
+#         geom_line() +
+#         ggrepel::geom_text_repel(df_cost_surv_treat_costed %>% filter(Stage == "IV") , 
+#                                  mapping = aes( color = `Cancer type`, label = `Cancer type`),
+#         direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+#     segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+#         theme_bw(base_size = 12) +
+#         theme( legend.position = "none") +
+#         labs( x = "Stage", y = "Proportion receiving other care") +
+#         scale_color_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592", "#B73D27", "#546741","#202020","#E0E0E0")) +
+#          scale_y_continuous(breaks = c(0,20,40,60,80,100), limits = c(0,100)) +
+#     expand_limits(x= c(1, 5))
+# 
+# temp_fig2 <- df_cost_surv_treat_master %>%
+#         filter(Stage != "Unknown/missing") %>%
+#         filter(is.na(absolute_average) ) %>%
+#         ggplot(aes(y = Proportion, x = Stage, group = `Cancer type`)) +
+#         geom_line() +
+#         ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV") %>%
+#         filter(is.na(absolute_average) ) , 
+#                                  mapping = aes( label = `Cancer type`),
+#         direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+#     segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+#         theme_bw(base_size = 12) +
+#         theme( legend.position = "none") +
+#         labs( x = "Stage", y = "Proportion receiving other care") +
+#          scale_y_continuous(breaks = c(0,20,40,60,80,100), limits = c(0,100)) +
+#     expand_limits(x= c(1, 5))
+# 
+# temp_fig3 <- df_cost_surv_treat_master %>%
+#         filter(Stage != "Unknown/missing") %>%
+#         # filter(is.na(absolute_average) ) %>%
+#          ggplot(aes(y = Proportion, x = Stage, group = `Cancer type`, color = `Cancer type`)) +
+#         geom_line() +
+#         ggrepel::geom_text_repel(df_cost_surv_treat_master %>% filter(Stage == "IV") , 
+#                                  mapping = aes( color = `Cancer type`, label = `Cancer type`),
+#         direction = "y", hjust = -0.5, segment.size = .7, segment.alpha = .5, segment.linetype = "dotted", box.padding = .4, segment.curvature = -0.1,
+#     segment.ncp = 3, segment.angle = 20,  xlim = c("IV", NA)) +
+#         theme_bw(base_size = 12) +
+#         theme( legend.position = "none") +
+#         labs( x = "Stage", y = "Proportion receiving other care") +
+#    scale_color_manual(
+#     values = c("#D29A22", "#D29A22", "#D29A22", "#D29A22", "#D29A22", "#D29A22","#D29A22","#D29A22",
+#                "black","black","black","black","black","black","black","black","black","black"),
+#     breaks = c("Colorectal", "Head and neck", "Liver", "Lung", "Lymphoma", "Oesophageal", "Ovarian", "Pancreatic",
+#                "Anal", "Bladder", "Cervical", "Kidney", "Stomach", "Prostate", "Breast","Urothelial Tract" , "Uterine", "Sarcoma" )
+#   ) +
+#          scale_y_continuous(breaks = c(0,20,40,60,80,100), limits = c(0,100)) +
+#     expand_limits(x= c(1, 5))
+# 
+# patchwork::wrap_plots(temp_fig1, temp_fig2, temp_fig3, ncol =1, heights = 2)
+# 
+
+
+```

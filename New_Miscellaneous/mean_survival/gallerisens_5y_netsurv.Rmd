@@ -1,0 +1,478 @@
+---
+title: "Galleri sensitivity and 5 year net survival by stage"
+output: 
+ html_document:
+   theme: cosmo # default, cerulean, journal, flatly, darkly, readable, spacelab, united, cosmo, lumen, paper, sandstone, simplex, and yeti
+   highlight: tango # default, tango, pygments, kate, monochrome, espresso, zenburn, haddock, breezedark, and textmate
+   
+---
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE) 
+```
+
+
+```{r}
+library(ggplot2)
+library(plotly)
+library(tidyverse)
+library(ggpubr)
+library(kableExtra)
+
+```
+
+<br>
+
+#### Plots sensitivity by site, by stage
+
+####  *Galleri test sensitivity by stage, Klein et al (2021)*
+
+#### Select cancer site {.tabset .tabset-dropdown}
+
+```{r}
+df_sens_5yrnetsurv <- read_csv(file = '~/Miscellaneous/gallerisens_5y_netsurv.csv')
+
+temp_sens <- df_sens_5yrnetsurv %>%
+        filter(!is.na(cancer)) %>%
+        separate_wider_delim(sens_95, delim = "-", names = c("sens_low95", "sens_high95")) %>% 
+        mutate(sens = str_sub(sens, end = -2),
+               sens_low95 = str_sub(sens_low95, start = 2 ),
+               sens_high95 = str_sub(sens_high95, end = -3 )) %>%
+        filter(!is.na(sens)) %>%
+        mutate(across(starts_with("sens"), as.numeric))
+
+names_site_list <- levels(factor(temp_sens$cancer))
+        
+l_temp_sens<- temp_sens %>% group_split(cancer)
+
+plots <- map(l_temp_sens, ~ ggplotly(
+        ggplot(.x, aes(stage, sens)) +
+                geom_point(size = 2, shape = 7, colour= "#602B5B") +
+                geom_errorbar( aes(ymin = sens_low95, ymax = sens_high95),width = 0.1, colour= "#602B5B") +
+                theme_bw() +
+                theme(strip.text = element_text(size = 12)) +
+                xlab("Stage") +
+                ylab("Sensitivity (%)") +
+                theme(strip.background =element_rect(fill="white"))+
+                scale_y_continuous(breaks = seq(0, 100, by = 10))+
+                scale_y_continuous(limits = c(0, 100)),
+        height = 300, width=800))
+
+names(plots) = names_site_list
+
+
+```
+
+
+##### Anus
+```{r, echo = FALSE}
+plots[[1]]
+```
+
+##### Bladder
+```{r, echo = FALSE}
+plots[[2]]
+```
+
+##### Breast
+```{r, echo = FALSE}
+plots[[3]]
+```
+
+##### Cervix
+```{r, echo = FALSE}
+plots[[4]]
+```
+
+##### Colon/Rectum
+```{r, echo = FALSE}
+plots[[5]]
+```
+
+##### Gallbladder
+```{r, echo = FALSE}
+plots[[6]]
+```
+
+##### Head and Neck
+```{r, echo = FALSE}
+plots[[7]]
+```
+
+##### Kidney
+```{r, echo = FALSE}
+plots[[8]]
+```
+
+##### Liver/Bile-duct
+```{r, echo = FALSE}
+plots[[9]]
+```
+
+##### Lung
+```{r, echo = FALSE}
+plots[[10]]
+```
+
+##### Lymphoid Leukemia*
+```{r, echo = FALSE}
+plots[[11]]
+```
+
+##### Lymphoma
+```{r, echo = FALSE}
+plots[[12]]
+```
+
+##### Melanoma
+```{r, echo = FALSE}
+plots[[13]]
+```
+
+##### Myeloid Neoplasm
+```{r, echo = FALSE}
+plots[[14]]
+```
+
+##### Oesophagus
+```{r, echo = FALSE}
+plots[[15]]
+```
+
+##### Ovary
+```{r, echo = FALSE}
+plots[[16]]
+```
+
+##### Pancreas
+```{r, echo = FALSE}
+plots[[17]]
+```
+
+##### Plasma Cell Neoplasm
+```{r, echo = FALSE}
+plots[[18]]
+```
+
+##### Prostate
+```{r, echo = FALSE}
+plots[[19]]
+```
+
+##### Sarcoma
+```{r, echo = FALSE}
+plots[[20]]
+```
+
+##### Stomach
+```{r, echo = FALSE}
+plots[[21]]
+```
+
+##### Thyroid
+```{r, echo = FALSE}
+plots[[22]]
+```
+
+##### Urothelial Tract
+```{r, echo = FALSE}
+plots[[23]]
+```
+
+##### Uterus
+```{r, echo = FALSE}
+plots[[24]]
+```
+
+<br>
+
+#### Plots survival by site, by stage
+
+#### Select cancer site {.tabset .tabset-dropdown}
+
+```{r}
+df_sens_5yrnetsurv <- read_csv(file = '~/Miscellaneous/gallerisens_5y_netsurv.csv')
+
+temp_surv <- df_sens_5yrnetsurv %>%
+        filter(!is.na(cancer)) %>%
+        filter(!is.na(fivey_netsurv)) %>%
+        mutate(across(starts_with("fivey"), as.numeric))
+
+names_site_list <- levels(factor(temp_surv$cancer))
+        
+l_temp_surv <- temp_surv  %>% group_split(cancer)
+
+plots <- map(l_temp_surv , ~ ggplotly(
+        ggplot(.x, aes(stage, fivey_netsurv)) +
+                geom_point(size = 1, , colour= "#602B5B") +
+                geom_text(aes(label = fivey_netsurv), vjust = -20) +
+                theme_bw() +
+                theme(strip.text = element_text(size = 12)) +
+                xlab("Stage") +
+                ylab("5-year net survival (%)") +
+                theme(strip.background =element_rect(fill="white")) +
+                scale_y_continuous(breaks = seq(0, 100, by = 10)) +
+                scale_y_continuous(limits = c(0, 100)),
+        height = 300, width=800 ) %>% style(textposition = "top"))
+
+names(plots) = names_site_list
+```
+
+
+##### Anus
+```{r, echo = FALSE}
+plots[[1]]
+```
+
+##### Bladder
+```{r, echo = FALSE}
+plots[[2]]
+```
+
+##### Breast
+```{r, echo = FALSE}
+plots[[3]]
+```
+
+##### Cervix
+```{r, echo = FALSE}
+plots[[4]]
+```
+
+##### Colon/Rectum
+```{r, echo = FALSE}
+plots[[5]]
+```
+
+##### Gallbladder
+```{r, echo = FALSE}
+plots[[6]]
+```
+
+##### Head and Neck
+```{r, echo = FALSE}
+plots[[7]]
+```
+
+##### Kidney
+```{r, echo = FALSE}
+plots[[8]]
+```
+
+##### Liver/Bile-duct
+```{r, echo = FALSE}
+plots[[9]]
+```
+
+##### Lung
+```{r, echo = FALSE}
+plots[[10]]
+```
+
+##### Lymphoma
+```{r, echo = FALSE}
+plots[[11]]
+```
+
+##### Melanoma
+```{r, echo = FALSE}
+plots[[12]]
+```
+
+##### Oesophagus
+```{r, echo = FALSE}
+plots[[13]]
+```
+
+##### Ovary
+```{r, echo = FALSE}
+plots[[14]]
+```
+
+##### Pancreas
+```{r, echo = FALSE}
+plots[[15]]
+```
+
+##### Prostate
+```{r, echo = FALSE}
+plots[[16]]
+```
+
+##### Sarcoma
+```{r, echo = FALSE}
+plots[[17]]
+```
+
+##### Stomach
+```{r, echo = FALSE}
+plots[[18]]
+```
+
+##### Thyroid
+```{r, echo = FALSE}
+plots[[19]]
+```
+
+##### Urothelial Tract
+```{r, echo = FALSE}
+plots[[20]]
+```
+
+##### Uterus
+```{r, echo = FALSE}
+plots[[21]]
+```
+
+<br>
+
+#### Combined plots of sensitivity and survival by site, by stage
+
+#### Select cancer site {.tabset .tabset-dropdown}
+
+```{r}
+df_sens_5yrnetsurv <- read_csv(file = '~/Miscellaneous/gallerisens_5y_netsurv.csv')
+
+temp_comb <- df_sens_5yrnetsurv %>%
+        filter(!is.na(cancer)) %>%
+        filter(!is.na(fivey_netsurv)) %>%
+        mutate(across(starts_with("fivey"), as.numeric)) %>%
+        separate_wider_delim(sens_95, delim = "-", names = c("sens_low95", "sens_high95")) %>% 
+        mutate(sens = str_sub(sens, end = -2),
+               sens_low95 = str_sub(sens_low95, start = 2 ),
+               sens_high95 = str_sub(sens_high95, end = -3 )) %>%
+        filter(!is.na(sens)) %>%
+        mutate(across(starts_with("sens"), as.numeric)) %>%
+        pivot_longer(c(sens,fivey_netsurv) ,names_to = "type", values_to = "value") %>%
+        mutate(sens_low95 = case_when(type == "fivey_netsurv" ~ NA,
+                                  .default = as.numeric(sens_low95)),
+               sens_high95 = case_when(type == "fivey_netsurv" ~ NA,
+                                  .default = as.numeric(sens_high95)),
+               type = case_when(type == "fivey_netsurv" ~ "5-year net survival",
+                                  .default = "Sensitivity"))
+
+names_site_list <- levels(factor(temp_comb$cancer))
+        
+l_temp_comb <- temp_comb  %>% group_split(cancer)
+
+plots <- map(l_temp_comb , ~ ggplotly(
+        ggplot(.x, aes(stage, value, colour = type)) +
+                geom_point(size = 1, position=position_dodge(width=0.3)) +
+                geom_errorbar(aes(ymin = sens_low95, ymax = sens_high95), width = 0.1, position=position_dodge(width=0.3)) +
+                theme_bw() +
+                theme(strip.text = element_text(size = 12)) +
+                xlab("Stage") +
+                ylab("Percent (%)") +
+                theme(strip.background =element_rect(fill="white")) +
+                scale_y_continuous(breaks = seq(0, 100, by = 10)) +
+                scale_y_continuous(limits = c(0, 100)) +
+                scale_color_manual(name = "", labels = c("sens" = 'Sensitivity', "fivey_netsurv" = '5-year net survival'), values = c("#94724F", "#602B5B")),
+        height = 300, width=800 ) %>% style(textposition = "top"))
+
+names(plots) = names_site_list
+```
+
+
+##### Anus
+```{r, echo = FALSE}
+plots[[1]]
+```
+
+##### Bladder
+```{r, echo = FALSE}
+plots[[2]]
+```
+
+##### Breast
+```{r, echo = FALSE}
+plots[[3]]
+```
+
+##### Cervix
+```{r, echo = FALSE}
+plots[[4]]
+```
+
+##### Colon/Rectum
+```{r, echo = FALSE}
+plots[[5]]
+```
+
+##### Gallbladder
+```{r, echo = FALSE}
+plots[[6]]
+```
+
+##### Head and Neck
+```{r, echo = FALSE}
+plots[[7]]
+```
+
+##### Kidney
+```{r, echo = FALSE}
+plots[[8]]
+```
+
+##### Liver/Bile-duct
+```{r, echo = FALSE}
+plots[[9]]
+```
+
+##### Lung
+```{r, echo = FALSE}
+plots[[10]]
+```
+
+##### Lymphoma
+```{r, echo = FALSE}
+plots[[11]]
+```
+
+##### Melanoma
+```{r, echo = FALSE}
+plots[[12]]
+```
+
+##### Oesophagus
+```{r, echo = FALSE}
+plots[[13]]
+```
+
+##### Ovary
+```{r, echo = FALSE}
+plots[[14]]
+```
+
+##### Pancreas
+```{r, echo = FALSE}
+plots[[15]]
+```
+
+##### Prostate
+```{r, echo = FALSE}
+plots[[16]]
+```
+
+##### Sarcoma
+```{r, echo = FALSE}
+plots[[17]]
+```
+
+##### Stomach
+```{r, echo = FALSE}
+plots[[18]]
+```
+
+##### Thyroid
+```{r, echo = FALSE}
+plots[[19]]
+```
+
+##### Urothelial Tract
+```{r, echo = FALSE}
+plots[[20]]
+```
+
+##### Uterus
+```{r, echo = FALSE}
+plots[[21]]
+```

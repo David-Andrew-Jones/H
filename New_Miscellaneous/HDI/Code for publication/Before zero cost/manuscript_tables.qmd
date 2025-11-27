@@ -1,0 +1,2516 @@
+---
+title: "Manuscript tables: Impact of Stage at Cancer Diagnosis on NHS Hospital Care Costs: A National Population-Based Study Using England Individual-Level Patient Data"
+execute:
+  warning: false
+  echo: false
+format:
+   docx: 
+    output-file: "Manuscript tables: Cost by Stage"
+    output-ext:  "docx"
+---
+
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(dplyr, quietly = TRUE)
+library(readr, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(tidyr, quietly = TRUE)
+library(stringr, quietly = TRUE)
+library(purrr, quietly = TRUE)
+library(readxl, quietly = TRUE)
+library(gt, quietly = TRUE)
+```
+
+```{r echo=FALSE}
+
+################################################################################
+#' _____________________________________________________________________________
+#' Load data: Descriptive statistics
+#' _____________________________________________________________________________
+#' _____ All cause main 8 cancers
+res_path_allcause_descriptives_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Descriptives_GRAIL_2024-10-29.xlsx"
+
+l_allcause_descriptives_8cancers <- res_path_allcause_descriptives_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_allcause_descriptives_8cancers, sheet = .x), .id = "Sheet")
+
+df_stage_missing <- bind_rows(
+  
+  l_allcause_descriptives_8cancers[[10]] %>%
+  fill(`...1`, .direction = "down"),
+  
+  l_allcause_descriptives_8cancers[[10]] %>%
+  fill(`...1`, .direction = "down") %>%
+  separate_wider_delim(cols = `0`:`Unknown/Missing`, delim = ' ', names_sep = '_') %>%
+  mutate(across(contains("_1"), \(x) as.numeric(x))) %>%
+  select(`...1`, `...2`, contains("_1")) %>%
+  group_by(`...1`) %>%
+  summarise(across(contains("_1"), sum)) %>%
+  ungroup() %>%
+  mutate(total_by_type = `0_1` + `1_1`+ `2_1`+ `3_1`+ `4_1`+ `Unknown/Missing_1`) %>%
+  mutate(across(contains("_1"), \(x) round((x/total_by_type)*100, 1), .names = "{.col}_percent")) %>%
+  mutate(`0` = paste0(`0_1`, " (", `0_1_percent`, ")"),
+         `1` = paste0(`1_1`, " (", `1_1_percent`, ")"),
+         `2` = paste0(`2_1`, " (", `2_1_percent`, ")"),
+         `3` = paste0(`3_1`, " (", `3_1_percent`, ")"),
+         `4` = paste0(`4_1`, " (", `4_1_percent`, ")"),
+         `Unknown/Missing` = paste0(`Unknown/Missing_1`, " (", `Unknown/Missing_1_percent`, ")"),
+         `...2` = "All years") %>%
+  select(`...1`, `...2`,`0`,`1`,`2`,`3`, `4` ,`Unknown/Missing`)
+  
+  ) %>% mutate(`...2` = factor(`...2`, levels = c("2014", "2015", "2016", "2017", "All years"))) %>%
+  arrange(`...1`, `...2`)
+  
+
+
+
+
+#' _____ All cause lymphoma and colorectal splits
+res_path_allcause_descriptives_colorectal <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Descriptives_GRAIL_colorectal_2024-11-21.xlsx"
+
+l_allcause_descriptives_colorectal <- res_path_allcause_descriptives_colorectal %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_allcause_descriptives_colorectal, sheet = .x), .id = "Sheet")
+
+
+res_path_allcause_descriptives_lymphoma <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Descriptives_GRAIL_lymphoma_2024-11-22.xlsx"
+
+l_allcause_descriptives_colorectal <- res_path_allcause_descriptives_lymphoma %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_allcause_descriptives_lymphoma, sheet = .x), .id = "Sheet")
+
+#' _____ Net main 8 cancers
+res_path_net_descriptives_8cancers <- "~/Miscellaneous/HDI/Final_results/Net costs/Unadjusted/Descriptives_GRAIL_net_2025-01-24.xlsx"
+
+l_net_descriptives_8cancers <- res_path_net_descriptives_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map(~ read_excel(path = res_path_net_descriptives_8cancers, sheet = .x), .id = "Sheet")
+
+
+#' _____ Mean person months for main 8 cancers
+# For total outcome
+res_path_Total_NmonthsPersons_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Personmonths_ac_2025-02-10.xlsx"
+
+# For annual period outcome
+res_path_Annual_Nmonths_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/months_ac_GRAIL_2025-02-10.xlsx"
+
+df_allcause_Annual_Nmonths_8cancers <- res_path_Annual_Nmonths_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map_df(~ read_excel(path = res_path_Annual_Nmonths_8cancers, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`) %>%
+        mutate(`Cancer type` = case_when(grepl(c("lung"), Sheet) ~ "Lung",
+                                         grepl(c("colorectal"), Sheet) ~ "Colorectal",
+                                         grepl(c("head_neck"), Sheet) ~ "Head and neck",
+                                         grepl(c("liver"), Sheet) ~ "Liver",
+                                         grepl(c("lymphoma"), Sheet) ~ "Lymphoma",
+                                         grepl(c("oesophagus"), Sheet) ~ "Oesophagus",
+                                         grepl(c("ovary"), Sheet) ~ "Ovary",
+                                         grepl(c("pancreas"), Sheet) ~ "Pancreas",
+                                         .default = Sheet) ,
+               .before = 1) %>%
+        select(-Sheet) %>%
+        filter(grepl(c("Stage at diagnosis"), Variable_main ))
+
+
+res_path_Annual_Persons_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/N_ac_GRAIL_2025-02-10.xlsx"
+
+df_allcause_Annual_persons_8cancers <- res_path_Annual_Persons_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map_df(~ read_excel(path = res_path_Annual_Persons_8cancers, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`) %>%
+        mutate(`Cancer type` = case_when(grepl(c("lung"), Sheet) ~ "Lung",
+                                         grepl(c("colorectal"), Sheet) ~ "Colorectal",
+                                         grepl(c("head_neck"), Sheet) ~ "Head and neck",
+                                         grepl(c("liver"), Sheet) ~ "Liver",
+                                         grepl(c("lymphoma"), Sheet) ~ "Lymphoma",
+                                         grepl(c("oesophagus"), Sheet) ~ "Oesophagus",
+                                         grepl(c("ovary"), Sheet) ~ "Ovary",
+                                         grepl(c("pancreas"), Sheet) ~ "Pancreas",
+                                         .default = Sheet) ,
+               .before = 1) %>%
+        select(-Sheet) %>%
+        filter(grepl(c("Stage at diagnosis"), Variable_main ))
+
+
+df_allcause_Annual_personsNmonths_8cancers <- left_join(df_allcause_Annual_Nmonths_8cancers, df_allcause_Annual_persons_8cancers, by = c("Cancer type" ,"Variable_main"))
+
+df_allcause_bystage_Annual_meanmonths_8cancers <- df_allcause_Annual_personsNmonths_8cancers %>%
+        filter(grepl(c("Stage at diagnosis"), Variable_main )) %>%
+    mutate(across(ac_diag_months:ac_treatphase5_N, \(x) as.numeric(x))) %>%
+        mutate(diag_meanmonths = ac_diag_months/ac_diagphase_N,
+               `ac_0-1y_meanmonths` = ac_treat_0_1yr_months/ac_treatphase0_1_N,
+               `ac_1-2y_meanmonths` = ac_treat_1_2yr_months/ac_treatphase1_2_N,
+               `ac_2-3y_meanmonths` = ac_treat_2_3yr_months/ac_treatphase2_3_N,
+               `ac_3-4y_meanmonths` = ac_treat_3_4yr_months/ac_treatphase3_4_N,
+               `ac_4-5y_meanmonths` = ac_treat_4_5yr_months/ac_treatphase4_5_N,
+               `ac_5-6y_meanmonths` = ac_treat_5yr_months/ac_treatphase5_N)
+        
+# For Phase of Care outcome
+res_path_PoC_NmonthsPersons_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/PoC_N_months_GRAIL_2024-10-21.xlsx"
+
+df_PoC_NmonthsPersons_8cancers <- res_path_PoC_NmonthsPersons_8cancers%>% 
+        excel_sheets() %>% 
+        set_names() %>%
+        map_df(~ read_excel(path = res_path_PoC_NmonthsPersons_8cancers, sheet = .x, skip = 1 ), .id = "Sheet") %>%
+        rename(Variable_main = `...1`) %>%
+        group_by(Sheet) %>%
+        mutate(Variable_main = case_when(Variable_main == "personmonths" & row_number() %in% c(2, 18, 34, 50, 66, 82, 98, 114) ~ "Diag Phase personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(4,  20,  36,  52,  68,  84, 100, 116) ~ "Treat Phase 0-1 personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(6,  22,  38,  54,  70,  86, 102, 118) ~ "Treat Phase 1-2 personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(8,  24,  40,  56,  72,  88, 104, 120) ~ "Treat Phase 2-3 personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(10,  26,  42,  58,  74,  90, 106, 122) ~ "Treat Phase 3-4 personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(12,  28,  44,  60,  76,  92, 108, 124) ~ "Treat Phase 4-5 personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(14,  30,  46,  62,  78,  94, 110, 126) ~ "Treat Phase 5 personmonths",
+                                         Variable_main == "personmonths" & row_number() %in% c(16,  32,  48,  64,  80,  96, 112, 128) ~ "EoL personmonths",
+                                         .default = Variable_main )) %>% 
+        ungroup() %>%
+    pivot_longer(cols = `0`:`Unknown/Missing`, names_to = "stage", values_to = "value") %>%
+    pivot_wider(names_from = "Variable_main", values_from = "value") %>%
+    mutate(across(`Diag Phase N (%)`:`EoL personmonths`, \(x) as.numeric(x))) %>%
+    mutate(`Diag phase mean proportion` = round((`Diag Phase personmonths` / `Diag Phase N (%)`)/ 6, 2)  ,
+           `Initial treatment\n(0-1 years) mean proportion` = round((`Treat Phase 0-1 personmonths` / `Treat Phase 0-1 N (%)`) / 12, 2),
+           `1-2 years mean proportion` = round((`Treat Phase 1-2 personmonths` / `Treat Phase 1-2 N (%)`) / 12, 2),
+           `2-3 years mean proportion` = round((`Treat Phase 2-3 personmonths` / `Treat Phase 2-3 N (%)`) / 12, 2),
+           `3-4 years mean proportion` = round((`Treat Phase 3-4 personmonths` / `Treat Phase 3-4 N (%)`) / 12, 2),
+           `4-5 years mean proportion` = round((`Treat Phase 4-5 personmonths` / `Treat Phase 4-5 N (%)`) / 12, 2),
+           `5-6 years mean proportion` = round((`Treat Phase 5 personmonths` / `Treat Phase 5 N (%)`) / 12, 2),
+           `End of life mean proportion` = round((`EoL personmonths` / `EoL N (%)`) / 12, 2)) %>%
+    mutate(Sheet = str_to_title(str_remove(Sheet, "N_months_"))) %>%
+    mutate(Sheet = case_when(Sheet == "Head_neck" ~ "Head and neck",
+                             .default = Sheet)) %>%
+    select(Sheet, stage, `Diag phase mean proportion`:`End of life mean proportion`)%>%
+    rename(`Cancer type` = Sheet)
+
+
+
+################################################################################
+#' _____________________________________________________________________________
+#' Load data: Unadjusted all-cause costs
+#' _____________________________________________________________________________
+#' _____ Total costs
+
+res_path_allcause_unadj_total_costs_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Costs_GRAIL_2024-11-06.xlsx"
+res_path_allcause_unadj_total_costs_ColoSplits <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_GRAIL_colorectal_2024-11-21.xlsx"
+res_path_allcause_unadj_total_costs_lymphSplits<- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_GRAIL_lymphoma_2024-11-22.xlsx"
+
+df_allcause_unadj_total_costs <- rbind(
+        
+        # The 8 original cancer
+       res_path_allcause_unadj_total_costs_8cancers %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_allcause_unadj_total_costs_8cancers, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`,
+               Variable_type = `...2`) %>% 
+        fill(Variable_main, .direction = "down") %>%
+        unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+        mutate(cancer_type = case_when(Sheet == "T2costs_lung" ~ "Lung",
+                                       Sheet == "T2costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2costs_liver" ~ "Liver",
+                                       Sheet == "T2costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2costs_oesophagus" ~ "Oesophagus",
+                                       Sheet == "T2costs_ovary" ~ "Ovary",
+                                       Sheet == "T2costs_pancreas" ~ "Pancreas",
+                                       .default = Sheet )) %>%
+        select(-Sheet),
+        
+        #The colorectal splits
+        res_path_allcause_unadj_total_costs_ColoSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_total_costs_ColoSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T2costs_Colon" ~ "Colon and rectosigmoid junction",
+                                               Sheet == "T2costs_Rectum" ~ "Rectum",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet),
+        
+        # The lymphoma splits
+        res_path_allcause_unadj_total_costs_lymphSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_total_costs_lymphSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T2costs_Hodgkins" ~ "Lymphoma: Hodgkins",
+                                               Sheet == "T2costs_High_grade_NHL" ~ "Lymphoma: High grade NHL",
+                                               Sheet == "T2costs_Low_grade_NHL" ~ "Lymphoma: Low grade NHL",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet)
+) %>%
+  relocate(cancer_type, .after = Variable) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("2014" = "cost_2014",
+         "2015" = "cost_2015",
+         "2016" = "cost_2016",
+         "2017" = "cost_2017") %>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+#' _____ Annual costs
+
+res_path_allcause_unadj_annual_costs_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Costs_annual_GRAIL_2025-01-23.xlsx"
+res_path_allcause_unadj_annual_costs_ColoSplits <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_annual_GRAIL_colorectal_2024-11-21.xlsx"
+res_path_allcause_unadj_annual_costs_lymphSplits <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_annual_GRAIL_lymphoma_2024-11-25.xlsx"
+
+df_allcause_unadj_annual_costs <- rbind(
+        
+        # The 8 original cancer
+        res_path_allcause_unadj_annual_costs_8cancers %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_annual_costs_8cancers, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T4_lung" ~ "Lung",
+                                               Sheet == "T4_colorectal" ~ "Colorectal",
+                                               Sheet == "T4_head_neck" ~ "Head and neck",
+                                               Sheet == "T4_liver" ~ "Liver",
+                                               Sheet == "T4_lymphoma" ~ "Lymphoma",
+                                               Sheet == "T4_oesophagus" ~ "Oesophagus",
+                                               Sheet == "T4_ovary" ~ "Ovary",
+                                               Sheet == "T4_pancreas" ~ "Pancreas",
+                                               .default = Sheet )) %>%
+                select(-Sheet),
+        
+        #The colorectal splits
+        res_path_allcause_unadj_annual_costs_ColoSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_annual_costs_ColoSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T4_Colon" ~ "Colon and rectosigmoid junction",
+                                               Sheet == "T4_Rectum" ~ "Rectum",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet),
+        
+        # The lymphoma splits
+        res_path_allcause_unadj_annual_costs_lymphSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_annual_costs_lymphSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T4_Hodgkins" ~ "Lymphoma: Hodgkins",
+                                               Sheet == "T4_High_grade_NHL" ~ "Lymphoma: High grade NHL",
+                                               Sheet == "T4_Low_grade_NHL" ~ "Lymphoma: Low grade NHL",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet)
+) %>%
+  relocate(cancer_type, .after = Variable) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("0 to 6 month before diagnosis" = "ac_Diagnosis",
+         "0 to 1 years after diagnosis" = "ac_Treat0_1_phase",
+         "1 to 2 years after diagnosis" = "ac_Treat1_2_phase",
+         "2 to 3 years after diagnosis" = "ac_Treat2_3_phase",
+         "3 to 4 years after diagnosis" = "ac_Treat3_4_phase",
+         "4 to 5 years after diagnosis" = "ac_Treat4_5_phase",
+         "5 to 6 years after diagnosis" = "ac_Treat5_phase") %>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+
+#' _____ PoC costs
+
+res_path_allcause_unadj_PoC_costs_8cancers <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - 8 cancer sites/Costs_phase_GRAIL_2024-11-06.xlsx"
+res_path_allcause_unadj_PoC_costs_ColoSplits <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_phase_GRAIL_colorectal_2024-11-21.xlsx"
+res_path_allcause_unadj_PoC_costs_lymphSplits <- "~/Miscellaneous/HDI/Final_results/All cause costs/Unadjusted/Descriptives and unadjusted allcause results - colorectal and lymphoma split/Costs_phase_GRAIL_lymphoma_2024-11-25.xlsx"
+
+df_allcause_unadj_PoC_costs <- rbind(
+        
+        # The 8 original cancer
+        res_path_allcause_unadj_PoC_costs_8cancers %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_PoC_costs_8cancers, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T3_lung" ~ "Lung",
+                                               Sheet == "T3_colorectal" ~ "Colorectal",
+                                               Sheet == "T3_head_neck" ~ "Head and neck",
+                                               Sheet == "T3_liver" ~ "Liver",
+                                               Sheet == "T3_lymphoma" ~ "Lymphoma",
+                                               Sheet == "T3_oesophagus" ~ "Oesophagus",
+                                               Sheet == "T3_ovary" ~ "Ovary",
+                                               Sheet == "T3_pancreas" ~ "Pancreas",
+                                               .default = Sheet )) %>%
+                select(-Sheet),
+        
+        #The colorectal splits
+        res_path_allcause_unadj_PoC_costs_ColoSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_PoC_costs_ColoSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T3_Colon" ~ "Colon and rectosigmoid junction",
+                                               Sheet == "T3_Rectum" ~ "Rectum",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet),
+        
+        # The lymphoma splits
+        res_path_allcause_unadj_PoC_costs_lymphSplits %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_allcause_unadj_PoC_costs_lymphSplits, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T3_Hodgkins" ~ "Lymphoma: Hodgkins",
+                                               Sheet == "T3_High_grade_NHL" ~ "Lymphoma: High grade NHL",
+                                               Sheet == "T3_Low_grade_NHL" ~ "Lymphoma: Low grade NHL",
+                                               .default = Sheet  ) ) %>%
+                select(-Sheet)
+) %>%
+  relocate(cancer_type, .after = Variable) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("Diagnosis phase" = "Diagnosis",
+         "Initial treatment phase (0 to 1 years)" = "Treat0_1_phase",
+         "Continuing phase (1 to 2 years)" = "Treat1_2_phase",
+         "Continuing phase (2 to 3 years)" = "Treat2_3_phase",
+         "Continuing phase (3 to 4 years)" = "Treat3_4_phase",
+         "Continuing phase (4 to 5 years)" = "Treat4_5_phase",
+         "Continuing phase (5 to 6 years)" = "Treat5_phase",
+          "End of life phase" = "Eol") 
+
+df_allcause_unadj_PoC_costs_annualised_basic <-   df_allcause_unadj_PoC_costs %>%
+  pivot_longer(cols = `Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "value") %>%
+        mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0 to 1 years)", "Continuing phase (1 to 2 years)",
+                                                "Continuing phase (2 to 3 years)",
+                                                "Continuing phase (3 to 4 years)", "Continuing phase (4 to 5 years)",
+                                                "Continuing phase (5 to 6 years)", "End of life phase") )) %>%
+        separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                             too_few = "align_start") %>%
+        mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+               value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+               value_mean = as.numeric(value_mean)) %>%
+        fill(`Characteristic`, .direction = "down") %>%
+        filter(grepl(c("Stage at diagnosis"), `Characteristic`)) %>%
+        mutate(value_2.5CI  = value_mean - qnorm(0.975) * value_se,
+               value_97.5CI  = value_mean + qnorm(0.975) * value_se) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        select(cancer_type, `Sub-characteristic`, Phase, value_mean, value_2.5CI, value_97.5CI) %>%
+  rename(stage = `Sub-characteristic`) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+        mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+        #filter(stage != "0" & stage != "Unknown/Missing") %>%
+        filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophagus", "Ovary", "Pancreas")) %>%
+        left_join(df_PoC_NmonthsPersons_8cancers %>% 
+  rename("Diagnosis phase" = "Diag phase mean proportion",
+         "Initial treatment phase (0 to 1 years)" = "Initial treatment\n(0-1 years) mean proportion",
+         "Continuing phase (1 to 2 years)" = "1-2 years mean proportion",
+         "Continuing phase (2 to 3 years)" = "2-3 years mean proportion",
+         "Continuing phase (3 to 4 years)" = "3-4 years mean proportion"    ,
+         "Continuing phase (4 to 5 years)" = "4-5 years mean proportion",
+         "Continuing phase (5 to 6 years)" = "5-6 years mean proportion" ,
+          "End of life phase" = "End of life mean proportion") %>%
+                          pivot_longer(`Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "Mean proportion of phase"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type", "stage", "Phase" )) %>%
+        mutate(`Annualised mean cost` =  round(value_mean / `Mean proportion of phase`, 1) ,
+               `Annualised 2.5CI` =   round(value_2.5CI / `Mean proportion of phase`, 1),
+               `Annualised 97.5CI` =  round(value_97.5CI / `Mean proportion of phase`, 1)) %>%
+ mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0 to 1 years)", "Continuing phase (1 to 2 years)",
+                                                "Continuing phase (2 to 3 years)",
+                                                "Continuing phase (3 to 4 years)", "Continuing phase (4 to 5 years)",
+                                                "Continuing phase (5 to 6 years)", "End of life phase"))) %>%
+        mutate(stage = forcats::fct_rev(stage))
+
+df_allcause_unadj_PoC_costs_annualised <- df_allcause_unadj_PoC_costs_annualised_basic %>%
+  mutate(`Mean phase cost and 95% CI` = paste0(`Annualised mean cost`, " (", `Annualised 2.5CI`, " to ", `Annualised 97.5CI`, ")")) %>%
+  select(cancer_type, stage, Phase, `Mean phase cost and 95% CI` ) %>%
+  pivot_wider(names_from = Phase, values_from = `Mean phase cost and 95% CI`)
+  
+
+# Step needs to be done after the annualised
+df_allcause_unadj_PoC_costs <- df_allcause_unadj_PoC_costs%>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+  
+  
+
+
+################################################################################
+#' _____________________________________________________________________________
+#' Adjusted all-cause costs
+#' _____________________________________________________________________________
+
+#' ______ Load data 
+#' All the AMEs are in one excel file
+
+res_path_allcause_adj_AME <- "~/Miscellaneous/HDI/Final_results/All cause costs/Regression adjusted/Regression_results_updated_Jan25/AME_results_2025-01-24.xlsx"
+
+df_allcause_AME_basic <- res_path_allcause_adj_AME %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_allcause_adj_AME, sheet = .x), .id = "Sheet") %>%
+        separate_wider_delim(Sheet, ".", names = c("cancer_type", "cost_outcome")) %>%
+        filter(!is.na(variable))
+  
+  df_allcause_AME <- df_allcause_AME_basic
+  select(cancer_type, cost_outcome, variable, estimate, conf.low, conf.high) %>%
+  rename(Covariate = variable, `Average marginal effect` = estimate, `CI: 2.5%` = conf.low, `CI: 97.5%` = conf.high ) %>%
+  filter(`CI: 2.5%` != 0) %>%
+  mutate(across(`Average marginal effect`:`CI: 97.5%`, \(x) round(x, 1))) %>%
+  mutate(`Average marginal effect (95% CI)` = paste0(`Average marginal effect`, " ", "(",`CI: 2.5%`, " to ", `CI: 97.5%`, ")")) %>%
+  select(cancer_type, cost_outcome, Covariate,`Average marginal effect (95% CI)`) %>%
+  mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                 cancer_type == "head_neck" ~ "Head and neck",
+                                 cancer_type == "liver" ~ "Liver",
+                                 cancer_type == "lung" ~ "Lung",
+                                 cancer_type == "lymphoma" ~ "Lymphoma",
+                                 cancer_type == "oesophagus" ~ "Oesophagus",
+                                 cancer_type == "ovary" ~ "Ovary",
+                                 cancer_type == "pancreas" ~ "Pancreas", .default = cancer_type)) %>%
+  mutate(cost_outcome = case_when(cost_outcome == "ac_diag" ~ "0 to 6 months before diagnosis",
+                                  cost_outcome == "ac_treat_0_1year" ~ "0 to 1 years after diagnosis",
+                                  cost_outcome == "ac_treat_1_2year" ~ "1 to 2 years after diagnosis",
+                                  cost_outcome == "ac_treat_2_3year" ~ "2 to 3 years after diagnosis",
+                                  cost_outcome == "ac_treat_3_4year" ~ "3 to 4 years after diagnosis",
+                                  cost_outcome == "ac_treat_4_5year" ~ "4 to 5 years after diagnosis",
+                                  cost_outcome == "ac_treat_5year" ~ "5 to 6 years after diagnosis",
+                                  cost_outcome == "diag" ~ "Diagnosis phase",
+                                  cost_outcome == "treat_0_1year" ~ "Initial phase (0 to 1 years)",
+                                  cost_outcome == "treat_1_2year" ~ "Continuing phase (1 to 2 years)",
+                                  cost_outcome == "treat_2_3year" ~ "Continuing phase (2 to 3 years)",
+                                  cost_outcome == "treat_3_4year" ~ "Continuing phase (3 to 4 years)",
+                                  cost_outcome == "treat_4_5year" ~ "Continuing phase (4 to 5 years)",
+                                  cost_outcome == "treat_5year" ~ "Continuing phase (5 to 6 years)",
+                                  cost_outcome == "eol" ~ "End of life phase",
+                                  .default = cost_outcome),
+         cost_outcome = factor(cost_outcome, levels = c("totalcost", "0 to 6 months before diagnosis","0 to 1 years after diagnosis", "1 to 2 years after diagnosis", "2 to 3 years after diagnosis",
+                                                        "3 to 4 years after diagnosis", "4 to 5 years after diagnosis", "5 to 6 years after diagnosis",
+                                                        "Diagnosis phase", "Initial phase (0 to 1 years)", "Continuing phase (1 to 2 years)", 
+                                                        "Continuing phase (2 to 3 years)","Continuing phase (3 to 4 years)","Continuing phase (4 to 5 years)",
+                                                        "Continuing phase (5 to 6 years)",  "End of life phase"))) %>% arrange(cost_outcome)
+  
+
+################################################################################
+#' _____________________________________________________________________________
+#' Load data: Unadjusted net costs
+#' _____________________________________________________________________________
+#' _____ Total costs
+
+res_path_net_unadj <- "~/Miscellaneous/HDI/Final_results/Net costs/Unadjusted/Costs_GRAIL_net_2025-01-29.xlsx"
+
+df_net_unadj_total_costs <- res_path_net_unadj %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_net_unadj, sheet = .x), .id = "Sheet") %>%
+                rename(Variable_main = `...1`,
+                       Variable_type = `...2`) %>% 
+                fill(Variable_main, .direction = "down") %>%
+                unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+                mutate(cancer_type = case_when(Sheet == "T2_total_costs_lung" ~ "Lung",
+                                               Sheet == "T2_total_costs_colorectal" ~ "Colorectal",
+                                               Sheet == "T2_total_costs_head_neck" ~ "Head and neck",
+                                               Sheet == "T2_total_costs_liver" ~ "Liver",
+                                               Sheet == "T2_total_costs_lymphoma" ~ "Lymphoma",
+                                               Sheet == "T2_total_costs_oesophagus" ~ "Oesophagus",
+                                               Sheet == "T2_total_costs_ovary" ~ "Ovary",
+                                               Sheet == "T2_total_costs_pancreas" ~ "Pancreas",
+                                               .default = Sheet )) %>%
+                select(-Sheet) %>%
+        select(Variable, cancer_type, costs_2014:costs_2017) %>%
+        filter(!is.na(costs_2014))  %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("2014" = "costs_2014",
+         "2015" = "costs_2015",
+         "2016" = "costs_2016",
+         "2017" = "costs_2017") %>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+#' _____ Annual costs
+
+df_net_unadj_annual_costs <- res_path_net_unadj %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_net_unadj, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`,
+               Variable_type = `...2`) %>% 
+        fill(Variable_main, .direction = "down") %>%
+        unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+        mutate(cancer_type = case_when(Sheet == "T2_costs_lung" ~ "Lung",
+                                       Sheet == "T2_costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2_costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2_costs_liver" ~ "Liver",
+                                       Sheet == "T2_costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2_costs_oesophagus" ~ "Oesophagus",
+                                       Sheet == "T2_costs_ovary" ~ "Ovary",
+                                       Sheet == "T2_costs_pancreas" ~ "Pancreas",
+                                       .default = Sheet )) %>%
+        select(-Sheet) %>%
+        select(Variable, cancer_type, costs_ac_diag:costs_ac_treat_5year) %>%
+        filter(!is.na(costs_ac_diag)) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("0 to 6 month before diagnosis" = "costs_ac_diag",
+         "0 to 1 years after diagnosis" = "costs_ac_treat_0_1year",
+         "1 to 2 years after diagnosis" = "costs_ac_treat_1_2year",
+         "2 to 3 years after diagnosis" = "costs_ac_treat_2_3year",
+         "3 to 4 years after diagnosis" = "costs_ac_treat_3_4year",
+         "4 to 5 years after diagnosis" = "costs_ac_treat_4_5year",
+         "5 to 6 years after diagnosis" = "costs_ac_treat_5year") %>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup()
+
+
+#' _____ PoC costs
+
+df_net_unadj_PoC_costs <- res_path_net_unadj %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_net_unadj, sheet = .x), .id = "Sheet") %>%
+        rename(Variable_main = `...1`,
+               Variable_type = `...2`) %>% 
+        fill(Variable_main, .direction = "down") %>%
+        unite("Variable", Variable_main:Variable_type, na.rm = TRUE, remove = TRUE) %>%
+        mutate(cancer_type = case_when(Sheet == "T2_costs_lung" ~ "Lung",
+                                       Sheet == "T2_costs_colorectal" ~ "Colorectal",
+                                       Sheet == "T2_costs_head_neck" ~ "Head and neck",
+                                       Sheet == "T2_costs_liver" ~ "Liver",
+                                       Sheet == "T2_costs_lymphoma" ~ "Lymphoma",
+                                       Sheet == "T2_costs_oesophagus" ~ "Oesophagus",
+                                       Sheet == "T2_costs_ovary" ~ "Ovary",
+                                       Sheet == "T2_costs_pancreas" ~ "Pancreas",
+                                       .default = Sheet )) %>%
+        select(-Sheet) %>%
+        select(Variable, cancer_type, costs_diag:costs_treat_5year) %>%
+        filter(!is.na(costs_diag)) %>%
+  separate_wider_delim(Variable, "_", names = c("Characteristic", "Sub-characteristic"), too_many = "merge", too_few = "align_start") %>%
+  rename("Diagnosis phase" = "costs_diag",
+         "Initial treatment phase (0 to 1 years)" = "costs_treat_0_1year",
+         "Continuing phase (1 to 2 years)" = "costs_treat_1_2year",
+         "Continuing phase (2 to 3 years)" = "costs_treat_2_3year",
+         "Continuing phase (3 to 4 years)" = "costs_treat_3_4year",
+         "Continuing phase (4 to 5 years)" = "costs_treat_4_5year",
+         "Continuing phase (5 to 6 years)" = "costs_treat_5year",
+          "End of life phase" = "costs_eol")  %>%
+  select(Characteristic, cancer_type, "Sub-characteristic" ,"Diagnosis phase", "Initial treatment phase (0 to 1 years)","Continuing phase (1 to 2 years)",  "Continuing phase (2 to 3 years)",
+          "Continuing phase (3 to 4 years)","Continuing phase (4 to 5 years)", "Continuing phase (5 to 6 years)", "End of life phase")
+
+
+df_net_unadj_PoC_costs_annualised <-   df_net_unadj_PoC_costs %>%
+  pivot_longer(cols = `Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "value") %>%
+        mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0 to 1 years)", "Continuing phase (1 to 2 years)",
+                                                "Continuing phase (2 to 3 years)",
+                                                "Continuing phase (3 to 4 years)", "Continuing phase (4 to 5 years)",
+                                                "Continuing phase (5 to 6 years)", "End of life phase") )) %>%
+        separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                             too_few = "align_start") %>%
+        mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+               value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+               value_mean = as.numeric(value_mean)) %>%
+        filter(grepl(c("Stage at diagnosis"), `Characteristic`)) %>%
+        mutate(value_2.5CI  = value_mean - qnorm(0.975) * value_se,
+               value_97.5CI  = value_mean + qnorm(0.975) * value_se) %>% 
+        mutate(across(where(is.character), as.factor)) %>%
+        select(cancer_type, `Sub-characteristic`, Phase, value_mean, value_2.5CI, value_97.5CI) %>%
+  rename(stage = `Sub-characteristic`) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+        mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+        #filter(stage != "0" & stage != "Unknown/Missing") %>%
+        filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophagus", "Ovary", "Pancreas")) %>%
+        left_join(df_PoC_NmonthsPersons_8cancers %>% 
+  rename("Diagnosis phase" = "Diag phase mean proportion",
+         "Initial treatment phase (0 to 1 years)" = "Initial treatment\n(0-1 years) mean proportion",
+         "Continuing phase (1 to 2 years)" = "1-2 years mean proportion",
+         "Continuing phase (2 to 3 years)" = "2-3 years mean proportion",
+         "Continuing phase (3 to 4 years)" = "3-4 years mean proportion"    ,
+         "Continuing phase (4 to 5 years)" = "4-5 years mean proportion",
+         "Continuing phase (5 to 6 years)" = "5-6 years mean proportion" ,
+          "End of life phase" = "End of life mean proportion") %>%
+                          pivot_longer(`Diagnosis phase`:`End of life phase`, names_to = "Phase", values_to = "Mean proportion of phase"), # %>%
+                          #filter(stage %in% c("1", "2", "3", "4")),
+                  by = c("cancer_type" = "Cancer type", "stage", "Phase" )) %>%
+        mutate(`Annualised mean cost` =  round(value_mean / `Mean proportion of phase`, 1) ,
+               `Annualised 2.5CI` =   round(value_2.5CI / `Mean proportion of phase`, 1),
+               `Annualised 97.5CI` =  round(value_97.5CI / `Mean proportion of phase`, 1)) %>%
+ mutate(Phase = factor(Phase, levels = c("Diagnosis phase", "Initial treatment phase (0 to 1 years)", "Continuing phase (1 to 2 years)",
+                                                "Continuing phase (2 to 3 years)",
+                                                "Continuing phase (3 to 4 years)", "Continuing phase (4 to 5 years)",
+                                                "Continuing phase (5 to 6 years)", "End of life phase"))) %>%
+        mutate(stage = forcats::fct_rev(stage)) %>%
+  mutate(`Mean phase cost and 95% CI` = paste0(`Annualised mean cost`, " (", `Annualised 2.5CI`, " to ", `Annualised 97.5CI`, ")")) %>%
+  select(cancer_type, stage, Phase, `Mean phase cost and 95% CI` ) %>%
+  pivot_wider(names_from = Phase, values_from = `Mean phase cost and 95% CI`)
+  
+
+
+
+df_net_unadj_PoC_costs <- df_net_unadj_PoC_costs%>%
+  group_by(cancer_type, Characteristic) %>%
+  mutate(Characteristic = ifelse(duplicated(Characteristic), NA, Characteristic)) %>%
+  ungroup() 
+
+################################################################################
+
+################################################################################
+#' _____________________________________________________________________________
+#' Adjusted net costs
+#' _____________________________________________________________________________
+
+#' ______ Load data 
+#' All the AMEs are in one excel file
+
+res_path_net_adj_AME_PoC_annual <- "~/Miscellaneous/HDI/Final_results/Net costs/Regression adjusted/AME_results_2025-01-24.xlsx"
+res_path_net_adj_AME_total <- "~/Miscellaneous/HDI/Final_results/Net costs/Regression adjusted/AME_results_totalcost_2025-01-24.xlsx"
+
+df_net_AME_basic <- rbind(
+        
+        res_path_net_adj_AME_PoC_annual %>% 
+        excel_sheets() %>% 
+        set_names() %>% 
+        map_df(~ read_excel(path = res_path_net_adj_AME_PoC_annual, sheet = .x), .id = "Sheet") %>%
+        separate_wider_delim(Sheet, ".", names = c("cancer_type", "cost_outcome")) %>%
+        filter(!is.na(variable)),
+        
+        res_path_net_adj_AME_total %>% 
+                excel_sheets() %>% 
+                set_names() %>% 
+                map_df(~ read_excel(path = res_path_net_adj_AME_total, sheet = .x), .id = "Sheet") %>%
+                separate_wider_delim(Sheet, ".", names = c("cancer_type", "cost_outcome")) %>%
+                filter(!is.na(variable))
+        
+)%>%
+  select(cancer_type, cost_outcome, variable, estimate, conf.low, conf.high) 
+
+df_net_AME <- df_net_AME_basic %>%
+  rename(Covariate = variable, `Average marginal effect` = estimate, `CI: 2.5%` = conf.low, `CI: 97.5%` = conf.high ) %>%
+  filter(`CI: 2.5%` != 0) %>%
+  mutate(across(`Average marginal effect`:`CI: 97.5%`, \(x) round(x, 1))) %>%
+  mutate(`Average marginal effect (95% CI)` = paste0(`Average marginal effect`, " ", "(",`CI: 2.5%`, " to ", `CI: 97.5%`, ")")) %>%
+  select(cancer_type, cost_outcome, Covariate,`Average marginal effect (95% CI)`) %>%
+  mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                 cancer_type == "head_neck" ~ "Head and neck",
+                                 cancer_type == "liver" ~ "Liver",
+                                 cancer_type == "lung" ~ "Lung",
+                                 cancer_type == "lymphoma" ~ "Lymphoma",
+                                 cancer_type == "oesophagus" ~ "Oesophagus",
+                                 cancer_type == "ovary" ~ "Ovary",
+                                 cancer_type == "pancreas" ~ "Pancreas", .default = cancer_type)) %>%
+  mutate(cost_outcome = case_when(cost_outcome == "ac_diag" ~ "0 to 6 months before diagnosis",
+                                  cost_outcome == "ac_treat_0_1year" ~ "0 to 1 years after diagnosis",
+                                  cost_outcome == "ac_treat_1_2year" ~ "1 to 2 years after diagnosis",
+                                  cost_outcome == "ac_treat_2_3year" ~ "2 to 3 years after diagnosis",
+                                  cost_outcome == "ac_treat_3_4year" ~ "3 to 4 years after diagnosis",
+                                  cost_outcome == "ac_treat_4_5year" ~ "4 to 5 years after diagnosis",
+                                  cost_outcome == "ac_treat_5year" ~ "5 to 6 years after diagnosis",
+                                  cost_outcome == "diag" ~ "Diagnosis phase",
+                                  cost_outcome == "treat_0_1year" ~ "Initial phase (0 to 1 years)",
+                                  cost_outcome == "treat_1_2year" ~ "Continuing phase (1 to 2 years)",
+                                  cost_outcome == "treat_2_3year" ~ "Continuing phase (2 to 3 years)",
+                                  cost_outcome == "treat_3_4year" ~ "Continuing phase (3 to 4 years)",
+                                  cost_outcome == "treat_4_5year" ~ "Continuing phase (4 to 5 years)",
+                                  cost_outcome == "treat_5year" ~ "Continuing phase (5 to 6 years)",
+                                  cost_outcome == "eol" ~ "End of life phase",
+                                  .default = cost_outcome),
+         cost_outcome = factor(cost_outcome, levels = c("totalcost", "0 to 6 months before diagnosis", "1 to 2 years after diagnosis", "2 to 3 years after diagnosis",
+                                                        "3 to 4 years after diagnosis", "4 to 5 years after diagnosis", "5 to 6 years after diagnosis",
+                                                        "Diagnosis phase", "Initial phase (0 to 1 years)", "Continuing phase (1 to 2 years)", 
+                                                        "Continuing phase (2 to 3 years)","Continuing phase (3 to 4 years)","Continuing phase (4 to 5 years)",
+                                                        "Continuing phase (5 to 6 years)",  "End of life phase"))) %>%
+  arrange(cost_outcome)
+  
+
+
+
+```
+
+
+# Manuscript tables
+
+### Manuscript Table 1: Patient characteristics 
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[1]]) |> sub_missing( missing_text = "") |> cols_label(`Dependent: Patients` = " ", `...2` = " " ) 
+    
+```
+
+\
+\
+\
+
+# Supplemental Tables 
+
+\
+
+## Patient characteristics for each cancer site by stage at diagnosis
+
+### Supplemental Table S1: Patient characteristics by stage at diagnosis: Colorectum cancer (note lung comes first then alphabetical)
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[3]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S2: Patient characteristics by stage at diagnosis: Head and neck cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[4]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S3: Patient characteristics by stage at diagnosis: Liver cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[5]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S4: Patient characteristics by stage at diagnosis: Lung cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[2]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S5: Patient characteristics by stage at diagnosis: Lymphoma cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[6]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S6: Patient characteristics by stage at diagnosis: Oesophagus cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[7]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S7: Patient characteristics by stage at diagnosis: Ovarian cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[8]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+### Supplemental Table S8: Patient characteristics by stage at diagnosis: Pancreas cancer
+
+```{r}
+gt(l_allcause_descriptives_8cancers[[9]]) |> sub_missing( missing_text = "") |> cols_label(`...1` = " ", `...2` = " " ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+\
+## Stage completeness
+\
+### Supplemental Table S9: Stage completeness (proportion without unknown or missing stage) by cancer type, stage, and year of diagnosis
+
+```{r}
+gt(df_stage_missing %>% mutate(`...1` = ifelse(duplicated(`...1`), NA, `...1`))) |>
+  sub_missing( missing_text = "") |> cols_label(`...1` = "Cancer type", `...2` = "Year of diagnosis" ) |>
+    tab_spanner(label = "Stage at diagnosis N (%)", columns = c(`0`, `1`, `2`, `3`, `4`, `Unknown/Missing`))
+```
+
+\
+
+# Overall hospital costs
+
+\
+
+## Mean unadjusted overall all-cause hospital cost
+
+### Supplemental Table S10: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+  cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S11: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+  cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S12: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S13: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S14: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S15: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S16: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S17: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+
+### Supplemental Table S18: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Colon and rectosigmoid junction
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Colon and rectosigmoid junction") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S19: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Rectum
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Rectum") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+
+### Supplemental Table S20: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Hodgkin lymphoma
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Lymphoma: Hodgkins") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S21: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: Low grade non-Hodgkin lymphoma
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Lymphoma: Low grade NHL") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S22: Tabulation of mean unadjusted overall all-cause hospital cost by patient characteristics: High grade non-Hodgkin lymphoma
+
+```{r}
+gt(df_allcause_unadj_total_costs %>% filter(cancer_type == "Lymphoma: High grade NHL") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+\
+
+## Mean regression-adjusted overall all-cause hospital cost (average marginal effects)
+
+### Supplemental Table S23: Tabulation of mean regression-adjusted overall all-cause hospital cost by patient characteristics and cancer type
+
+```{r}
+
+gt(df_allcause_AME %>% filter(cost_outcome == "totalcost") %>% select(-cost_outcome) %>% pivot_wider(names_from = cancer_type, values_from = `Average marginal effect (95% CI)`)) |> 
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = Colorectal:Pancreas)
+
+```
+
+\
+
+## Mean unadjusted overall net hospital cost 
+
+### Supplemental Table S24: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S25: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S26: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S27: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S28: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S29: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S30: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+```
+
+### Supplemental Table S31: Tabulation of mean unadjusted overall net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_net_unadj_total_costs %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`2014`:`2017`, \(x)  paste0("£", x))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`2014`:`2017`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |>   
+  cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+    tab_spanner(label = "Mean overall cost by year of diagnosis (SD) {SE}", columns = c(`2014`, `2015`, `2016`, `2017`))
+
+```
+
+\
+
+## Mean regression-adjusted overall net hospital cost (average marginal effects)
+
+### Supplemental Table S32: Tabulation of mean regression-adjusted overall net hospital cost by patient characteristics and cancer type
+
+```{r}
+
+gt(df_net_AME %>% filter(cost_outcome == "totalcost") %>% select(-cost_outcome) %>% pivot_wider(names_from = cancer_type, values_from = `Average marginal effect (95% CI)`)) |> 
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = Colorectal:Pancreas)
+
+```
+
+
+\
+\
+
+# Phase of care hospital care costs
+
+\
+
+## Mean unadjusted annual period all-cause hospital cost
+
+### Supplemental Table S33: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S34: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S35: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S36: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S37: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S38: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S39: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S40: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+
+\
+
+## Mean regression-adjusted phase of care all-cause hospital cost
+
+### Supplemental Table S41: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+
+```
+
+### Supplemental Table S42: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S43: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S44: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S45: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S46: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S47: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S48: Tabulation of mean regression-adjusted phase of care all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+\
+
+## Mean unadjusted phase of care net hospital cost
+
+### Supplemental Table S49: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S50: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S51: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S52: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S53: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S54: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S55: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S56: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+
+gt(df_net_unadj_PoC_costs %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean phase cost by year of diagnosis (SD) {SE}", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+\
+
+## Mean regression-adjusted phase of care net hospital cost
+
+### Supplemental Table S57: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S58: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S59: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S60: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S61: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S62: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S63: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S64: Tabulation of mean regression-adjusted phase of care net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("phase"), cost_outcome)) %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+
+\
+
+## Mean person months contributed to each phase for each cancer type
+
+### Supplemental Table S65: Mean proportion of phase of care contributed to
+
+```{r}
+gt(df_PoC_NmonthsPersons_8cancers %>% mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`))) |>
+  sub_missing( missing_text = "")
+```
+
+\
+
+## Mean unadjusted phase of care all-cause hospital cost - Whole follow-up equivalent
+
+### Supplemental Table S66: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S67: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S68: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S69: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S70: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S71: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S72: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S73: Tabulation of mean unadjusted phase of care all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+\
+
+## Mean unadjusted phase of care net hospital cost - Whole follow-up equivalent
+
+### Supplemental Table S74: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_net_unadj_PoC_costs_annualised %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S75: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S76: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S77: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S78: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S79: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S81: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+### Supplemental Table S82: Tabulation of mean unadjusted phase of care net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_allcause_unadj_PoC_costs_annualised %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x)  paste0("£", x))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`Diagnosis phase`:`End of life phase`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`stage` = "Stage", ) |> 
+      tab_spanner(label = "Mean phase (whole phase equivalent) cost by year of diagnosis (95% CI)", columns = `Diagnosis phase`:`End of life phase`)
+```
+
+
+
+
+# Annual period hospital care costs
+
+\
+
+## Mean unadjusted annual period all-cause hospital cost
+
+### Supplemental Table S83: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+
+```
+
+### Supplemental Table S84: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S85: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S86: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S87: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S88: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S89: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S90: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+
+### Supplemental Table S91: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Colon and rectosigmoid junction
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Colon and rectosigmoid junction") %>% select(-cancer_type) %>%
+     filter(!(Characteristic %in% c("Total N (%)","personmonths"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S92: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Rectum
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Rectum") %>% select(-cancer_type) %>%
+          filter(!(Characteristic %in% c("Total N (%)","personmonths"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S93: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Hogkin lymphoma
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Lymphoma: Hodgkins") %>% select(-cancer_type) %>%
+          filter(!(Characteristic %in% c("Total N (%)","personmonths"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+
+### Supplemental Table S94: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Low grade non-Hodgkin lymphoma
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Lymphoma: Low grade NHL") %>% select(-cancer_type) %>%
+          filter(!(Characteristic %in% c("Total N (%)","personmonths"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S96: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: High grade non-Hodgkin lymphoma
+
+```{r}
+gt(df_allcause_unadj_annual_costs %>% filter(cancer_type == "Lymphoma: High grade NHL") %>% select(-cancer_type) %>%
+          filter(!(Characteristic %in% c("Total N (%)","personmonths"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+\
+
+## Mean regression-adjusted annual period all-cause hospital cost
+
+### Supplemental Table S97: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+
+```
+
+### Supplemental Table S98: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S99: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S100: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S101: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S102: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`4 to 5 years after diagnosis`)
+
+
+```
+
+### Supplemental Table S103: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S104: Tabulation of mean regression-adjusted annual period all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+
+gt(df_allcause_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+
+\
+
+## Mean unadjusted annual period net hospital cost
+
+### Supplemental Table S105: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+
+```
+
+### Supplemental Table S106: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S107: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S108: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S109: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S110: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S111: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S112: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_net_unadj_annual_costs %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x)  paste0("£", x))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\(", "(£"))) %>%
+   mutate(across(`0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`, \(x) str_replace(x, "\\{", "{£")))) |> sub_missing( missing_text = "") |> 
+    cols_label(`Characteristic` = "", `Sub-characteristic` = "" ) |> 
+      tab_spanner(label = "Mean period cost by year of diagnosis (SD) {SE}", columns = `0 to 6 month before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+\
+
+## Mean regression-adjusted annual period net hospital cost
+
+### Supplemental Table S113: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Colorectal") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+
+```
+
+### Supplemental Table S114: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Head and neck") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S115: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Liver") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S116: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Lung") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S117: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Lymphoma") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S118: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Oesophagus") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S119: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Ovary") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+### Supplemental Table S120: Tabulation of mean regression-adjusted annual period net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+gt(df_net_AME %>% filter(grepl(c("diagnosis"), cost_outcome)) %>% filter(cancer_type == "Pancreas") %>% select(-cancer_type) %>%
+     pivot_wider(names_from = cost_outcome, values_from = `Average marginal effect (95% CI)`)) |>
+    cols_label( Covariate = "" ) |> 
+    tab_spanner(label = "Average marginal effect (95% CI)", columns = `0 to 6 months before diagnosis`:`5 to 6 years after diagnosis`)
+```
+
+\
+
+## Mean person months contributed to each period for each cancer type
+
+### Supplemental Table S121: Mean proportion of annual period contributed to
+
+```{r}
+gt(df_PoC_NmonthsPersons_8cancers)
+
+```
+
+\
+
+
+## Mean unadjusted annual period all-cause hospital cost - Whole period equivalent
+
+### Supplemental Table S122: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+```
+
+### Supplemental Table S123: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+```
+
+### Supplemental Table S124: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Liver cancer
+
+```{r}
+```
+
+### Supplemental Table S125: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Lung cancer
+
+```{r}
+```
+
+### Supplemental Table S126: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+```
+
+### Supplemental Table S127: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+```
+
+### Supplemental Table S128: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+```
+
+### Supplemental Table S129: Tabulation of mean unadjusted annual period all-cause hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+```
+
+\
+
+## Mean unadjusted annual period net hospital cost - Whole period equivalent
+
+### Supplemental Table S130: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Colorectum cancer
+
+```{r}
+```
+
+### Supplemental Table S130: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Head and neck cancer
+
+```{r}
+```
+
+### Supplemental Table S131: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Liver cancer
+
+```{r}
+```
+
+### Supplemental Table S132: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Lung cancer
+
+```{r}
+```
+
+### Supplemental Table S133: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Lymphoma cancer
+
+```{r}
+```
+
+### Supplemental Table S134: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Oesophagus cancer
+
+```{r}
+```
+
+### Supplemental Table S135: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Ovarian cancer
+
+```{r}
+```
+
+### Supplemental Table S136: Tabulation of mean unadjusted annual period net hospital cost by patient characteristics: Pancreas cancer
+
+```{r}
+```
+
+\
+
+
+```{r}
+
+
+df_total_difference_compare <- rbind( 
+        
+        df_allcause_unadj_total_costs %>% 
+                pivot_longer(cols = `2014`:`2017`, names_to = "year") %>%
+                separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                                     too_few = "align_start") %>%
+                mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+                       value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+                       value_mean = as.numeric(value_mean)) %>%
+          fill(Characteristic, .direction = "down") %>%
+                filter(grepl(c("Stage at diagnosis"), Characteristic)) %>%
+                rename(stage = `Sub-characteristic`) %>%
+                select(cancer_type, stage, year, value_mean, value_sd) %>%
+                mutate(across(where(is.character), as.factor)) %>%
+                mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+                filter(stage != "0" & stage != "Unknown/Missing") %>%
+                filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophagus", "Ovary", "Pancreas")) %>%
+                filter(year == "2014") %>%
+                select(cancer_type, stage, value_mean, value_sd) %>%
+                # Add number on for SE calc
+                left_join(l_allcause_descriptives_8cancers[[1]][27:30 ,2:10] %>% 
+                                  rename(stage = `...2`) %>%
+                                  pivot_longer(`Lung N (%)`:`Pancreas N (%)`, values_to = "N", names_to = "cancer_type") %>%
+                                  mutate(across(cancer_type:N, \(x) word(x,1))) %>% mutate(N = as.numeric(N)) %>%
+                                  mutate(cancer_type = case_when(cancer_type == "Head" ~ "Head and neck",
+                                                                 .default = cancer_type))) %>%
+                pivot_wider(names_from = stage, names_prefix = "Stage_", values_from = c("value_mean", "value_sd", "N") ) %>%
+                mutate(mean_Stage1_2 = value_mean_Stage_2 - value_mean_Stage_1,
+                       se_Stage1_2 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_2^2)/N_Stage_2)),
+                       mean_Stage1_3 = value_mean_Stage_3 - value_mean_Stage_1,
+                       se_Stage1_3 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_3^2)/N_Stage_3)),
+                       mean_Stage1_4 = value_mean_Stage_4 - value_mean_Stage_1,
+                       se_Stage1_4 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_4^2)/N_Stage_4))) %>%
+                select(cancer_type, mean_Stage1_2, se_Stage1_2,mean_Stage1_3,se_Stage1_3, mean_Stage1_4, se_Stage1_4) %>%
+                pivot_longer(mean_Stage1_2:se_Stage1_4, names_to = "type_stage", values_to = "estimate") %>%
+                separate_wider_delim(type_stage, "_", names = c("outcome", "stage"), too_many = "merge")%>%
+                mutate(stage = str_sub(stage,-1,-1)) %>%
+                pivot_wider(names_from = "outcome", values_from = "estimate") %>%
+                mutate(value_2.5CI  = mean - qnorm(0.975) * se,
+                       value_97.5CI  = mean + qnorm(0.975) * se) %>%
+                mutate(stage = case_when(stage == "2" ~ "II",
+                                         stage == "3" ~ "III",
+                                         stage == "4" ~ "IV")) %>%
+                mutate(analysis_type = "All-cause unadjusted") %>%
+                mutate(across(where(is.factor), as.character)) %>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type),
+        
+        
+        df_allcause_AME %>%
+           filter(grepl(c("Stage"), variable)) %>%
+        filter(variable != "Stage: Missing/Unknown") %>%
+        filter(grepl("totalcost", cost_outcome)) %>%
+        mutate(cost_outcome = case_when(cost_outcome == "totalcost" ~ "Total cost",
+                                        .default = NA ) ) %>%
+        mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                       cancer_type == "head_neck" ~ "Head and neck",
+                                       cancer_type == "liver" ~ "Liver",
+                                       cancer_type == "lung" ~ "Lung",
+                                       cancer_type == "lymphoma" ~ "Lymphoma",
+                                       cancer_type == "oesophagus" ~ 'Oesophagus',
+                                       cancer_type == "ovary" ~ "Ovary",
+                                       cancer_type == "pancreas" ~ "Pancreas",
+                                       .default = NA) )  %>%
+                rename(stage = variable) %>%
+                mutate(stage = case_when(stage == "Stage: II" ~ "II",
+                                         stage == "Stage: III" ~ "III",
+                                         stage == "Stage: IV" ~ "IV")) %>%
+                mutate(analysis_type = "All-cause covariate-adjusted") %>%
+                rename(mean = estimate,
+                       value_2.5CI = conf.low,
+                       value_97.5CI = conf.high)%>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type),
+        
+        
+        df_net_unadj_total_costs %>% 
+                pivot_longer(cols = `2014`:`2017`, names_to = "year") %>%
+                separate_wider_delim(cols = value, delim = " ", names = c("mean", "sd", "se"), names_sep = "_",
+                                     too_few = "align_start") %>%
+                mutate(value_sd = as.numeric(str_sub(value_sd, start = 2L, end = -2L)),
+                       value_se = as.numeric(str_sub(value_se, start = 2L, end = -2L)),
+                       value_mean = as.numeric(value_mean)) %>%
+                fill(Characteristic, .direction = "down") %>%
+                filter(grepl(c("Stage at diagnosis"), Characteristic)) %>%
+                rename(stage = `Sub-characteristic`) %>%
+                select(cancer_type, stage, year, value_mean, value_sd) %>%
+                mutate(across(where(is.character), as.factor)) %>%
+                mutate(cancer_type = forcats::fct_rev(cancer_type)) %>%
+                filter(stage != "0" & stage != "Unknown/Missing") %>%
+                filter(cancer_type %in% c( "Lung", "Colorectal", "Head and neck", "Liver", "Lymphoma", "Oesophagus", "Ovary", "Pancreas")) %>%
+                filter(year == "2014") %>%
+                select(cancer_type, stage, value_mean, value_sd) %>%
+                # Add number on for SE calc
+                left_join(l_net_descriptives_8cancers[[1]][26:29 ,2:10] %>% 
+                                  rename(stage = `...2`) %>%
+                                  pivot_longer(`Lung N (%)`:`Pancreas N (%)`, values_to = "N", names_to = "cancer_type") %>%
+                                  mutate(across(cancer_type:N, \(x) word(x,1))) %>% mutate(N = as.numeric(N)) %>%
+                                  mutate(cancer_type = case_when(cancer_type == "Head_neck" ~ "Head and neck",
+                                                                 .default = cancer_type))) %>%
+                pivot_wider(names_from = stage, names_prefix = "Stage_", values_from = c("value_mean", "value_sd", "N") ) %>%
+                mutate(mean_Stage1_2 = value_mean_Stage_2 - value_mean_Stage_1,
+                       se_Stage1_2 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_2^2)/N_Stage_2)),
+                       mean_Stage1_3 = value_mean_Stage_3 - value_mean_Stage_1,
+                       se_Stage1_3 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_3^2)/N_Stage_3)),
+                       mean_Stage1_4 = value_mean_Stage_4 - value_mean_Stage_1,
+                       se_Stage1_4 = sqrt( ((value_sd_Stage_1^2)/N_Stage_1) +  ((value_sd_Stage_4^2)/N_Stage_4))) %>%
+                select(cancer_type, mean_Stage1_2, se_Stage1_2,mean_Stage1_3,se_Stage1_3, mean_Stage1_4, se_Stage1_4) %>%
+                pivot_longer(mean_Stage1_2:se_Stage1_4, names_to = "type_stage", values_to = "estimate") %>%
+                separate_wider_delim(type_stage, "_", names = c("outcome", "stage"), too_many = "merge") %>%
+                mutate(stage = str_sub(stage,-1,-1)) %>%
+                pivot_wider(names_from = "outcome", values_from = "estimate") %>%
+                mutate(value_2.5CI  = mean - qnorm(0.975) * se,
+                       value_97.5CI  = mean + qnorm(0.975) * se) %>%
+                mutate(stage = case_when(stage == "2" ~ "II",
+                                         stage == "3" ~ "III",
+                                         stage == "4" ~ "IV")) %>%
+                mutate(analysis_type = "Net unadjusted") %>%
+                mutate(across(where(is.factor), as.character)) %>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type),
+        
+        
+      df_net_AME_basic %>%
+          filter(grepl(c("Stage"), variable)) %>%
+        filter(variable != "Stage: Missing/Unknown") %>%
+        filter(grepl("totalcost", cost_outcome)) %>%
+        mutate(cost_outcome = case_when(cost_outcome == "totalcost" ~ "Total cost",
+                                        .default = NA ) ) %>%
+        mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                       cancer_type == "head_neck" ~ "Head and neck",
+                                       cancer_type == "liver" ~ "Liver",
+                                       cancer_type == "lung" ~ "Lung",
+                                       cancer_type == "lymphoma" ~ "Lymphoma",
+                                       cancer_type == "oesophagus" ~ 'Oesophagus',
+                                       cancer_type == "ovary" ~ "Ovary",
+                                       cancer_type == "pancreas" ~ "Pancreas",
+                                       .default = NA) )  %>%
+                rename(stage = variable) %>%
+                mutate(stage = case_when(stage == "Stage: II" ~ "II",
+                                         stage == "Stage: III" ~ "III",
+                                         stage == "Stage: IV" ~ "IV")) %>%
+                mutate(analysis_type = "Net covariate-adjusted") %>%
+                rename(mean = estimate,
+                       value_2.5CI = conf.low,
+                       value_97.5CI = conf.high)%>%
+                select(cancer_type, stage, mean, value_2.5CI, value_97.5CI, analysis_type)
+)
+
+
+Figure_1_net_overall_cost_differences <- df_total_difference_compare %>%
+        filter(analysis_type == "Net covariate-adjusted") %>%
+        ggplot() +
+        geom_bar(aes(y = mean, x = stage, group = stage, fill = stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = value_97.5CI, ymin = value_2.5CI, x = stage, group = stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+        facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        geom_hline(yintercept=0)  +      
+        guides(fill="none", colour = "none")+
+        labs(fill = "", x = "Stage at diagnosis", y = "Difference in cost to stage I") +
+        theme_bw() +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 10),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 11),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 11),
+              axis.ticks.y=element_blank())
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_1.png"), Figure_1_net_overall_cost_differences, device = "png",
+       width = 270,
+       height = 150,
+       units = "mm")
+
+Figure_S2_total_difference_compare <- df_total_difference_compare %>%
+        mutate(analysis_type = factor(analysis_type, levels = c("All-cause unadjusted","All-cause covariate-adjusted","Net unadjusted","Net covariate-adjusted"))) %>%
+        ggplot() +
+        geom_bar(aes(y = mean, x = stage, group = stage, fill = stage),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = value_97.5CI, ymin = value_2.5CI, x = stage, group = stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+        facet_grid(rows = vars(analysis_type), cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        geom_hline(yintercept=0)  +      
+        guides(fill="none", colour = "none")+
+        labs(fill = "", x = "Stage at diagnosis", y = "Difference in cost to stage I") +
+        theme_bw() +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 11),
+              strip.background.x = element_rect(fill="white"),
+              strip.background.y = element_rect(fill="white"),
+              strip.text.x = element_text(  size = 11),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 11),
+              strip.text.y = element_text(  size = 11),
+              axis.ticks.y=element_blank())
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_S1.png"), Figure_S2_total_difference_compare, device = "png",
+       width = 270,
+       height = 250,
+       units = "mm")
+
+```
+
+
+```{r}
+
+
+Figure_2plot_net_AME_PoC <- df_net_AME_basic %>%
+  filter(grepl(c("Stage"), variable)) %>%
+        filter(variable != "Stage: Missing/Unknown") %>%
+        filter(!grepl("ac_|totalcost", cost_outcome)) %>%
+  mutate(cost_outcome = case_when(cost_outcome == "diag" ~ "Diagnosis phase",
+                                  cost_outcome == "treat_0_1year" ~ "Initial phase\n(0 to 1 years)",
+                                  cost_outcome == "treat_1_2year" ~ "Continuing phase\n(1 to 2 years)",
+                                  cost_outcome == "treat_2_3year" ~ "Continuing phase\n(2 to 3 years)",
+                                  cost_outcome == "treat_3_4year" ~ "Continuing phase\n(3 to 4 years)",
+                                  cost_outcome == "treat_4_5year" ~ "Continuing phase\n(4 to 5 years)",
+                                  cost_outcome == "treat_5year" ~ "Continuing phase\n(5 to 6 years)",
+                                  cost_outcome == "eol" ~ "End of life phase",
+                                  .default = cost_outcome),
+         cost_outcome = factor(cost_outcome, levels = c("Diagnosis phase", "Initial phase\n(0 to 1 years)", "Continuing phase\n(1 to 2 years)", 
+                                                        "Continuing phase\n(2 to 3 years)","Continuing phase\n(3 to 4 years)","Continuing phase\n(4 to 5 years)",
+                                                        "Continuing phase\n(5 to 6 years)",  "End of life phase"))) %>%
+        mutate(cancer_type = case_when(cancer_type == "colorectal" ~ "Colorectal",
+                                       cancer_type == "head_neck" ~ "Head and neck",
+                                       cancer_type == "liver" ~ "Liver",
+                                       cancer_type == "lung" ~ "Lung",
+                                       cancer_type == "lymphoma" ~ "Lymphoma",
+                                       cancer_type == "oesophagus" ~ 'Oesophagus',
+                                       cancer_type == "ovary" ~ "Ovary",
+                                       cancer_type == "pancreas" ~ "Pancreas",
+                                       .default = NA) )  %>%
+                rename(stage = variable) %>%
+                mutate(stage = case_when(stage == "Stage: II" ~ "II",
+                                         stage == "Stage: III" ~ "III",
+                                         stage == "Stage: IV" ~ "IV")) %>%
+                rename(mean = estimate,
+                       value_2.5CI = conf.low,
+                       value_97.5CI = conf.high)%>%
+                select(cancer_type, stage, cost_outcome,mean, value_2.5CI, value_97.5CI) %>%
+        ggplot() +
+        geom_bar(aes(y = mean, x = forcats::fct_rev(stage), group = forcats::fct_rev(stage), fill = forcats::fct_rev(stage)),
+                 position= position_dodge(0.5),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = value_97.5CI, ymin = value_2.5CI, x = forcats::fct_rev(stage), group = forcats::fct_rev(stage)),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+        facet_grid(rows = vars(cancer_type), cols = vars(cost_outcome) , switch = "y", scales = "fixed") +
+        coord_flip() +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52"), guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "Stage at diagnosis", x = "Cancer type", y = "Difference in cost to stage I") +
+        theme_bw() +
+        theme(legend.position="bottom",
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 10),
+              axis.title = element_text(face = "bold", size = 17),
+              axis.text.x = element_text(angle = 45, vjust = 0, hjust=0),
+              strip.text.y.left = element_text(angle = 0),
+              axis.text.y=element_blank(),
+              axis.ticks.y=element_blank())  
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_2.png"), Figure_2plot_net_AME_PoC, device = "png",
+       width = 300,
+       height = 150,
+       units = "mm")
+
+
+```
+
+
+```{r}
+
+
+# Focus on initial phase
+df_allcause_unadj_PoC_costs_annualised_initial <- df_allcause_unadj_PoC_costs_annualised_basic %>% filter(Phase %in% c("Initial treatment phase (0 to 1 years)","End of life phase")  ) %>%
+        select(-`Mean proportion of phase`) %>%
+        pivot_longer(cols = value_mean:`Annualised 97.5CI`, names_to = "outcome", values_to = "value") %>%
+        mutate(Type = case_when(grepl(c("Annualised"), outcome) ~ "Annualised",
+                                .default = "Non-annualised"),
+               outcome = case_when(grepl(c("mean"), outcome) ~ "Mean",
+                                   grepl(c("2.5"), outcome) ~ "2.5CI",
+                                   grepl(c("97.5CI"), outcome) ~ "97.5CI",
+                                   .default = outcome)) %>%
+        pivot_wider(names_from = outcome, values_from = value) %>%
+  mutate(Type = case_when(Type == "Annualised" ~ "Whole phase equivalent",
+                                         Type == "Non-annualised" ~ "Untransformed")) %>%
+        mutate(Type = factor(Type, levels = c( "Untransformed", "Whole phase equivalent") )) %>%
+  filter(stage %in% c("1","2","3","4")) %>%
+  mutate(stage = case_when(stage == "1" ~ "I",
+                                         stage == "2" ~ "II",
+                                         stage == "3" ~ "III",
+                           stage == "4" ~ "IV")) %>%
+  mutate(stage = factor(stage, levels = c("I","II","III","IV")))
+
+
+Figure_3_plot_allcause_unadj_PoC_bystage_8cancers_annualised_initial <- df_allcause_unadj_PoC_costs_annualised_initial %>%
+        ggplot() + 
+        geom_bar(aes(y = `Mean`, x = Type, group = stage, fill = stage),
+                 position= position_dodge(0.9),
+                 stat = "identity",
+                 width = .5) +
+        geom_errorbar(aes(ymax = `2.5CI`, ymin = `97.5CI`, x = Type, group = stage),
+                      position= position_dodge(0.9), width = 0.2, colour = "black") +
+        facet_grid(cols = vars(Phase),rows = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592"), guide = guide_legend(reverse = FALSE)) +
+        labs(fill = "Stage at diagnosis", x = NULL, y = "Mean phase cost") +
+        theme_bw(base_size = 12) +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              axis.text.x = element_text( size = 11),
+              strip.background.x = element_rect(fill="white"),
+              strip.background.y = element_rect(fill="white"),
+              strip.text.x = element_text(size = 11),
+              axis.text.y = element_text( size = 11),
+              strip.text.y = element_text(size = 11),
+              axis.ticks.y=element_blank(),
+              legend.position="bottom")
+
+
+ggsave(paste0("~/Miscellaneous/HDI/Code for publication/", "fig_3.png"), Figure_3_plot_allcause_unadj_PoC_bystage_8cancers_annualised_initial, device = "png",
+       width = 200,
+       height = 270,
+       units = "mm")
+
+
+```
+
+
+
+
+
+
+
+
+
+

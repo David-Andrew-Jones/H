@@ -1,0 +1,405 @@
+---
+format: docx
+execute: 
+  echo: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(networkD3, quietly = TRUE)
+library(gt, quietly = TRUE)
+
+source("~/Miscellaneous/Diagnostics/1CSO/01_f_1CSOmodel.R")
+
+participation <- 0.7
+participation_percentage <- participation*100
+CSO_accuracy <- 0.93
+
+```
+
+---
+title: "Impact of a multi-Cancer Early Detection screening programme in England on diagnostic demand - a modelling study: Uptake scenario `r participation_percentage`%, CSO accuracy `r CSO_accuracy`"
+format:
+   docx: 
+    output-file: "Impact of MCED screening on diagnostic demand - 70% uptake, 0.93 CSO accuracy, 56% PPV"
+    output-ext:  "docx"
+---
+
+```{r, message=FALSE}
+#' _____________________________________________________________________________
+#' Load Data
+
+df_England_pop_50to79_2022 <- read_csv("~/Miscellaneous/Diagnostics/data/england_pop_50to79_mid2022.csv")
+df_CSO_diagnostic_assumptions <- read_csv("~/Miscellaneous/Diagnostics/data/1CSO_diagnostics_assumptions.csv")
+df_MM_cancer_classes_detected <- read_csv("~/Miscellaneous/Diagnostics/data/MM_cancer_detected.csv")
+
+# Data on diagnostics use in England
+# Diagnostic Activty and Waiting Times
+df_diag_use_England <- read_csv("~/Miscellaneous/Diagnostics/data/NHSE_diag_activity_timeseries.csv") %>%
+        mutate(annual_24to23 = rowSums(select(., `01/04/2024`:`01/05/2023`)))
+
+# Proportion microscopically verified
+df_prop_micro_verified <- pull(read_csv("~/Miscellaneous/Diagnostics/data/microscop_verified.csv") %>%
+                                 filter(Type == "All registrations") %>%
+                                 select(`2019`))
+n_InvCancers_2022 <- 528600
+
+n_micro_verified <- df_prop_micro_verified * n_InvCancers_2022
+
+
+# plot_MV_across_time <- df_prop_micro_verified %>%
+#   pivot_longer(cols = !Type, names_to = "year", values_to = "percent") %>%
+#   mutate(percent = round(percent,2)) %>%
+#   mutate(across(where(is.character), as.factor)) %>%
+#   ggplot() +
+#   geom_point(aes(y = percent, x = year)) +
+#   facet_wrap(vars(Type))
+
+
+#' _____________________________________________________________________________
+#' Derive model inputs
+
+GalleriPPV <- 0.56
+Galleri_detection_rate <- 0.014
+intercep_model_rate_denom = 1000000
+
+#' The interception model leads to a CSD of 2.3%, whereas most studies have suggested around 1%. 
+#' Below the cancer types detected from the interception model are adjusted to the specified detection rate
+IntercepMod_detection_rate <- df_MM_cancer_classes_detected %>% 
+      summarise(total_TP = sum(rate_1M_prev)) %>%
+      mutate(total_FP = (total_TP/GalleriPPV) * (1-GalleriPPV),
+             detection_rate = sum(total_TP + total_FP)) 
+
+IntercepMod_detection_rate_SS <- df_MM_cancer_classes_detected %>% 
+      summarise(total_TP = sum(rate_1M_SS)) %>%
+      mutate(total_FP = (total_TP/GalleriPPV) * (1-GalleriPPV),
+             detection_rate = sum(total_TP + total_FP)) 
+
+deflator <- pull(IntercepMod_detection_rate %>%
+      mutate(target_per_1mill = intercep_model_rate_denom * Galleri_detection_rate,
+             deflator = target_per_1mill/detection_rate) %>%
+        select(deflator))
+
+#' Calculate the distribution of CSO calls from interception model cancer typess
+df_CSO_proportions <- df_MM_cancer_classes_detected %>%
+  # map cancer type (cance_class) to v3a CSO 
+  mutate(cancer_class_mapped = case_when(cancer_class == "Anus" ~ "Anus", 
+                                         cancer_class == "Bladder" ~ "Bladder and Urothelial Tract", 
+                                         cancer_class == "Breast" ~ "Breast",
+                                         cancer_class == "Cervix" ~ "Cervix",
+                                         cancer_class == "Colon/Rectum" ~ "Colon and Rectum",
+                                         cancer_class == "Esophagus" ~ "Stomach and Esophagus",
+                                         cancer_class == "Gallbladder" ~ "Pancreas and Gallbladder",
+                                         cancer_class == "Head and Neck" ~ "Head and Neck",
+                                         cancer_class == "Kidney" ~ "Kidney",
+                                         cancer_class == "Liver/Bile-duct" ~ "Liver and Bile Duct",
+                                         cancer_class == "Lung" ~ "Lung",
+                                         cancer_class == "Lymphoid Leukemia" ~ "Haematopoietic or lymphatic system",
+                                         cancer_class == "Lymphoma" ~ "Haematopoietic or lymphatic system",
+                                         cancer_class == "Melanoma" ~ "Melanoma",
+                                         cancer_class == "Myeloid Neoplasm" ~ "Haematopoietic or lymphatic system",
+                                         cancer_class == "Ovary" ~ "Ovary",
+                                         cancer_class == "Pancreas" ~ "Pancreas and Gallbladder",
+                                         cancer_class == "Plasma Cell Neoplasm" ~ "Haematopoietic or lymphatic system",
+                                         cancer_class == "Prostate" ~ "Prostate",
+                                         cancer_class == "Sarcoma" ~ "Bone and Soft Tissue",
+                                         cancer_class == "Stomach" ~ "Stomach and Esophagus",
+                                         cancer_class == "Thyroid" ~ "Thyroid Gland",
+                                         cancer_class == "Urothelial Tract" ~ "Bladder and Urothelial Tract",
+                                         cancer_class == "Uterus" ~ "Uterus",
+                                         .default = cancer_class)) %>%
+ mutate(cancer_class_mapped = fct(cancer_class_mapped)) %>%
+  group_by(cancer_class_mapped) %>%
+  summarise(rate_1M_prev_cancertype_mapped_to_CSO = sum(rate_1M_prev),
+            rate_1M_SS_cancertype_mapped_to_CSO = sum(rate_1M_SS))  %>%
+  # Redistribute "other" across the CSOs
+  ungroup() %>%
+  mutate(total_rate_1M_prev_cancertype_mapped_to_CSO = sum(rate_1M_prev_cancertype_mapped_to_CSO),
+         total_rate_1M_SS_cancertype_mapped_to_CSO = sum(rate_1M_SS_cancertype_mapped_to_CSO)) %>%
+  filter(cancer_class_mapped != "[OTHER]") %>%
+  mutate(total_noother_rate_1M_prev_cancertype_mapped_to_CSO = sum(rate_1M_prev_cancertype_mapped_to_CSO),
+         total_noother_rate_1M_SS_cancertype_mapped_to_CSO = sum(rate_1M_SS_cancertype_mapped_to_CSO)) %>%
+    mutate(rate_1M_prev_cancertype_mapped_to_CSO = rate_1M_prev_cancertype_mapped_to_CSO * (total_rate_1M_prev_cancertype_mapped_to_CSO/total_noother_rate_1M_prev_cancertype_mapped_to_CSO),
+         rate_1M_SS_cancertype_mapped_to_CSO = rate_1M_SS_cancertype_mapped_to_CSO* (total_rate_1M_SS_cancertype_mapped_to_CSO/total_noother_rate_1M_SS_cancertype_mapped_to_CSO)) %>%
+  mutate(check = sum(rate_1M_prev_cancertype_mapped_to_CSO),
+         check2 = sum(rate_1M_SS_cancertype_mapped_to_CSO)) %>%
+  # deflate to 1% detection rate
+  mutate(rate_1M_prev_cancertype_mapped_to_CSO = rate_1M_prev_cancertype_mapped_to_CSO * deflator,
+         rate_1M_SS_cancertype_mapped_to_CSO = rate_1M_SS_cancertype_mapped_to_CSO * deflator) %>% 
+  mutate(prop_TP_cancertype_mapped_to_CSO_prev = rate_1M_prev_cancertype_mapped_to_CSO / sum(rate_1M_prev_cancertype_mapped_to_CSO),
+         prop_TP_cancertype_mapped_to_CSO_SS = rate_1M_SS_cancertype_mapped_to_CSO / sum(rate_1M_SS_cancertype_mapped_to_CSO)) %>%
+  select(cancer_class_mapped, rate_1M_prev_cancertype_mapped_to_CSO, rate_1M_SS_cancertype_mapped_to_CSO, prop_TP_cancertype_mapped_to_CSO_prev, prop_TP_cancertype_mapped_to_CSO_SS)
+ #  summarise(across(where(is.numeric), ~ sum(., na.rm = TRUE)))
+
+write_csv(df_CSO_proportions %>% 
+            select(cancer_class_mapped, prop_TP_cancertype_mapped_to_CSO_prev, prop_TP_cancertype_mapped_to_CSO_SS ) %>%
+            rename(`Cancer type` = cancer_class_mapped,
+                   `Proportion of CSD in prevalent round` = prop_TP_cancertype_mapped_to_CSO_prev,
+                   `Proportion of CSD in steady state` = prop_TP_cancertype_mapped_to_CSO_SS) %>%
+            mutate(`Proportion of CSD in prevalent round` = round(`Proportion of CSD in prevalent round` * 100, 2),
+                   `Proportion of CSD in steady state` = round(`Proportion of CSD in steady state` * 100, 2)),
+          file = "~/Miscellaneous/Diagnostics/data/CSO_proportions.csv")
+
+
+#' _____________________________________________________________________________
+#' Run model on input population
+
+total_eligible <- pull(df_England_pop_50to79_2022 %>%
+                     summarise(total = sum(mid2022population)))
+
+l_model_results_prev <- f_diag_scenarios(data_CSO_diagnostics = df_CSO_diagnostic_assumptions ,
+                      data_CSO_probs = df_CSO_proportions%>% 
+                                           rename(rate_1M_cancertype_mapped_to_CSO = rate_1M_prev_cancertype_mapped_to_CSO,
+                                                   prop_TP_cancertype_mapped_to_CSO = prop_TP_cancertype_mapped_to_CSO_prev),
+                      intercep_model_rate_denom = 1000000,
+                      participation_rate = participation,
+                      GalleriPPV = 0.431,
+                      prob_CSO_correct = CSO_accuracy,
+                      prob_incidental = 0.25,
+                      total_elig = total_eligible)
+
+l_model_results_SS <- f_diag_scenarios(data_CSO_diagnostics = df_CSO_diagnostic_assumptions ,
+                      data_CSO_probs = df_CSO_proportions%>% 
+                                           rename(rate_1M_cancertype_mapped_to_CSO = rate_1M_SS_cancertype_mapped_to_CSO,
+                                                   prop_TP_cancertype_mapped_to_CSO = prop_TP_cancertype_mapped_to_CSO_SS),
+                      intercep_model_rate_denom = 1000000,
+                      participation_rate = participation,
+                      GalleriPPV = 0.431,
+                      prob_CSO_correct = CSO_accuracy,
+                      prob_incidental = 0.25,
+                      total_elig = total_eligible)
+
+#'______________________________________________________________________________
+#' Tabulate outputted results for all scenarios
+
+df_all_scenarios_imaging_prev <- l_model_results_prev[seq(2, length(l_model_results_prev), 2)] %>%
+        reduce(left_join, by = "imaging_type")
+
+res_sum_byimagingtype_prev <- df_all_scenarios_imaging_prev %>%
+        mutate(prev_total_sum_byimagingtype = rowSums(select(., scenario_1_total_use_byimagine_type:scenario_4_total_use_byimagine_type), na.rm=TRUE),
+               prev_total_TP_byimagingtype = rowSums(select(., scenario_1_total_use_byimagine_type:scenario_3_total_use_byimagine_type), na.rm=TRUE),
+               prev_total_FP_byimagingtype = rowSums(select(., scenario_4_total_use_byimagine_type), na.rm=TRUE)) %>%
+        select(imaging_type, prev_total_sum_byimagingtype, prev_total_TP_byimagingtype, prev_total_FP_byimagingtype) %>%
+        mutate(prev_total_imaging = sum(prev_total_sum_byimagingtype))
+
+df_all_scenarios_imaging_SS <- l_model_results_SS[seq(2, length(l_model_results_SS), 2)] %>%
+        reduce(left_join, by = "imaging_type")
+
+res_sum_byimagingtype_SS <- df_all_scenarios_imaging_SS %>%
+        mutate(SS_total_sum_byimagingtype = rowSums(select(., scenario_1_total_use_byimagine_type:scenario_4_total_use_byimagine_type), na.rm=TRUE),
+               SS_total_TP_byimagingtype = rowSums(select(., scenario_1_total_use_byimagine_type:scenario_3_total_use_byimagine_type), na.rm=TRUE),
+               SS_total_FP_byimagingtype = rowSums(select(., scenario_4_total_use_byimagine_type), na.rm=TRUE)) %>%
+        select(imaging_type, SS_total_sum_byimagingtype, SS_total_TP_byimagingtype, SS_total_FP_byimagingtype) %>%
+        mutate(SS_total_imaging = sum(SS_total_sum_byimagingtype))
+
+#'______________________________________________________________________________
+
+
+```
+
+
+## Results table 1: Increase in annual diagnostic modality usage in relation to English total usage for the period May 2023 to April 2024
+
+```{r}
+
+# Create output table for Diagnostics - later on this seperates biospy out as this has a different reference
+res_annual_percentage_change <- res_sum_byimagingtype_prev %>%
+        left_join(res_sum_byimagingtype_SS, by = c("imaging_type")) %>%
+        mutate(imaging_type = case_when(imaging_type == "CT" ~ "Computed Tomography",
+                                        imaging_type == "MRI" ~ "Magnetic Resonance Imaging",
+                                        .default = imaging_type)) %>%
+        rename(`Diagnostic modality` = imaging_type) %>%
+        left_join(df_diag_use_England %>% 
+                          mutate(annual_24to23 = rowSums(select(., `01/04/2024`:`01/05/2023`)))%>% 
+                          select(`Diagnostic modality`, annual_24to23) %>%
+                    # add microscopically verified here but seperates out earlier
+                    add_row(`Diagnostic modality` = "Biopsy", annual_24to23 = n_micro_verified), 
+                  by = c("Diagnostic modality")) %>%
+        mutate(prev_TP_combined_total = prev_total_TP_byimagingtype + annual_24to23,
+               prev_TP_percent_increase = ((prev_TP_combined_total - annual_24to23) / annual_24to23) * 100,
+               prev_FP_combined_total = prev_total_FP_byimagingtype + annual_24to23,
+               prev_FP_percent_increase = ((prev_FP_combined_total - annual_24to23) / annual_24to23) * 100,
+               prev_all_combined_total = prev_total_sum_byimagingtype + annual_24to23,
+               prev_total_percent_increase = ((prev_all_combined_total - annual_24to23) / annual_24to23) * 100,
+               prev_TP_increase_per_million = 1000000 * (prev_total_TP_byimagingtype / (total_eligible * participation)),
+               prev_TP_per_million_percent_increase = (((prev_TP_increase_per_million + annual_24to23) - annual_24to23) / annual_24to23) * 100,
+               prev_FP_increase_per_million = 1000000 * (prev_total_FP_byimagingtype / (total_eligible * participation)),
+               prev_FP_per_million_percent_increase = (((prev_FP_increase_per_million + annual_24to23) - annual_24to23) / annual_24to23) * 100,
+               prev_increase_per_million = 1000000 * (prev_total_sum_byimagingtype / (total_eligible * participation)),
+               prev_per_million_percent_increase = (((prev_increase_per_million + annual_24to23) - annual_24to23) / annual_24to23) * 100,
+) %>%
+          mutate(SS_TP_combined_total = SS_total_TP_byimagingtype + annual_24to23,
+               SS_TP_percent_increase = ((SS_TP_combined_total - annual_24to23) / annual_24to23) * 100,
+               SS_FP_combined_total = SS_total_FP_byimagingtype + annual_24to23,
+               SS_FP_percent_increase = ((SS_FP_combined_total - annual_24to23) / annual_24to23) * 100,
+               SS_all_combined_total = SS_total_sum_byimagingtype + annual_24to23,
+               SS_total_percent_increase = ((SS_all_combined_total - annual_24to23) / annual_24to23) * 100,
+               SS_TP_increase_per_million = 1000000 * (SS_total_TP_byimagingtype / (total_eligible * participation)),
+               SS_TP_per_million_percent_increase = (((SS_TP_increase_per_million + annual_24to23) - annual_24to23) / annual_24to23) * 100,
+               SS_FP_increase_per_million = 1000000 * (SS_total_FP_byimagingtype / (total_eligible * participation)),
+               SS_FP_per_million_percent_increase = (((SS_FP_increase_per_million + annual_24to23) - annual_24to23) / annual_24to23) * 100,
+               SS_increase_per_million =  1000000  * (SS_total_sum_byimagingtype / (total_eligible * participation)),
+               SS_per_million_percent_increase = (((SS_increase_per_million + annual_24to23) - annual_24to23) / annual_24to23) * 100,
+) %>%
+        select(`Diagnostic modality`, annual_24to23,
+               prev_total_sum_byimagingtype,prev_total_TP_byimagingtype, prev_TP_percent_increase,
+               prev_total_FP_byimagingtype, prev_FP_percent_increase, prev_total_percent_increase,
+               prev_increase_per_million, 
+               prev_TP_increase_per_million, prev_TP_per_million_percent_increase,
+               prev_FP_increase_per_million, prev_FP_per_million_percent_increase, prev_per_million_percent_increase,
+               SS_total_sum_byimagingtype, SS_total_TP_byimagingtype, SS_TP_percent_increase,
+               SS_total_FP_byimagingtype, SS_FP_percent_increase, SS_total_percent_increase,
+               SS_increase_per_million, SS_TP_increase_per_million, SS_TP_per_million_percent_increase,
+               SS_FP_increase_per_million, SS_FP_per_million_percent_increase, SS_per_million_percent_increase) %>%
+        mutate(across(where(is.numeric), \(x) round(x , 3))) %>%
+        rename(`Total usage in England 2023/24` = annual_24to23,
+               `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with MCED screening` = prev_total_sum_byimagingtype,
+               `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with true positives` = prev_total_TP_byimagingtype,
+               `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with false positives` = prev_total_FP_byimagingtype,
+               `Prevalent round: MCED screening programme scenario: Percentage (%) increase in total annual usage` = prev_total_percent_increase,
+               `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with MCED screening` = prev_increase_per_million,
+               `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with true positives` = prev_TP_increase_per_million,
+               `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with false positives` = prev_FP_increase_per_million,
+               `Prevalent round: Per 1 million screened: Percentage (%) increase in total annual usage` = prev_per_million_percent_increase) %>%
+        mutate(`Prevalent round: MCED screening programme scenario: Percentage increase attributable to true (false) positives` =  paste0(prev_TP_percent_increase, " ", "(", prev_FP_percent_increase, ")" ),
+               `Prevalent round: Per 1 million screened: Percentage increase attributable to true (false) positives` =  paste0(prev_TP_per_million_percent_increase, " ", "(", prev_FP_per_million_percent_increase, ")" )) %>%
+          rename(
+               `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with MCED screening` = SS_total_sum_byimagingtype,
+               `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with true positives` = SS_total_TP_byimagingtype,
+               `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with false positives` = SS_total_FP_byimagingtype,
+               `Steady state: MCED screening programme scenario: Percentage (%) increase in total annual usage` = SS_total_percent_increase,
+               `Steady state: Per 1 million screened: Estimated annual use (n) associated with MCED screening` = SS_increase_per_million,
+               `Steady state: Per 1 million screened: Estimated annual use (n) associated with true positives` = SS_TP_increase_per_million,
+               `Steady state: Per 1 million screened: Estimated annual use (n) associated with false positives` = SS_FP_increase_per_million,
+               `Steady state: Per 1 million screened: Percentage (%) increase in total annual usage` = SS_per_million_percent_increase) %>%
+        mutate(`Steady state: MCED screening programme scenario: Percentage increase attributable to true (false) positives` =  paste0(SS_TP_percent_increase, " ", "(", SS_FP_percent_increase, ")" ),
+               `Steady state: Per 1 million screened: Percentage increase attributable to true (false) positives` =  paste0(SS_TP_per_million_percent_increase, " ", "(", SS_FP_per_million_percent_increase, ")" )) %>%
+  select(`Diagnostic modality`, `Total usage in England 2023/24`,
+         `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with MCED screening`,
+         `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with true positives`,
+         `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with false positives`,
+         `Prevalent round: MCED screening programme scenario: Percentage (%) increase in total annual usage`,
+         `Prevalent round: MCED screening programme scenario: Percentage increase attributable to true (false) positives`,
+         `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with MCED screening`,
+         `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with true positives`,
+         `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with false positives`,
+         `Prevalent round: Per 1 million screened: Percentage (%) increase in total annual usage`,
+         `Prevalent round: Per 1 million screened: Percentage increase attributable to true (false) positives`,
+         `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with MCED screening`,
+         `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with true positives`,
+         `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with false positives`,
+         `Steady state: MCED screening programme scenario: Percentage (%) increase in total annual usage`,
+         `Steady state: MCED screening programme scenario: Percentage increase attributable to true (false) positives`,
+         `Steady state: Per 1 million screened: Estimated annual use (n) associated with MCED screening`,
+         `Steady state: Per 1 million screened: Estimated annual use (n) associated with true positives`, 
+         `Steady state: Per 1 million screened: Estimated annual use (n) associated with false positives`,
+         `Steady state: Per 1 million screened: Percentage (%) increase in total annual usage`,
+         `Steady state: Per 1 million screened: Percentage increase attributable to true (false) positives`,
+) %>%
+  mutate(across(c(`Total usage in England 2023/24`,
+                  `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with MCED screening`,  
+                  `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with true positives`,
+                  `Prevalent round: MCED screening programme scenario: Estimated annual use (n) associated with false positives`,
+                  `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with MCED screening`,
+                  `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with true positives`,
+                  `Prevalent round: Per 1 million screened: Estimated annual use (n) associated with false positives`,
+                  `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with MCED screening`,
+                  `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with true positives`,
+                  `Steady state: MCED screening programme scenario: Estimated annual use (n) associated with false positives`,
+                  `Steady state: Per 1 million screened: Estimated annual use (n) associated with MCED screening`,
+                  `Steady state: Per 1 million screened: Estimated annual use (n) associated with true positives`, 
+                  `Steady state: Per 1 million screened: Estimated annual use (n) associated with false positives`), ~
+                  case_when(. > 1000000 ~ signif(., digits = 5), 
+                            . > 100000 ~ signif(., digits = 4), 
+                            . > 10000 ~ signif(., digits = 4), 
+                            . > 1000 ~ signif(., digits = 3), 
+                            . < 1 ~ round(., digits = 3), 
+                            .default = signif(., digits = 2))))
+
+
+gt(res_annual_percentage_change %>% filter(`Diagnostic modality` != "Biopsy"))%>%
+        tab_options(column_labels.background.color = "gray",
+                    column_labels.font.weight = "bold") %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+# seperate table for Biopsy which instead is based on microscopically verified cancers as a comparator. 
+
+gt(res_annual_percentage_change %>% filter(`Diagnostic modality` == "Biopsy") %>% rename(`No. microscopically verified invasive cancers 2022` = `Total usage in England 2023/24`))%>%
+        tab_options(column_labels.background.color = "gray",
+                    column_labels.font.weight = "bold") %>%
+        tab_spanner_delim(delim = ":", columns = everything(), split = c("first", "last"), limit = NULL, reverse = FALSE)
+
+
+#______________________________________________________________________________#
+
+```
+
+
+```{r fig.width=10,fig.height=14}
+
+# df_diag_use_England %>% 
+#         filter(`Diagnostic modality` %in% c("Colonoscopy", "Computed Tomography", "Cystoscopy", "Flexi Sigmoidoscopy", "Gastroscopy", "Magnetic Resonance Imaging", "Non-obstetric Ultrasound" )) %>%
+#         mutate(`Diagnostic modality` = forcats::fct_rev(as.factor(`Diagnostic modality`))) %>%
+#         pivot_longer(cols = `01/04/2024`:`01/04/2018`, names_to = "Month") %>%
+#         mutate(Month = as.Date(Month, format='%d/%m/%Y' )) %>%
+#         ggplot()+ 
+#         geom_line (aes(y = value, x = Month)) +
+#         stat_smooth(aes(y = value, x = Month), method = lm, formula = y ~ poly(x, 15), se = FALSE) +
+#         facet_wrap(vars(`Diagnostic modality`), scales = "free", ncol = 2) +
+#         theme_bw() +
+#         scale_y_continuous(labels = scales::label_comma())
+        
+
+```
+
+
+```{r, fig.width=10,fig.height=14}
+# 
+# res_monthly_percentage_change <- res_sum_byimagingtype_prev %>%
+#         filter(imaging_type != "Biopsy") %>%
+#         mutate(imaging_type = case_when(imaging_type == "CT" ~ "Computed Tomography",
+#                                         imaging_type == "MRI" ~ "Magnetic Resonance Imaging",
+#                                         .default = imaging_type)) %>%
+#         rename(`Diagnostic modality` = imaging_type) %>%
+#         mutate(across(prev_total_sum_byimagingtype:prev_total_imaging, \(x) x/12)) %>%
+#         left_join(df_diag_use_England %>% select(-annual_24to23),
+#                   by = c("Diagnostic modality")) %>%
+#         mutate(`Diagnostic modality` = forcats::fct_rev(as.factor(`Diagnostic modality`))) %>%
+#         pivot_longer(cols = `01/04/2024`:`01/04/2018`, names_to = "Month") %>%
+#         mutate(Month = as.Date(Month, format='%d/%m/%Y' ))%>%
+#         mutate(value_for_smooth = value)
+# 
+# h_line_increase <- res_monthly_percentage_change %>%
+#         filter(Month == "2024-04-01") %>%
+#         mutate(total_plus_MCED = prev_total_sum_byimagingtype + value) %>%
+#         select(`Diagnostic modality`, total_plus_MCED) %>%
+#         mutate(annotation = "Last month usage plus MCED monthly estimate")
+#   
+# 
+# b <- res_monthly_percentage_change %>%
+#         ggplot() + 
+#         geom_line(aes(y = value, x = Month, colour = "value")) +
+#         stat_smooth(aes(y = value_for_smooth, x = Month, colour = "value_for_smooth"), method = lm, formula = y ~ poly(x, 10), se = FALSE) +
+#         facet_wrap(vars(`Diagnostic modality`), scales = "free", ncol = 4) +
+#         geom_hline(data  = h_line_increase, aes(yintercept = total_plus_MCED, colour = "total_plus_MCED")) +
+#         guides(color = guide_legend(order = 1)) +
+#         scale_color_discrete(
+#                      labels =c("April 2024 usage + MCED increase", 
+#                                "Monthly usage",
+#                                "Monthly usage smoothed"
+#                                ),
+#                      ) +
+#         theme_bw() +
+#         labs(colour = "Time series") +
+#         scale_y_continuous(labels = scales::label_comma(), n.breaks = 4) +
+#         ylab("Activity per month") +
+#   theme(legend.position = "bottom")
+
+```
+
+
+
+
+

@@ -1,0 +1,641 @@
+cancer_type,cost_outcome,Stage,absolute_average,absolute_conf_low,absolute_conf_high
+Colorectal,0-1 years after diagnosis,I,13033.1,12832.3,13233.8
+Colorectal,0-1 years after diagnosis,II,17679.2,17345.8,18012.7
+Colorectal,0-1 years after diagnosis,III,23480.6,23155.6,23805.6
+Colorectal,0-1 years after diagnosis,IV,24488,24154.3,24821.7
+Colorectal,0-1 years after diagnosis,Missing/Unknown,13286.3,12866.7,13706
+Head and neck,0-1 years after diagnosis,I,12551.4,12169.5,12933.2
+Head and neck,0-1 years after diagnosis,II,19914.3,19190.4,20638.2
+Head and neck,0-1 years after diagnosis,III,26129.6,25413.1,26846
+Head and neck,0-1 years after diagnosis,IV,28211.1,27622.1,28800.1
+Head and neck,0-1 years after diagnosis,Missing/Unknown,16413.9,15683.9,17143.9
+Liver,0-1 years after diagnosis,I,15418.6,14644.5,16192.8
+Liver,0-1 years after diagnosis,II,16115.3,14810.9,17419.7
+Liver,0-1 years after diagnosis,III,14792.5,13442.3,16142.7
+Liver,0-1 years after diagnosis,IV,15466.7,14291.7,16641.7
+Liver,0-1 years after diagnosis,Missing/Unknown,13397.9,12258.4,14537.4
+Lung,0-1 years after diagnosis,I,13978.2,13820.1,14136.2
+Lung,0-1 years after diagnosis,II,17979.9,17653.6,18306.2
+Lung,0-1 years after diagnosis,III,17697.3,17430,17964.6
+Lung,0-1 years after diagnosis,IV,14633.1,14389.8,14876.4
+Lung,0-1 years after diagnosis,Missing/Unknown,9529.5,9165.8,9893.1
+Lymphoma,0-1 years after diagnosis,I,16819.3,16281.9,17356.7
+Lymphoma,0-1 years after diagnosis,II,21824.4,20841.4,22807.5
+Lymphoma,0-1 years after diagnosis,III,22367.2,21446.5,23287.9
+Lymphoma,0-1 years after diagnosis,IV,27520.1,26687.9,28352.3
+Lymphoma,0-1 years after diagnosis,Missing/Unknown,15559.6,14636.7,16482.5
+Oesophageal,0-1 years after diagnosis,I,19918.5,19391.7,20445.3
+Oesophageal,0-1 years after diagnosis,II,24899.4,24024.7,25774.1
+Oesophageal,0-1 years after diagnosis,III,24536.2,23735.7,25336.6
+Oesophageal,0-1 years after diagnosis,IV,16262.3,15462.6,17062
+Oesophageal,0-1 years after diagnosis,Missing/Unknown,15174.2,14265.1,16083.3
+Ovarian,0-1 years after diagnosis,I,12140.4,11771,12509.8
+Ovarian,0-1 years after diagnosis,II,19601.6,18683.2,20519.9
+Ovarian,0-1 years after diagnosis,III,26634.1,26025.1,27243
+Ovarian,0-1 years after diagnosis,IV,27961.4,27293.2,28629.6
+Ovarian,0-1 years after diagnosis,Missing/Unknown,15074.2,14324.9,15823.5
+Pancreatic,0-1 years after diagnosis,I,20320,19556.5,21083.6
+Pancreatic,0-1 years after diagnosis,II,28309.5,27131.7,29487.4
+Pancreatic,0-1 years after diagnosis,III,21973,20759.4,23186.5
+Pancreatic,0-1 years after diagnosis,IV,13614.5,12509.1,14719.8
+Pancreatic,0-1 years after diagnosis,Missing/Unknown,16215.4,15063.6,17367.3
+Colorectal,0-6 months before diagnosis,I,657.6,609.4,705.8
+Colorectal,0-6 months before diagnosis,II,968.5,888.4,1048.6
+Colorectal,0-6 months before diagnosis,III,863.2,785.1,941.2
+Colorectal,0-6 months before diagnosis,IV,1222.2,1142.1,1302.4
+Colorectal,0-6 months before diagnosis,Missing/Unknown,1884.2,1783.4,1984.9
+Head and neck,0-6 months before diagnosis,I,474.1,394.1,554.2
+Head and neck,0-6 months before diagnosis,II,738.5,586.7,890.2
+Head and neck,0-6 months before diagnosis,III,834.9,684.7,985.1
+Head and neck,0-6 months before diagnosis,IV,865.4,741.9,988.9
+Head and neck,0-6 months before diagnosis,Missing/Unknown,1187.9,1034.8,1340.9
+Liver,0-6 months before diagnosis,I,1956.5,1660.9,2252
+Liver,0-6 months before diagnosis,II,1812,1314,2310
+Liver,0-6 months before diagnosis,III,1956.7,1441.3,2472.2
+Liver,0-6 months before diagnosis,IV,2106.1,1657.6,2554.7
+Liver,0-6 months before diagnosis,Missing/Unknown,2239.4,1804.4,2674.4
+Lung,0-6 months before diagnosis,I,2646.2,2589.6,2702.7
+Lung,0-6 months before diagnosis,II,2210.8,2094.1,2327.5
+Lung,0-6 months before diagnosis,III,1921.7,1826.1,2017.3
+Lung,0-6 months before diagnosis,IV,1922.7,1835.7,2009.7
+Lung,0-6 months before diagnosis,Missing/Unknown,2579.5,2449.4,2709.5
+Lymphoma,0-6 months before diagnosis,I,1626.1,1506.7,1745.5
+Lymphoma,0-6 months before diagnosis,II,1711.4,1493,1929.8
+Lymphoma,0-6 months before diagnosis,III,1770.2,1565.7,1974.7
+Lymphoma,0-6 months before diagnosis,IV,2194.5,2009.6,2379.3
+Lymphoma,0-6 months before diagnosis,Missing/Unknown,2372.9,2167.9,2578
+Oesophageal,0-6 months before diagnosis,I,1184.4,1045.7,1323
+Oesophageal,0-6 months before diagnosis,II,671.4,441.2,901.7
+Oesophageal,0-6 months before diagnosis,III,672.8,462.1,883.5
+Oesophageal,0-6 months before diagnosis,IV,898.3,687.8,1108.8
+Oesophageal,0-6 months before diagnosis,Missing/Unknown,1856.6,1617.3,2095.9
+Ovarian,0-6 months before diagnosis,I,1317,1234.8,1399.3
+Ovarian,0-6 months before diagnosis,II,1305.6,1101.2,1510
+Ovarian,0-6 months before diagnosis,III,1405.2,1269.6,1540.7
+Ovarian,0-6 months before diagnosis,IV,1515.1,1366.4,1663.9
+Ovarian,0-6 months before diagnosis,Missing/Unknown,1715.3,1548.5,1882.1
+Pancreatic,0-6 months before diagnosis,I,2293.6,2052.8,2534.4
+Pancreatic,0-6 months before diagnosis,II,2287.3,1915.8,2658.9
+Pancreatic,0-6 months before diagnosis,III,2055.1,1672.4,2437.9
+Pancreatic,0-6 months before diagnosis,IV,1815.2,1466.5,2163.8
+Pancreatic,0-6 months before diagnosis,Missing/Unknown,2679,2315.7,3042.3
+Colorectal,1-2 years after diagnosis,I,3063.6,2899.8,3227.5
+Colorectal,1-2 years after diagnosis,II,4102.3,3828.8,4375.8
+Colorectal,1-2 years after diagnosis,III,6525.2,6257.5,6792.9
+Colorectal,1-2 years after diagnosis,IV,15798,15489,16107.1
+Colorectal,1-2 years after diagnosis,Missing/Unknown,4862.7,4482.5,5243
+Head and neck,1-2 years after diagnosis,I,3378.3,3103.2,3653.5
+Head and neck,1-2 years after diagnosis,II,4883.7,4356.5,5411
+Head and neck,1-2 years after diagnosis,III,5326.2,4797.4,5855
+Head and neck,1-2 years after diagnosis,IV,5714.2,5277.3,6151.2
+Head and neck,1-2 years after diagnosis,Missing/Unknown,4063.2,3501.1,4625.2
+Liver,1-2 years after diagnosis,I,6741.9,5925,7558.9
+Liver,1-2 years after diagnosis,II,7920.5,6516.2,9324.9
+Liver,1-2 years after diagnosis,III,9476.6,7832.8,11120.4
+Liver,1-2 years after diagnosis,IV,9524.1,8079.5,10968.7
+Liver,1-2 years after diagnosis,Missing/Unknown,8674.1,7427.9,9920.3
+Lung,1-2 years after diagnosis,I,4234.6,4067.8,4401.4
+Lung,1-2 years after diagnosis,II,5921.9,5560.6,6283.2
+Lung,1-2 years after diagnosis,III,8745.1,8432.6,9057.6
+Lung,1-2 years after diagnosis,IV,12402,12084.3,12719.7
+Lung,1-2 years after diagnosis,Missing/Unknown,5604.5,5053.1,6156
+Lymphoma,1-2 years after diagnosis,I,3772,3417.9,4126
+Lymphoma,1-2 years after diagnosis,II,5622.5,4970.3,6274.7
+Lymphoma,1-2 years after diagnosis,III,8227.9,7612.9,8842.9
+Lymphoma,1-2 years after diagnosis,IV,8347,7790.5,8903.5
+Lymphoma,1-2 years after diagnosis,Missing/Unknown,5948.7,5323.2,6574.2
+Oesophageal,1-2 years after diagnosis,I,4784.8,4337.6,5232
+Oesophageal,1-2 years after diagnosis,II,6186.5,5427.7,6945.3
+Oesophageal,1-2 years after diagnosis,III,7413.9,6713.7,8114.1
+Oesophageal,1-2 years after diagnosis,IV,10465.9,9676.7,11255
+Oesophageal,1-2 years after diagnosis,Missing/Unknown,6770.1,5886.9,7653.4
+Ovarian,1-2 years after diagnosis,I,1913.5,1620.2,2206.8
+Ovarian,1-2 years after diagnosis,II,4517.8,3771.6,5264
+Ovarian,1-2 years after diagnosis,III,11163.9,10663.5,11664.3
+Ovarian,1-2 years after diagnosis,IV,13995.7,13405.9,14585.5
+Ovarian,1-2 years after diagnosis,Missing/Unknown,5337.5,4661.6,6013.3
+Pancreatic,1-2 years after diagnosis,I,7470,6535.9,8404.2
+Pancreatic,1-2 years after diagnosis,II,9014.9,7582.9,10446.8
+Pancreatic,1-2 years after diagnosis,III,11839.7,10294.3,13385.2
+Pancreatic,1-2 years after diagnosis,IV,12111.7,10644,13579.5
+Pancreatic,1-2 years after diagnosis,Missing/Unknown,8446.7,6977.2,9916.2
+Colorectal,2-3 years after diagnosis,I,2105.4,1959.5,2251.3
+Colorectal,2-3 years after diagnosis,II,2829.2,2584.9,3073.4
+Colorectal,2-3 years after diagnosis,III,4340.7,4099.8,4581.5
+Colorectal,2-3 years after diagnosis,IV,10874.4,10564.2,11184.7
+Colorectal,2-3 years after diagnosis,Missing/Unknown,3244.7,2893.3,3596.1
+Head and neck,2-3 years after diagnosis,I,2405.8,2172.6,2638.9
+Head and neck,2-3 years after diagnosis,II,2930.1,2478.9,3381.4
+Head and neck,2-3 years after diagnosis,III,3423.6,2967.3,3879.9
+Head and neck,2-3 years after diagnosis,IV,3682.9,3306.2,4059.7
+Head and neck,2-3 years after diagnosis,Missing/Unknown,3007.4,2524.6,3490.2
+Liver,2-3 years after diagnosis,I,4464.5,3701.3,5227.7
+Liver,2-3 years after diagnosis,II,5882,4551.4,7212.6
+Liver,2-3 years after diagnosis,III,5726.2,4043.5,7408.8
+Liver,2-3 years after diagnosis,IV,8120.4,6549.4,9691.4
+Liver,2-3 years after diagnosis,Missing/Unknown,5885.4,4700.3,7070.6
+Lung,2-3 years after diagnosis,I,3299.7,3132.4,3467
+Lung,2-3 years after diagnosis,II,5022.9,4645.3,5400.6
+Lung,2-3 years after diagnosis,III,7445.5,7099.3,7791.8
+Lung,2-3 years after diagnosis,IV,10820.5,10439.7,11201.3
+Lung,2-3 years after diagnosis,Missing/Unknown,4470,3866.9,5073.2
+Lymphoma,2-3 years after diagnosis,I,2512.9,2216.5,2809.4
+Lymphoma,2-3 years after diagnosis,II,3664.8,3117.7,4211.9
+Lymphoma,2-3 years after diagnosis,III,5467.1,4948.5,5985.7
+Lymphoma,2-3 years after diagnosis,IV,5235.4,4767.3,5703.5
+Lymphoma,2-3 years after diagnosis,Missing/Unknown,4611,4084.2,5137.8
+Oesophageal,2-3 years after diagnosis,I,3401.3,2962.8,3839.8
+Oesophageal,2-3 years after diagnosis,II,4245.8,3479,5012.6
+Oesophageal,2-3 years after diagnosis,III,5172.3,4456.4,5888.1
+Oesophageal,2-3 years after diagnosis,IV,8466,7495,9437
+Oesophageal,2-3 years after diagnosis,Missing/Unknown,3683.5,2760.9,4606.1
+Ovarian,2-3 years after diagnosis,I,1449.4,1169,1729.7
+Ovarian,2-3 years after diagnosis,II,4328.1,3599.7,5056.5
+Ovarian,2-3 years after diagnosis,III,9644.5,9147.2,10141.9
+Ovarian,2-3 years after diagnosis,IV,11458.3,10832.9,12083.7
+Ovarian,2-3 years after diagnosis,Missing/Unknown,4202,3526.1,4877.9
+Pancreatic,2-3 years after diagnosis,I,3600.3,2616.5,4584.1
+Pancreatic,2-3 years after diagnosis,II,6216.2,4689,7743.3
+Pancreatic,2-3 years after diagnosis,III,8853,7093.5,10612.5
+Pancreatic,2-3 years after diagnosis,IV,8693.8,7034.8,10352.8
+Pancreatic,2-3 years after diagnosis,Missing/Unknown,5248,3671.1,6824.9
+Colorectal,3-4 years after diagnosis,I,1789.9,1637,1942.7
+Colorectal,3-4 years after diagnosis,II,2285.3,2028.9,2541.7
+Colorectal,3-4 years after diagnosis,III,3379.8,3125,3634.6
+Colorectal,3-4 years after diagnosis,IV,8212,7843.7,8580.3
+Colorectal,3-4 years after diagnosis,Missing/Unknown,2713.8,2340.2,3087.4
+Head and neck,3-4 years after diagnosis,I,2159,1911.1,2406.9
+Head and neck,3-4 years after diagnosis,II,2290.7,1805.4,2775.9
+Head and neck,3-4 years after diagnosis,III,2671,2177.6,3164.3
+Head and neck,3-4 years after diagnosis,IV,2662.8,2257.5,3068
+Head and neck,3-4 years after diagnosis,Missing/Unknown,2663.3,2156.1,3170.5
+Liver,3-4 years after diagnosis,I,3879.6,2963.9,4795.3
+Liver,3-4 years after diagnosis,II,4080.7,2478.7,5682.7
+Liver,3-4 years after diagnosis,III,5220.5,3076.2,7364.9
+Liver,3-4 years after diagnosis,IV,5859.8,3851.9,7867.8
+Liver,3-4 years after diagnosis,Missing/Unknown,4658.1,3239.7,6076.6
+Lung,3-4 years after diagnosis,I,3101,2902.8,3299.2
+Lung,3-4 years after diagnosis,II,4037.3,3585,4489.5
+Lung,3-4 years after diagnosis,III,6004,5569.1,6439
+Lung,3-4 years after diagnosis,IV,8664.2,8152.3,9176
+Lung,3-4 years after diagnosis,Missing/Unknown,4054.5,3345.2,4763.8
+Lymphoma,3-4 years after diagnosis,I,2256.2,1933.8,2578.5
+Lymphoma,3-4 years after diagnosis,II,2374.5,1783.6,2965.4
+Lymphoma,3-4 years after diagnosis,III,4041,3473.6,4608.4
+Lymphoma,3-4 years after diagnosis,IV,3902,3390.8,4413.2
+Lymphoma,3-4 years after diagnosis,Missing/Unknown,3987.3,3419.3,4555.3
+Oesophageal,3-4 years after diagnosis,I,2575.5,2106.6,3044.4
+Oesophageal,3-4 years after diagnosis,II,2927.1,2094.2,3760
+Oesophageal,3-4 years after diagnosis,III,3537.6,2756.9,4318.2
+Oesophageal,3-4 years after diagnosis,IV,5344.5,4113.1,6575.8
+Oesophageal,3-4 years after diagnosis,Missing/Unknown,3357.3,2371.9,4342.8
+Ovarian,3-4 years after diagnosis,I,1405.8,1096,1715.6
+Ovarian,3-4 years after diagnosis,II,4030.2,3212.2,4848.1
+Ovarian,3-4 years after diagnosis,III,8605.6,8030,9181.1
+Ovarian,3-4 years after diagnosis,IV,9879.4,9103.5,10655.4
+Ovarian,3-4 years after diagnosis,Missing/Unknown,3646.6,2879.9,4413.3
+Pancreatic,3-4 years after diagnosis,I,2691.2,1635.2,3747.1
+Pancreatic,3-4 years after diagnosis,II,4403.9,2737.4,6070.4
+Pancreatic,3-4 years after diagnosis,III,5789,3710.1,7867.9
+Pancreatic,3-4 years after diagnosis,IV,6571.8,4706.6,8436.9
+Pancreatic,3-4 years after diagnosis,Missing/Unknown,3910.7,2210.6,5610.8
+Colorectal,4-5 years after diagnosis,I,1625.7,1461.9,1789.4
+Colorectal,4-5 years after diagnosis,II,1850.6,1575.5,2125.6
+Colorectal,4-5 years after diagnosis,III,2503.5,2228.8,2778.3
+Colorectal,4-5 years after diagnosis,IV,5913.3,5478.6,6347.9
+Colorectal,4-5 years after diagnosis,Missing/Unknown,2160,1763.2,2556.9
+Head and neck,4-5 years after diagnosis,I,1883.8,1590.2,2177.4
+Head and neck,4-5 years after diagnosis,II,1997.2,1412.3,2582
+Head and neck,4-5 years after diagnosis,III,2252.2,1662.6,2841.8
+Head and neck,4-5 years after diagnosis,IV,2193.7,1708.7,2678.8
+Head and neck,4-5 years after diagnosis,Missing/Unknown,2468.7,1884,3053.4
+Liver,4-5 years after diagnosis,I,3402.6,2190.8,4614.4
+Liver,4-5 years after diagnosis,II,3471.6,1289.9,5653.2
+Liver,4-5 years after diagnosis,III,3412.2,406.1,6418.2
+Liver,4-5 years after diagnosis,IV,3019.2,87.3,5951.1
+Liver,4-5 years after diagnosis,Missing/Unknown,4299.6,2415.7,6183.4
+Lung,4-5 years after diagnosis,I,2960.2,2704,3216.3
+Lung,4-5 years after diagnosis,II,3454.4,2864.9,4044
+Lung,4-5 years after diagnosis,III,4628.7,4042.4,5215
+Lung,4-5 years after diagnosis,IV,7076.8,6341.3,7812.3
+Lung,4-5 years after diagnosis,Missing/Unknown,3881.4,3004.6,4758.3
+Lymphoma,4-5 years after diagnosis,I,2148.5,1751.2,2545.8
+Lymphoma,4-5 years after diagnosis,II,2703.5,1969.1,3437.9
+Lymphoma,4-5 years after diagnosis,III,3346.9,2638.2,4055.5
+Lymphoma,4-5 years after diagnosis,IV,3481.5,2847,4116
+Lymphoma,4-5 years after diagnosis,Missing/Unknown,3461.5,2765.9,4157.2
+Oesophageal,4-5 years after diagnosis,I,1992.4,1435.8,2549
+Oesophageal,4-5 years after diagnosis,II,2741.5,1743.2,3739.7
+Oesophageal,4-5 years after diagnosis,III,2771,1826.7,3715.2
+Oesophageal,4-5 years after diagnosis,IV,2742.1,1128.5,4355.6
+Oesophageal,4-5 years after diagnosis,Missing/Unknown,2799.4,1609.3,3989.5
+Ovarian,4-5 years after diagnosis,I,1360,1003.5,1716.6
+Ovarian,4-5 years after diagnosis,II,3390.5,2406.3,4374.6
+Ovarian,4-5 years after diagnosis,III,7276.8,6575.2,7978.3
+Ovarian,4-5 years after diagnosis,IV,7679,6685.6,8672.3
+Ovarian,4-5 years after diagnosis,Missing/Unknown,3408,2513.5,4302.5
+Pancreatic,4-5 years after diagnosis,I,2455.8,1222.4,3689.2
+Pancreatic,4-5 years after diagnosis,II,3843.2,1847.4,5838.9
+Pancreatic,4-5 years after diagnosis,III,2933,224,5642.1
+Pancreatic,4-5 years after diagnosis,IV,6207.7,3937.7,8477.7
+Pancreatic,4-5 years after diagnosis,Missing/Unknown,2647.4,666.8,4628
+Colorectal,5-6 years after diagnosis,I,-406.6,-451.7,-361.5
+Colorectal,5-6 years after diagnosis,II,-468.6,-544.4,-392.8
+Colorectal,5-6 years after diagnosis,III,-372.5,-448.7,-296.4
+Colorectal,5-6 years after diagnosis,IV,-164.9,-291.7,-38.2
+Colorectal,5-6 years after diagnosis,Missing/Unknown,-497.2,-598.7,-395.6
+Head and neck,5-6 years after diagnosis,I,-535.9,-617.8,-454
+Head and neck,5-6 years after diagnosis,II,-538.6,-702.8,-374.3
+Head and neck,5-6 years after diagnosis,III,-536.2,-704.2,-368.1
+Head and neck,5-6 years after diagnosis,IV,-495.9,-632.5,-359.3
+Head and neck,5-6 years after diagnosis,Missing/Unknown,-527.1,-682.1,-372.1
+Liver,5-6 years after diagnosis,I,-846.1,-1370,-322.3
+Liver,5-6 years after diagnosis,II,-753.7,-1703.7,196.3
+Liver,5-6 years after diagnosis,III,-35.1,-1358.9,1288.7
+Liver,5-6 years after diagnosis,IV,-710.3,-2027.7,607.1
+Liver,5-6 years after diagnosis,Missing/Unknown,-863.9,-1661.9,-66
+Lung,5-6 years after diagnosis,I,427.5,276.8,578.3
+Lung,5-6 years after diagnosis,II,600.9,247.8,954
+Lung,5-6 years after diagnosis,III,949.3,592.9,1305.7
+Lung,5-6 years after diagnosis,IV,1767.4,1329.8,2205
+Lung,5-6 years after diagnosis,Missing/Unknown,349.6,-141.4,840.6
+Lymphoma,5-6 years after diagnosis,I,-530.5,-628.2,-432.7
+Lymphoma,5-6 years after diagnosis,II,-530.7,-711.8,-349.6
+Lymphoma,5-6 years after diagnosis,III,-339.1,-514.8,-163.4
+Lymphoma,5-6 years after diagnosis,IV,-329.5,-486.6,-172.5
+Lymphoma,5-6 years after diagnosis,Missing/Unknown,-435.2,-602.4,-267.9
+Oesophageal,5-6 years after diagnosis,I,-570,-692,-447.9
+Oesophageal,5-6 years after diagnosis,II,-365.1,-584.1,-146.1
+Oesophageal,5-6 years after diagnosis,III,-572.6,-781.4,-363.8
+Oesophageal,5-6 years after diagnosis,IV,-551,-920.2,-181.8
+Oesophageal,5-6 years after diagnosis,Missing/Unknown,-649.8,-912.7,-387
+Ovarian,5-6 years after diagnosis,I,-301.3,-445.2,-157.4
+Ovarian,5-6 years after diagnosis,II,165.9,-242,573.9
+Ovarian,5-6 years after diagnosis,III,803.5,499.5,1107.5
+Ovarian,5-6 years after diagnosis,IV,433.7,-3.7,871
+Ovarian,5-6 years after diagnosis,Missing/Unknown,-128.1,-470.1,214
+Pancreatic,5-6 years after diagnosis,I,-362.5,-836.5,111.4
+Pancreatic,5-6 years after diagnosis,II,-197.5,-985.6,590.6
+Pancreatic,5-6 years after diagnosis,III,-709.5,-1725.9,306.9
+Pancreatic,5-6 years after diagnosis,IV,243.2,-664.6,1150.9
+Pancreatic,5-6 years after diagnosis,Missing/Unknown,-514.1,-1283.4,255.2
+Colorectal,Continuing phase (1-2 years),I,2590.6,2452.3,2728.9
+Colorectal,Continuing phase (1-2 years),II,3315.5,3084,3547
+Colorectal,Continuing phase (1-2 years),III,4914.6,4686.3,5142.9
+Colorectal,Continuing phase (1-2 years),IV,12798,12503.8,13092.1
+Colorectal,Continuing phase (1-2 years),Missing/Unknown,3313.6,2980.4,3646.7
+Head and neck,Continuing phase (1-2 years),I,2530.5,2314.8,2746.3
+Head and neck,Continuing phase (1-2 years),II,3405.7,2988.1,3823.3
+Head and neck,Continuing phase (1-2 years),III,3481.8,3059.5,3904.1
+Head and neck,Continuing phase (1-2 years),IV,3492.1,3143.5,3840.8
+Head and neck,Continuing phase (1-2 years),Missing/Unknown,2832.2,2385.4,3279
+Liver,Continuing phase (1-2 years),I,4696.2,3943.4,5449
+Liver,Continuing phase (1-2 years),II,5713.8,4400.9,7026.6
+Liver,Continuing phase (1-2 years),III,5836.5,4174.8,7498.1
+Liver,Continuing phase (1-2 years),IV,5563.6,4012.8,7114.4
+Liver,Continuing phase (1-2 years),Missing/Unknown,5521.6,4352.4,6690.8
+Lung,Continuing phase (1-2 years),I,2629,2470.3,2787.7
+Lung,Continuing phase (1-2 years),II,3635.9,3277.6,3994.1
+Lung,Continuing phase (1-2 years),III,5994.9,5666.3,6323.5
+Lung,Continuing phase (1-2 years),IV,11786.8,11425.3,12148.3
+Lung,Continuing phase (1-2 years),Missing/Unknown,3482.4,2910.1,4054.7
+Lymphoma,Continuing phase (1-2 years),I,2836,2536.2,3135.8
+Lymphoma,Continuing phase (1-2 years),II,4502.6,3949.3,5056
+Lymphoma,Continuing phase (1-2 years),III,6386.9,5862.4,6911.5
+Lymphoma,Continuing phase (1-2 years),IV,6476.1,6002.7,6949.6
+Lymphoma,Continuing phase (1-2 years),Missing/Unknown,4535.7,4002.9,5068.4
+Oesophageal,Continuing phase (1-2 years),I,3164.1,2810.3,3517.8
+Oesophageal,Continuing phase (1-2 years),II,2935.3,2316.8,3553.8
+Oesophageal,Continuing phase (1-2 years),III,3465.7,2888.3,4043.2
+Oesophageal,Continuing phase (1-2 years),IV,6487.4,5702.9,7271.9
+Oesophageal,Continuing phase (1-2 years),Missing/Unknown,3744.4,3000.3,4488.5
+Ovarian,Continuing phase (1-2 years),I,1440.2,1222.7,1657.8
+Ovarian,Continuing phase (1-2 years),II,2945.6,2380.3,3510.8
+Ovarian,Continuing phase (1-2 years),III,7146.2,6760.2,7532.1
+Ovarian,Continuing phase (1-2 years),IV,9629.8,9144.2,10115.3
+Ovarian,Continuing phase (1-2 years),Missing/Unknown,3177.7,2653.1,3702.2
+Pancreatic,Continuing phase (1-2 years),I,4237.9,3364.2,5111.5
+Pancreatic,Continuing phase (1-2 years),II,4708.4,3352.1,6064.8
+Pancreatic,Continuing phase (1-2 years),III,6421.1,4858.5,7983.6
+Pancreatic,Continuing phase (1-2 years),IV,8318.5,6845,9792.1
+Pancreatic,Continuing phase (1-2 years),Missing/Unknown,4559,3158.6,5959.4
+Colorectal,Continuing phase (2-3 years),I,1664,1542.8,1785.2
+Colorectal,Continuing phase (2-3 years),II,2110.6,1907.1,2314
+Colorectal,Continuing phase (2-3 years),III,3063.5,2861.6,3265.4
+Colorectal,Continuing phase (2-3 years),IV,8116.8,7825.9,8407.7
+Colorectal,Continuing phase (2-3 years),Missing/Unknown,2198.3,1899.7,2496.8
+Head and neck,Continuing phase (2-3 years),I,1735.1,1549.2,1921.1
+Head and neck,Continuing phase (2-3 years),II,1955.1,1592.6,2317.6
+Head and neck,Continuing phase (2-3 years),III,2261.8,1894.6,2629
+Head and neck,Continuing phase (2-3 years),IV,2257.5,1954.7,2560.4
+Head and neck,Continuing phase (2-3 years),Missing/Unknown,1984.4,1595.9,2372.8
+Liver,Continuing phase (2-3 years),I,2654.6,1981.4,3327.7
+Liver,Continuing phase (2-3 years),II,3534.8,2350.3,4719.3
+Liver,Continuing phase (2-3 years),III,4350.7,2727.4,5974
+Liver,Continuing phase (2-3 years),IV,4063.8,2506.7,5620.8
+Liver,Continuing phase (2-3 years),Missing/Unknown,3480.8,2419.8,4541.8
+Lung,Continuing phase (2-3 years),I,2080.7,1929.8,2231.5
+Lung,Continuing phase (2-3 years),II,3259.5,2911.9,3607
+Lung,Continuing phase (2-3 years),III,5131.4,4799.5,5463.3
+Lung,Continuing phase (2-3 years),IV,8866.2,8482.1,9250.3
+Lung,Continuing phase (2-3 years),Missing/Unknown,3173.1,2612.2,3733.9
+Lymphoma,Continuing phase (2-3 years),I,1867.6,1622.4,2112.8
+Lymphoma,Continuing phase (2-3 years),II,2949.7,2496.9,3402.5
+Lymphoma,Continuing phase (2-3 years),III,4399.7,3968.6,4830.8
+Lymphoma,Continuing phase (2-3 years),IV,4023.8,3635.3,4412.2
+Lymphoma,Continuing phase (2-3 years),Missing/Unknown,3478,3040.6,3915.4
+Oesophageal,Continuing phase (2-3 years),I,2106.4,1773.7,2439.2
+Oesophageal,Continuing phase (2-3 years),II,1986.6,1392.8,2580.4
+Oesophageal,Continuing phase (2-3 years),III,2386.1,1829.3,2942.9
+Oesophageal,Continuing phase (2-3 years),IV,4666.1,3777.6,5554.5
+Oesophageal,Continuing phase (2-3 years),Missing/Unknown,1982.8,1266.8,2698.7
+Ovarian,Continuing phase (2-3 years),I,1026.2,815,1237.4
+Ovarian,Continuing phase (2-3 years),II,3254.4,2696.5,3812.3
+Ovarian,Continuing phase (2-3 years),III,6308.5,5915.8,6701.1
+Ovarian,Continuing phase (2-3 years),IV,7116.8,6591.8,7641.7
+Ovarian,Continuing phase (2-3 years),Missing/Unknown,2384.8,1860.2,2909.3
+Pancreatic,Continuing phase (2-3 years),I,2038.4,1280.7,2796.2
+Pancreatic,Continuing phase (2-3 years),II,3340.6,2140,4541.2
+Pancreatic,Continuing phase (2-3 years),III,4784.8,3295.9,6273.8
+Pancreatic,Continuing phase (2-3 years),IV,4843.6,3485.6,6201.7
+Pancreatic,Continuing phase (2-3 years),Missing/Unknown,2645.2,1408.4,3882.1
+Colorectal,Continuing phase (3-4 years),I,1409.6,1283.9,1535.3
+Colorectal,Continuing phase (3-4 years),II,1628.6,1417.3,1840
+Colorectal,Continuing phase (3-4 years),III,2338.8,2127.8,2549.8
+Colorectal,Continuing phase (3-4 years),IV,5754.6,5422.1,6087.2
+Colorectal,Continuing phase (3-4 years),Missing/Unknown,1803.6,1492.5,2114.7
+Head and neck,Continuing phase (3-4 years),I,1463.3,1264,1662.7
+Head and neck,Continuing phase (3-4 years),II,1631.4,1238.8,2024
+Head and neck,Continuing phase (3-4 years),III,1758,1358.6,2157.4
+Head and neck,Continuing phase (3-4 years),IV,1765,1437.7,2092.3
+Head and neck,Continuing phase (3-4 years),Missing/Unknown,1806.6,1397.4,2215.7
+Liver,Continuing phase (3-4 years),I,2479.4,1697.1,3261.8
+Liver,Continuing phase (3-4 years),II,2445.9,1055.5,3836.4
+Liver,Continuing phase (3-4 years),III,3283.2,1380.7,5185.7
+Liver,Continuing phase (3-4 years),IV,2479.1,623.4,4334.9
+Liver,Continuing phase (3-4 years),Missing/Unknown,2963,1735.3,4190.8
+Lung,Continuing phase (3-4 years),I,2056.4,1880.3,2232.6
+Lung,Continuing phase (3-4 years),II,2494.9,2085.1,2904.8
+Lung,Continuing phase (3-4 years),III,3905.4,3502.1,4308.7
+Lung,Continuing phase (3-4 years),IV,6742.5,6246.2,7238.9
+Lung,Continuing phase (3-4 years),Missing/Unknown,2632,1991.8,3272.3
+Lymphoma,Continuing phase (3-4 years),I,1611.2,1338.1,1884.4
+Lymphoma,Continuing phase (3-4 years),II,1607.3,1105.9,2108.7
+Lymphoma,Continuing phase (3-4 years),III,3010.8,2528.7,3493
+Lymphoma,Continuing phase (3-4 years),IV,2954.1,2520,3388.2
+Lymphoma,Continuing phase (3-4 years),Missing/Unknown,3024.2,2541.3,3507
+Oesophageal,Continuing phase (3-4 years),I,1548.4,1184.5,1912.4
+Oesophageal,Continuing phase (3-4 years),II,1665.2,1011,2319.4
+Oesophageal,Continuing phase (3-4 years),III,1866.5,1250.7,2482.4
+Oesophageal,Continuing phase (3-4 years),IV,3124.3,2081.5,4167.2
+Oesophageal,Continuing phase (3-4 years),Missing/Unknown,1879.9,1105,2654.7
+Ovarian,Continuing phase (3-4 years),I,984.3,745.1,1223.5
+Ovarian,Continuing phase (3-4 years),II,2908,2262,3553.9
+Ovarian,Continuing phase (3-4 years),III,5844.4,5378.1,6310.8
+Ovarian,Continuing phase (3-4 years),IV,6229.7,5571.4,6888
+Ovarian,Continuing phase (3-4 years),Missing/Unknown,2326.1,1714.6,2937.5
+Pancreatic,Continuing phase (3-4 years),I,1881.6,1013.9,2749.4
+Pancreatic,Continuing phase (3-4 years),II,2742.7,1339.7,4145.7
+Pancreatic,Continuing phase (3-4 years),III,2874.4,1053.5,4695.4
+Pancreatic,Continuing phase (3-4 years),IV,4755.2,3146.3,6364.1
+Pancreatic,Continuing phase (3-4 years),Missing/Unknown,2231.5,817.1,3645.8
+Colorectal,Continuing phase (4-5 years),I,1218.5,1083.4,1353.5
+Colorectal,Continuing phase (4-5 years),II,1357.2,1129.9,1584.4
+Colorectal,Continuing phase (4-5 years),III,1680.2,1452.6,1907.7
+Colorectal,Continuing phase (4-5 years),IV,3856.6,3473.2,4240
+Colorectal,Continuing phase (4-5 years),Missing/Unknown,1423.9,1095.3,1752.5
+Head and neck,Continuing phase (4-5 years),I,1465.2,1217.6,1712.7
+Head and neck,Continuing phase (4-5 years),II,1522,1030,2013.9
+Head and neck,Continuing phase (4-5 years),III,1529.1,1028.5,2029.7
+Head and neck,Continuing phase (4-5 years),IV,1479,1068.5,1889.6
+Head and neck,Continuing phase (4-5 years),Missing/Unknown,1878.3,1385.8,2370.7
+Liver,Continuing phase (4-5 years),I,2271.3,1133.2,3409.4
+Liver,Continuing phase (4-5 years),II,1676.1,-357.3,3709.5
+Liver,Continuing phase (4-5 years),III,2769.7,-141.9,5681.3
+Liver,Continuing phase (4-5 years),IV,1361.4,-1492.9,4215.7
+Liver,Continuing phase (4-5 years),Missing/Unknown,3027.3,1256.9,4797.7
+Lung,Continuing phase (4-5 years),I,2060.1,1821.8,2298.3
+Lung,Continuing phase (4-5 years),II,2442.5,1886.1,2998.9
+Lung,Continuing phase (4-5 years),III,3009.6,2448.6,3570.5
+Lung,Continuing phase (4-5 years),IV,5673.2,4960.4,6385.9
+Lung,Continuing phase (4-5 years),Missing/Unknown,2531.2,1700.5,3361.8
+Lymphoma,Continuing phase (4-5 years),I,1598,1253.8,1942.3
+Lymphoma,Continuing phase (4-5 years),II,2070.1,1434.5,2705.7
+Lymphoma,Continuing phase (4-5 years),III,2259.1,1643.7,2874.4
+Lymphoma,Continuing phase (4-5 years),IV,2730,2179.9,3280.1
+Lymphoma,Continuing phase (4-5 years),Missing/Unknown,2572.3,1969,3175.5
+Oesophageal,Continuing phase (4-5 years),I,1329.7,855.8,1803.5
+Oesophageal,Continuing phase (4-5 years),II,1730.1,877.8,2582.5
+Oesophageal,Continuing phase (4-5 years),III,1827.8,1018.4,2637.2
+Oesophageal,Continuing phase (4-5 years),IV,1331.4,-55.7,2718.6
+Oesophageal,Continuing phase (4-5 years),Missing/Unknown,1537.3,515.2,2559.5
+Ovarian,Continuing phase (4-5 years),I,907.9,629.2,1186.5
+Ovarian,Continuing phase (4-5 years),II,2247.2,1461.5,3032.9
+Ovarian,Continuing phase (4-5 years),III,5058,4482.1,5633.8
+Ovarian,Continuing phase (4-5 years),IV,5196.8,4340.6,6052.9
+Ovarian,Continuing phase (4-5 years),Missing/Unknown,2332.9,1625.4,3040.3
+Pancreatic,Continuing phase (4-5 years),I,1483.6,517.5,2449.7
+Pancreatic,Continuing phase (4-5 years),II,2036.7,454.4,3619
+Pancreatic,Continuing phase (4-5 years),III,2666.9,485.7,4848.2
+Pancreatic,Continuing phase (4-5 years),IV,4175.9,2357.8,5993.9
+Pancreatic,Continuing phase (4-5 years),Missing/Unknown,1383.6,-181.6,2948.9
+Colorectal,Continuing phase (5-6 years),I,-431.5,-471.1,-391.9
+Colorectal,Continuing phase (5-6 years),II,-471.4,-538,-404.7
+Colorectal,Continuing phase (5-6 years),III,-397.1,-464.3,-330
+Colorectal,Continuing phase (5-6 years),IV,-253.8,-370.1,-137.4
+Colorectal,Continuing phase (5-6 years),Missing/Unknown,-488,-577.4,-398.5
+Head and neck,Continuing phase (5-6 years),I,-535.8,-614.4,-457.1
+Head and neck,Continuing phase (5-6 years),II,-552.9,-710.7,-395.2
+Head and neck,Continuing phase (5-6 years),III,-520.4,-682.5,-358.3
+Head and neck,Continuing phase (5-6 years),IV,-526.5,-658,-395
+Head and neck,Continuing phase (5-6 years),Missing/Unknown,-531.2,-680.4,-382
+Liver,Continuing phase (5-6 years),I,-1018.1,-1527.3,-508.9
+Liver,Continuing phase (5-6 years),II,-766.8,-1706.4,172.9
+Liver,Continuing phase (5-6 years),III,-4.1,-1276.4,1268.2
+Liver,Continuing phase (5-6 years),IV,-1004.7,-2320.6,311.2
+Liver,Continuing phase (5-6 years),Missing/Unknown,-895.9,-1673,-118.9
+Lung,Continuing phase (5-6 years),I,252.9,118.2,387.7
+Lung,Continuing phase (5-6 years),II,452.9,135.8,770
+Lung,Continuing phase (5-6 years),III,694,372.4,1015.6
+Lung,Continuing phase (5-6 years),IV,1617.3,1220.2,2014.4
+Lung,Continuing phase (5-6 years),Missing/Unknown,299,-137.6,735.6
+Lymphoma,Continuing phase (5-6 years),I,-513.6,-610.5,-416.8
+Lymphoma,Continuing phase (5-6 years),II,-514.9,-694,-335.7
+Lymphoma,Continuing phase (5-6 years),III,-368.1,-542.5,-193.6
+Lymphoma,Continuing phase (5-6 years),IV,-344.7,-500.3,-189
+Lymphoma,Continuing phase (5-6 years),Missing/Unknown,-426.7,-592.7,-260.8
+Oesophageal,Continuing phase (5-6 years),I,-552,-679.7,-424.4
+Oesophageal,Continuing phase (5-6 years),II,-353.9,-583.9,-123.9
+Oesophageal,Continuing phase (5-6 years),III,-553.4,-771.2,-335.7
+Oesophageal,Continuing phase (5-6 years),IV,-548.5,-953.5,-143.6
+Oesophageal,Continuing phase (5-6 years),Missing/Unknown,-635.8,-910,-361.6
+Ovarian,Continuing phase (5-6 years),I,-332.4,-468.6,-196.2
+Ovarian,Continuing phase (5-6 years),II,35.5,-363,434
+Ovarian,Continuing phase (5-6 years),III,714.9,414.9,1014.9
+Ovarian,Continuing phase (5-6 years),IV,533.7,89.9,977.5
+Ovarian,Continuing phase (5-6 years),Missing/Unknown,-182.2,-511.3,147
+Pancreatic,Continuing phase (5-6 years),I,-511.1,-850.1,-172
+Pancreatic,Continuing phase (5-6 years),II,-486.6,-1054.8,81.6
+Pancreatic,Continuing phase (5-6 years),III,-636.8,-1369.4,95.8
+Pancreatic,Continuing phase (5-6 years),IV,-170.8,-828.3,486.7
+Pancreatic,Continuing phase (5-6 years),Missing/Unknown,-567,-1116,-18.1
+Colorectal,Diagnosis phase,I,657.6,609.4,705.8
+Colorectal,Diagnosis phase,II,968.5,888.4,1048.6
+Colorectal,Diagnosis phase,III,863.2,785.1,941.2
+Colorectal,Diagnosis phase,IV,1222.2,1142.1,1302.4
+Colorectal,Diagnosis phase,Missing/Unknown,1884.2,1783.4,1984.9
+Head and neck,Diagnosis phase,I,474.1,394.1,554.2
+Head and neck,Diagnosis phase,II,738.5,586.7,890.2
+Head and neck,Diagnosis phase,III,834.9,684.7,985.1
+Head and neck,Diagnosis phase,IV,865.4,741.9,988.9
+Head and neck,Diagnosis phase,Missing/Unknown,1187.9,1034.8,1340.9
+Liver,Diagnosis phase,I,1956.5,1660.9,2252
+Liver,Diagnosis phase,II,1812,1314,2310
+Liver,Diagnosis phase,III,1956.7,1441.3,2472.2
+Liver,Diagnosis phase,IV,2106.1,1657.6,2554.7
+Liver,Diagnosis phase,Missing/Unknown,2239.4,1804.4,2674.4
+Lung,Diagnosis phase,I,2646.2,2589.6,2702.7
+Lung,Diagnosis phase,II,2210.8,2094.1,2327.5
+Lung,Diagnosis phase,III,1921.7,1826.1,2017.3
+Lung,Diagnosis phase,IV,1922.7,1835.7,2009.7
+Lung,Diagnosis phase,Missing/Unknown,2579.5,2449.4,2709.5
+Lymphoma,Diagnosis phase,I,1626.1,1506.7,1745.5
+Lymphoma,Diagnosis phase,II,1711.4,1493,1929.8
+Lymphoma,Diagnosis phase,III,1770.2,1565.7,1974.7
+Lymphoma,Diagnosis phase,IV,2194.5,2009.6,2379.3
+Lymphoma,Diagnosis phase,Missing/Unknown,2372.9,2167.9,2578
+Oesophageal,Diagnosis phase,I,1184.4,1045.7,1323
+Oesophageal,Diagnosis phase,II,671.4,441.2,901.7
+Oesophageal,Diagnosis phase,III,672.8,462.1,883.5
+Oesophageal,Diagnosis phase,IV,898.3,687.8,1108.8
+Oesophageal,Diagnosis phase,Missing/Unknown,1856.6,1617.3,2095.9
+Ovarian,Diagnosis phase,I,1317,1234.8,1399.3
+Ovarian,Diagnosis phase,II,1305.6,1101.2,1510
+Ovarian,Diagnosis phase,III,1405.2,1269.6,1540.7
+Ovarian,Diagnosis phase,IV,1515.1,1366.4,1663.9
+Ovarian,Diagnosis phase,Missing/Unknown,1715.3,1548.5,1882.1
+Pancreatic,Diagnosis phase,I,2293.6,2052.8,2534.4
+Pancreatic,Diagnosis phase,II,2287.3,1915.8,2658.9
+Pancreatic,Diagnosis phase,III,2055.1,1672.4,2437.9
+Pancreatic,Diagnosis phase,IV,1815.2,1466.5,2163.8
+Pancreatic,Diagnosis phase,Missing/Unknown,2679,2315.7,3042.3
+Colorectal,End of life phase,I,16508.1,15866.2,17150
+Colorectal,End of life phase,II,18420.6,17409.3,19432
+Colorectal,End of life phase,III,20278,19313.2,21242.8
+Colorectal,End of life phase,IV,19760.8,18820,20701.5
+Colorectal,End of life phase,Missing/Unknown,14743.2,13696,15790.4
+Head and neck,End of life phase,I,17591,16511.9,18670.1
+Head and neck,End of life phase,II,20767.6,18882.2,22653
+Head and neck,End of life phase,III,21746,19936.8,23555.2
+Head and neck,End of life phase,IV,22186.8,20604.3,23769.2
+Head and neck,End of life phase,Missing/Unknown,16845.7,15058.2,18633.2
+Liver,End of life phase,I,16634.6,15557.6,17711.5
+Liver,End of life phase,II,15294.4,13531.6,17057.2
+Liver,End of life phase,III,13755.9,12006.4,15505.5
+Liver,End of life phase,IV,14596.7,13008.2,16185.2
+Liver,End of life phase,Missing/Unknown,13422.9,11861.4,14984.4
+Lung,End of life phase,I,14892.2,14637.6,15146.8
+Lung,End of life phase,II,16272.7,15792.9,16752.5
+Lung,End of life phase,III,16063.5,15665,16462.1
+Lung,End of life phase,IV,13885,13508.9,14261.1
+Lung,End of life phase,Missing/Unknown,9452.8,8962.3,9943.3
+Lymphoma,End of life phase,I,24082.5,22751,25414
+Lymphoma,End of life phase,II,26547.1,24176.6,28917.7
+Lymphoma,End of life phase,III,27610.3,25459.1,29761.6
+Lymphoma,End of life phase,IV,29782.8,27797.6,31768.1
+Lymphoma,End of life phase,Missing/Unknown,21163.1,19041.6,23284.6
+Oesophageal,End of life phase,I,18927,18094.4,19759.5
+Oesophageal,End of life phase,II,19986.1,18666.7,21305.5
+Oesophageal,End of life phase,III,21050.9,19822.8,22279
+Oesophageal,End of life phase,IV,16174.1,14953.5,17394.8
+Oesophageal,End of life phase,Missing/Unknown,15225.2,13896.3,16554
+Ovarian,End of life phase,I,17091.2,15826.9,18355.5
+Ovarian,End of life phase,II,19871.9,17461.6,22282.1
+Ovarian,End of life phase,III,23835.1,21991.6,25678.6
+Ovarian,End of life phase,IV,23916.9,22045.7,25788.1
+Ovarian,End of life phase,Missing/Unknown,16873.3,14895.8,18850.7
+Pancreatic,End of life phase,I,20214.5,19299.9,21129.2
+Pancreatic,End of life phase,II,22248.4,20852.8,23644
+Pancreatic,End of life phase,III,20657,19239.5,22074.6
+Pancreatic,End of life phase,IV,13390.3,12074.3,14706.4
+Pancreatic,End of life phase,Missing/Unknown,15544.7,14182.9,16906.6
+Colorectal,Initial phase (0-1 years),I,12734,12548,12920.1
+Colorectal,Initial phase (0-1 years),II,17042.9,16732.3,17353.5
+Colorectal,Initial phase (0-1 years),III,22567.9,22263.9,22871.9
+Colorectal,Initial phase (0-1 years),IV,26510.3,26159.3,26861.3
+Colorectal,Initial phase (0-1 years),Missing/Unknown,12436.7,12004.8,12868.6
+Head and neck,Initial phase (0-1 years),I,11819.4,11472,12166.7
+Head and neck,Initial phase (0-1 years),II,18322,17656.5,18987.5
+Head and neck,Initial phase (0-1 years),III,24696.9,24029.4,25364.3
+Head and neck,Initial phase (0-1 years),IV,27298.2,26746.5,27849.8
+Head and neck,Initial phase (0-1 years),Missing/Unknown,15238.9,14529.4,15948.5
+Liver,Initial phase (0-1 years),I,13901.2,13038.3,14764
+Liver,Initial phase (0-1 years),II,15279.6,13796.3,16762.9
+Liver,Initial phase (0-1 years),III,14505.2,12768.4,16242
+Liver,Initial phase (0-1 years),IV,15867.3,14340.9,17393.7
+Liver,Initial phase (0-1 years),Missing/Unknown,12625.7,11309.5,13941.9
+Lung,Initial phase (0-1 years),I,13019.8,12860.4,13179.2
+Lung,Initial phase (0-1 years),II,16461.9,16116.6,16807.3
+Lung,Initial phase (0-1 years),III,16285.6,15986.9,16584.4
+Lung,Initial phase (0-1 years),IV,15847.3,15543.5,16151.1
+Lung,Initial phase (0-1 years),Missing/Unknown,10168.7,9641.4,10696
+Lymphoma,Initial phase (0-1 years),I,15060.7,14553.2,15568.2
+Lymphoma,Initial phase (0-1 years),II,19886.2,18951.3,20821.2
+Lymphoma,Initial phase (0-1 years),III,19759.7,18878,20641.4
+Lymphoma,Initial phase (0-1 years),IV,24450.6,23652.8,25248.4
+Lymphoma,Initial phase (0-1 years),Missing/Unknown,13533.6,12636.8,14430.4
+Oesophageal,Initial phase (0-1 years),I,17984.1,17403.4,18564.8
+Oesophageal,Initial phase (0-1 years),II,22453.9,21468.4,23439.3
+Oesophageal,Initial phase (0-1 years),III,20702.1,19792.8,21611.3
+Oesophageal,Initial phase (0-1 years),IV,12316.3,11291.2,13341.3
+Oesophageal,Initial phase (0-1 years),Missing/Unknown,13076.6,11929.8,14223.3
+Ovarian,Initial phase (0-1 years),I,12027,11687.5,12366.5
+Ovarian,Initial phase (0-1 years),II,18758.2,17894.4,19621.9
+Ovarian,Initial phase (0-1 years),III,24623.7,24044.3,25203
+Ovarian,Initial phase (0-1 years),IV,27376.4,26693.4,28059.3
+Ovarian,Initial phase (0-1 years),Missing/Unknown,13882.9,13100.2,14665.5
+Pancreatic,Initial phase (0-1 years),I,17381.7,16318.9,18444.6
+Pancreatic,Initial phase (0-1 years),II,25840.4,24211.3,27469.5
+Pancreatic,Initial phase (0-1 years),III,18910.7,17152,20669.3
+Pancreatic,Initial phase (0-1 years),IV,15286.3,13616.3,16956.3
+Pancreatic,Initial phase (0-1 years),Missing/Unknown,15757.5,14085.5,17429.6
+Colorectal,Overall costs,I,20345,19932.1,20757.9
+Colorectal,Overall costs,II,27107.9,26422,27793.8
+Colorectal,Overall costs,III,36224.3,35555.8,36892.9
+Colorectal,Overall costs,IV,37838.4,37151.9,38524.9
+Colorectal,Overall costs,Missing/Unknown,22483.7,21620.5,23346.9
+Head and neck,Overall costs,I,20733.2,20084.3,21382.2
+Head and neck,Overall costs,II,29623.6,28393.3,30854
+Head and neck,Overall costs,III,36134.6,34917,37352.3
+Head and neck,Overall costs,IV,36657,35655.9,37658
+Head and neck,Overall costs,Missing/Unknown,24753,23512.3,25993.6
+Liver,Overall costs,I,27530.3,26228,28832.7
+Liver,Overall costs,II,28355.6,26161.2,30549.9
+Liver,Overall costs,III,22913.9,20642.6,25185.3
+Liver,Overall costs,IV,20482.5,18505.8,22459.1
+Liver,Overall costs,Missing/Unknown,21996,20079.1,23912.9
+Lung,Overall costs,I,25050.5,24745.4,25355.5
+Lung,Overall costs,II,29552.5,28922.7,30182.3
+Lung,Overall costs,III,27483.6,26967.6,27999.5
+Lung,Overall costs,IV,20302.8,19833.1,20772.5
+Lung,Overall costs,Missing/Unknown,16420,15718,17122
+Lymphoma,Overall costs,I,26134.4,25265.1,27003.8
+Lymphoma,Overall costs,II,33784.1,32193.9,35374.4
+Lymphoma,Overall costs,III,38304,36814.6,39793.4
+Lymphoma,Overall costs,IV,42667.2,41321,44013.5
+Lymphoma,Overall costs,Missing/Unknown,29255.7,27762.7,30748.7
+Oesophageal,Overall costs,I,29339.8,28534,30145.6
+Oesophageal,Overall costs,II,33639.8,32301.8,34977.7
+Oesophageal,Overall costs,III,32152.7,30928.4,33377
+Oesophageal,Overall costs,IV,20285.9,19062.7,21509.1
+Oesophageal,Overall costs,Missing/Unknown,22265.5,20874.9,23656
+Ovarian,Overall costs,I,17423.2,16669.7,18176.7
+Ovarian,Overall costs,II,32115.1,30241.7,33988.5
+Ovarian,Overall costs,III,47028.7,45786.5,48270.9
+Ovarian,Overall costs,IV,45871.4,44508.4,47234.4
+Ovarian,Overall costs,Missing/Unknown,25157.6,23629.1,26686.1
+Pancreatic,Overall costs,I,29070,27912.1,30227.9
+Pancreatic,Overall costs,II,39350.9,37564.8,41137.1
+Pancreatic,Overall costs,III,30615.3,28775.1,32455.5
+Pancreatic,Overall costs,IV,17353.6,15677.4,19029.8
+Pancreatic,Overall costs,Missing/Unknown,23378.2,21631.6,25124.9

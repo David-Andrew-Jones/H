@@ -1,0 +1,679 @@
+---
+title: "Cost generalisation"
+format:
+   docx: 
+    output-file: "cost generalisation"
+    output-ext:  "docx"
+editor: visual
+execute:
+  warning: false
+  echo: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(dplyr, quietly = TRUE)
+library(readr, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(tidyr, quietly = TRUE)
+library(stringr, quietly = TRUE)
+library(purrr, quietly = TRUE)
+library(readxl, quietly = TRUE)
+library(gt, quietly = TRUE)
+library(zoo, quietly = TRUE)
+library(meta, quietly = TRUE)
+
+```
+
+```{r, warning=FALSE}
+#' _____ Load in data
+
+df_all_combo_template <- expand.grid(`Cancer type` = c( "Anal", "Bladder", "Breast", "Cervical", "Colorectal",
+                                                        "Head and neck", "Kidney", "Liver", "Lung", "Lymphoma","Oesophageal", "Ovarian",
+                                                        "Pancreatic", "Prostate", "Stomach", "Urothelial Tract", "Uterine", "[OTHER]"),
+                                     Stage = c("I", "II", "III", "IV", "Unknown/missing"))
+
+
+#' Costs
+df_HDI_costs_master <- read_csv(file = "~/Miscellaneous/HDI/Cost generalisation/data/hdi_cost_outcomes.csv")
+#' Treatment proportions
+df_treat_14to19_master <- readxl::read_xlsx("~/Miscellaneous/HDI/Cost generalisation/data/20241205_LibbyEllis_GRAIL_ShiftedTreatmentPathwaysData_ext.xlsx",
+                                            sheet = "Treat Stage X Modality X Intent") 
+#' Net survival
+surv_full = as_tibble(read_excel("~/Miscellaneous/HDI/Cost generalisation/data/grail_survival_formatted.xlsx")) #NCRAS
+
+surv_50to79 <- surv_full %>%
+        rename(Cancer = `Cancer site`, Stage = `Stage at diagnosis`, Age = `Age group`,
+                                  Years = `Years since diagnosis`, n_patients = `Number of patients`,
+                                  CSS =`Net survival (%)`) %>%
+        select(Cancer, Stage, Years, CSS, Age, Sex, Subtype, n_patients) %>% #sex + subtype included to be filtered later
+        mutate(CSS = CSS/100) %>% #changes survival from % to prob as in SEER dataset
+       #mutate(Years = Years*12) %>% #converts to months
+        filter(Stage != "All stages combined") %>% #filter out all stages as not in SEER dataset
+        mutate(Stage = case_when(Stage == 1 ~ "I",
+                                 Stage == 2 ~ "II",
+                                 Stage == 3 ~ "III",
+                                 Stage == 4 ~ "IV",
+                                 Stage == "Unstageable/unknown/missing" ~ "Unknown/missing",
+                                 .default = NA)) %>%
+        mutate(Age = paste0(Age, ' years') ) %>%
+        mutate(NCRAS_Draw=case_when(
+                Cancer %in% c("uterus") ~ "Uterine",
+                Cancer %in% c("ovary") ~ "Ovarian",
+                Cancer %in% c("cervix") ~ "Cervical",
+                Cancer %in% c("prostate") ~ "Prostate",
+                Cancer %in% c("breast") ~ "Breast",
+                Cancer %in% c("thyroid") ~ "Thyroid",
+                Cancer %in% c("stomach") ~ "Stomach",
+                Cancer %in% c("sarcoma") ~ "Sarcoma",
+                Cancer %in% c("pancreas") ~ "Pancreatic",
+                Cancer %in% c("melanoma") ~ "Melanoma",
+                Cancer %in% c("lymphoma") ~ "Lymphoma",
+                Cancer %in% c("lung") ~ "Lung",
+                Cancer %in% c("kidney") ~ "Kidney",
+                Cancer %in% c("gallbladder") ~ "Gallbladder",
+                Cancer %in% c("bladder") ~ "Bladder",
+                Cancer %in% c("anus") ~ "Anal",
+                Cancer %in% c("head_and_neck") ~ 'Head and neck',
+                Cancer %in% c("colon-rectum") ~ "Colorectal",
+                Cancer %in% c("lymphoid leukaemia") ~ "Lymphoid Leukemia",
+                Cancer %in% c("lymphoid_leukaemia") ~ "Lymphoid Leukemia",
+                Cancer %in% c("liver-bile_duct")  ~ "Liver",
+                Cancer %in% c("liver/bile duct")  ~ "Liver",
+                Cancer %in% c("myeloid_neoplasm") ~ "Myeloid Neoplasm",
+                Cancer %in% c("oesophagus") ~ "Oesophageal",
+                Cancer %in% c("plasma_cell_neoplasm") ~ "Plasma Cell Neoplasm",
+                Cancer %in% c("urothelial_tract") ~ "Urothelial Tract",
+                Cancer %in% c("other") ~ "[OTHER]",
+                TRUE~Cancer
+        )) %>%
+        filter(
+                (NCRAS_Draw %in% c("Uterine", "Ovarian", "Cervical") & Sex=="Female") |
+                        (NCRAS_Draw %in% c("Prostate") & Sex=="Male") |
+                        (NCRAS_Draw %in% c( "Anal", "Bladder","Breast", "Colorectal", "Gallbladder",
+                                            "Head and neck", "Kidney", "Liver", "Lung", "Lymphoma", "Melanoma","Oesophageal",
+                                            "Pancreatic", "Stomach", "Thyroid", "Urothelial Tract" , "[OTHER]") & Sex=="Persons")
+        ) %>%
+        mutate(CSS = case_when(CSS>1 ~ 1,
+                               .default = CSS)) %>% #filter out all the different subtypes - use 'all combined' (for cancers with 1+ subtype) OR "N/A"
+        filter(Subtype == "N/A" | Subtype == "All combined" ) %>% #if cancer has sub-types, it will be 'All combined', otherwise N/A
+        select(-Cancer) %>%
+        mutate(`Age group` = gsub('.{6}$','', Age)) %>% #to take off the " years" at the end
+        select(-Age) %>%
+        rename(Age = `Age group`) %>%
+        filter(Age == "50-79") %>%
+        group_by(NCRAS_Draw, Stage, Years) %>% #select stage, cancer, Months, to ensure selecting within a type
+        mutate(CSS_imp = na.locf(CSS, na.rm = FALSE)) %>% #search for the most recent non-NA prior (order means it is getting older values)
+        mutate(CSS = na.locf(CSS_imp, na.rm = FALSE, fromLast = TRUE)) %>% #next observation carried backwards - for when there is no older age group
+        ungroup() %>%
+        select(Age, Sex, NCRAS_Draw, Stage, Years, CSS, n_patients) %>% #select variables to be written out
+        mutate(across(where(is.character), as.factor))
+
+library(purrr)
+fill_in <- function(prev, new) {
+        if_else(prev < new, prev, new)
+}
+
+df_surv_formatted_50to79 <- surv_50to79 %>%
+        mutate(CSS = round(CSS, 3)) %>%
+        group_by(Age, Sex, NCRAS_Draw, Stage) %>%
+        mutate(CSS_adjusted = accumulate(CSS, fill_in)) %>%
+        mutate(start = lag(Years, default = 0)) %>%
+        rename(stop = Years) %>%
+        ungroup() %>%
+        mutate(across(c(Age, NCRAS_Draw), as.character),
+               across(c(Age, NCRAS_Draw), as.factor) ) %>%
+        filter(Age == "50-79")
+
+
+```
+
+```{r}
+#' _____ Filter data and combine
+
+df_HDI_costs <- df_HDI_costs_master %>% 
+  #filter(cost_outcome == "1-2 years after diagnosis") %>%
+                mutate(Stage = case_when(Stage ==  "Missing/Unknown" ~ "Unknown/missing",
+                                                .default = Stage)) %>%
+                 mutate(absolute_SE = (absolute_conf_high - absolute_conf_low) / (2*qnorm(0.975))) %>%
+        select(-absolute_conf_high,-absolute_conf_low)
+
+
+#' Immunotherapy, SACT and other treatment proportions
+df_treat_14to19_master <- df_treat_14to19_master %>%
+        mutate(`Stage at diagnosis` = case_when(`Stage at diagnosis` == 1 ~ "I",
+                                                `Stage at diagnosis` == 2 ~ "II",
+                                                `Stage at diagnosis` == 3 ~ "III",
+                                                `Stage at diagnosis` == 4 ~ "IV",
+                                                `Stage at diagnosis` == "X" ~ "Unknown/missing",
+                                                .default = NA)) %>%
+        mutate(`Cancer type` =case_when(`Cancer type`  %in% c("Uterus") ~ "Uterine",
+                                      `Cancer type`  %in% c("Ovary") ~ "Ovarian",
+                                      `Cancer type`  %in% c("Cervix") ~ "Cervical",
+                                      `Cancer type`  %in% c("Pancreas") ~ "Pancreatic",
+                                      `Cancer type`  %in% c("Anus") ~ "Anal",
+                                      `Cancer type`  %in% c("Colon") ~ "Colorectal", # Note - using Colon for colorectal
+                                      `Cancer type`  %in% c("Headneck") ~ 'Head and neck',
+                                      `Cancer type`  %in% c("Oesophagus") ~ "Oesophageal",
+                                      `Cancer type`  %in% c("Urothelial") ~ "Urothelial Tract",
+                                      .default = `Cancer type`)) 
+
+
+df_treat_14to19_immuno <- df_treat_14to19_master %>%
+  filter(`Treatment modality` == "Chemotherapy (other)") %>% 
+  mutate(Proportion = as.numeric(Proportion)) %>%
+  select(`Cancer type`, `Stage at diagnosis`, Proportion) %>%
+  group_by(`Cancer type`, `Stage at diagnosis`) %>%
+  summarise(`Initial immuno proportion` = sum(Proportion)) 
+         
+df_treat_14to19_SACT <- df_treat_14to19_master %>%
+  filter(`Treatment modality` %in% c("Chemotherapy (other)", "Chemotherapy (cytotoxic)")) %>% 
+  mutate(Proportion = as.numeric(Proportion)) %>%
+  select(`Cancer type`, `Stage at diagnosis`, Proportion) %>%
+  group_by(`Cancer type`, `Stage at diagnosis`) %>%
+  summarise(`Initial SACT proportion` = sum(Proportion))
+
+df_treat_14to19_other <- df_treat_14to19_master %>%
+  filter(`Treatment modality` == "Other care") %>% 
+  mutate(Proportion = as.numeric(Proportion)) %>%
+  select(`Cancer type`, `Stage at diagnosis`, Proportion) %>%
+  group_by(`Cancer type`, `Stage at diagnosis`) %>%
+  summarise(`Initial other proportion` = sum(Proportion)) 
+         
+#' Net survival by year
+df_surv_12345y <- df_surv_formatted_50to79 %>% filter(stop %in% c(1,2,3,4,5)) %>% select(NCRAS_Draw, Stage, stop, CSS_adjusted) %>% mutate(CSS_adjusted = as.numeric(CSS_adjusted))
+
+#' Combine
+df_cost_surv_treat_master <- df_all_combo_template %>%
+        left_join(df_HDI_costs, by = c("Cancer type" = "cancer_type", "Stage")) %>%
+        left_join(df_surv_12345y, by = c("Cancer type" = "NCRAS_Draw", "Stage")) %>%
+        left_join(df_treat_14to19_other, by = c("Cancer type", "Stage" = "Stage at diagnosis")) %>%
+        left_join(df_treat_14to19_SACT, by = c("Cancer type", "Stage" = "Stage at diagnosis")) %>%
+        left_join(df_treat_14to19_immuno, by = c("Cancer type", "Stage" = "Stage at diagnosis"))
+
+#' Dataframe for costed cancers only
+df_cost_surv_treat_costed <- df_cost_surv_treat_master %>% filter(!is.na(absolute_average))
+
+```
+
+```{r}
+#' _____________________________________________________________________________ 
+#' Functions for below
+
+f_plot_absolute_costs <- function(data){
+  
+  data %>%
+  mutate(cost = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average, .default = pred)) %>%
+    mutate(upr = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average + (qnorm(0.975) * absolute_SE), .default = ci.ub)) %>%
+    mutate(lwr = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average - (qnorm(0.975) * absolute_SE), .default = ci.lb)) %>%
+        ggplot() +
+        geom_bar(aes(y = cost, x = Stage, group = Stage, fill = Stage), position= position_dodge(0.5), stat = "identity", width = .5) +
+          geom_errorbar(aes(ymax = upr, ymin = lwr, x = Stage, group = Stage),
+                      position= position_dodge(0.5), width = 0.2, colour = "black",) +
+         facet_wrap(~`Cancer type` ,  ncol= 3) +
+        #facet_grid(cols = vars(cancer_type) , switch = "y", scales = "fixed") +
+        scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592")) +
+        #, guide = guide_legend(reverse = TRUE)) +
+        labs(fill = "", x = "Stage at diagnosis", y = "Actual (eight cancers) and predicted (ten cancers) costs" ,  title = NULL) +
+        theme_bw(base_size = 12) +
+    theme(plot.title = element_text(size=14)) +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.ticks.y=element_blank())
+}
+
+f_plot_metareg <- function(data, fit, title_string){
+
+  temp_ci <- as.data.frame(predict(fit, newmods=cbind(1, seq(0,1,by=0.01)), addx=TRUE))
+
+  
+  data.frame(cancer_type = data$cancer_type,
+                      absolute_average = fit$yi,
+                      CSS_adjusted = fit$X[,2],
+                      weights = 1/sqrt(fit$vi)) %>%
+  ggplot(aes(x = CSS_adjusted)) +
+  geom_point(aes(y = absolute_average, size = weights)) +
+  ggrepel::geom_text_repel(mapping = aes(y = absolute_average, label = cancer_type), segment.linetype = "dotted") +
+  geom_abline(intercept = fit$b[1], slope = fit$b[2]) + # Add regression line
+  scale_x_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+  scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"),
+                     breaks = c(0,10000,20000,30000,40000,50000), limits = c(0,50000)) +
+    geom_ribbon(data = temp_ci, mapping = aes(ymin = ci.lb, ymax = ci.ub, x = X.CSS_adjusted), fill = "darkgrey", alpha = 0.5) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none") +
+  labs( x = "Proportion receiving immunotherapy", y = "Average overall cost", title = title_string) 
+
+}
+
+fun_LOO <- function(data){
+  
+  temp_ls <- vector("list", 8)
+  
+  for(i in 1:8){
+    
+    temp_data <- data %>% filter(row_number() != i)
+    temp_res <- rma(yi = absolute_average, sei = absolute_SE, data = temp_data, mods = ~CSS_adjusted)
+    temp_ls[[i]]  <- as.data.frame(predict(temp_res, newmods = seq(0,1,by=0.01), addx=TRUE))
+    names(temp_ls[[i]])[8] <- "CSS_adjusted"
+    
+  }
+  return(temp_ls)
+}  
+
+fun_LOO_figure <- function(data, list){
+  
+  temp_plot <- ggplot(data, aes(x = CSS_adjusted)) +
+           geom_point(aes(y = absolute_average)) +
+     ggrepel::geom_text_repel(mapping = aes(y = absolute_average, label = cancer_type), segment.linetype = "dotted") +
+     scale_x_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+     scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"),
+                            breaks = c(0,10000,20000,30000,40000,50000), limits = c(0,50000)) +
+    theme_bw(base_size = 14) +
+    theme(legend.position = "none") +
+    labs( x = "1-year net survival", y = "Average overall cost") 
+  
+  for(i in 1:8){
+    
+    temp_plot <- temp_plot +
+      geom_line(data = list[[i]], aes(x = CSS_adjusted, y = pred)) +
+   geom_ribbon(data = list[[i]], aes(ymin = ci.lb, ymax = ci.ub), fill = "darkgrey", alpha = 0.1)
+      
+    
+  }
+  return(temp_plot)
+} 
+
+```
+
+# 1. Meta-regression approach - 0 to 1 year costs
+
+```{r}
+library(metafor)
+
+# By stage analysis dateframes
+v_stage <- c("I", "II", "III", "IV")
+l_bystage_dfs <- map(v_stage, function(x){
+  
+  df_cost_surv_treat_costed %>%
+    filter(Stage == x) %>%
+    filter(cost_outcome == "0-1 years after diagnosis") %>%
+    filter(stop == 1)
+  
+}
+)
+
+# By stage meta regression fits
+# Survival + SACT
+l_fit_metareg_sact <- map(l_bystage_dfs, function(x){
+  
+  rma(yi = absolute_average, sei = absolute_SE, data = x,
+                          mods = ~CSS_adjusted + `Initial SACT proportion` )
+}
+)
+
+# Survival + Immuno
+l_fit_metareg_immuno <- map(l_bystage_dfs, function(x){
+  
+  rma(yi = absolute_average, sei = absolute_SE, data = x,
+                          mods = ~CSS_adjusted  + `Initial immuno proportion` )
+}
+)
+
+# Survival + other proportion + immuno
+l_fit_metareg_other_immuno <- map(l_bystage_dfs, function(x){
+  
+  rma(yi = absolute_average, sei = absolute_SE, data = x,
+                          mods = ~CSS_adjusted + `Initial other proportion` + `Initial immuno proportion` )
+}
+)
+  
+
+  
+  
+  
+  
+  
+  f_plot_metareg(data = l_bystage_dfs[[1]], fit = l_fit_metareg_immuno[[1]], title_string = "Stage I")
+
+
+
+
+temp_ci <- as.data.frame(predict(l_fit_metareg_immuno[[1]],
+                         newmods=cbind(1, seq(0,1,by=0.01)), addx=TRUE))
+
+  
+  data.frame(cancer_type = data$cancer_type,
+                      absolute_average = fit$yi,
+                      CSS_adjusted = fit$X[,2],
+                      weights = 1/sqrt(fit$vi)) %>%
+  ggplot(aes(x = CSS_adjusted)) +
+  geom_point(aes(y = absolute_average, size = weights)) +
+  ggrepel::geom_text_repel(mapping = aes(y = absolute_average, label = cancer_type), segment.linetype = "dotted") +
+  geom_abline(intercept = fit$b[1], slope = fit$b[2]) + # Add regression line
+  scale_x_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+  scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"),
+                     breaks = c(0,10000,20000,30000,40000,50000), limits = c(0,50000)) +
+    geom_ribbon(data = temp_ci, mapping = aes(ymin = ci.lb, ymax = ci.ub, x = X.CSS_adjusted), fill = "darkgrey", alpha = 0.5) +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none") +
+  labs( x = "1-year net survival probability (%)", y = "Average overall cost", title = title_string) 
+
+
+
+
+
+
+fig_metareg_stageI_01y <- f_plot_metareg(data = df_stageI, fit = fit_metareg_stageI, title_string = "Stage I")
+
+pred_metafor_stageI_01y <- df_all_combo_template %>% 
+     left_join(df_HDI_costs, by = c('Cancer type' = "cancer_type", "Stage")) %>%
+     left_join(df_surv_12345y, by = c('Cancer type' = "NCRAS_Draw", "Stage")) %>%
+     filter(stop == 1 & Stage == "I") %>%
+     dplyr:::bind_cols(as.data.frame(metafor::predict.rma(fit_metareg_stageI, newmods = .$CSS_adjusted)))
+
+#' _____________________________________________________________________________ 
+## Meta-regression figure stage II
+df_stageII <- df_HDI_costs %>% filter(Stage == "II") %>% filter(cost_outcome == "0-1 years after diagnosis") %>%
+  left_join(df_surv_12345y, by = c(cancer_type = "NCRAS_Draw", "Stage")) %>%
+  filter(stop == 1)
+
+fit_metareg_stageII <- rma(yi = absolute_average, sei = absolute_SE, data = df_stageII, mods = ~CSS_adjusted)
+fig_metareg_stageII_01y <- f_plot_metareg(data = df_stageII, fit = fit_metareg_stageII, title_string = "Stage II")
+
+pred_metafor_stageII_01y <- df_all_combo_template %>% 
+     left_join(df_HDI_costs, by = c('Cancer type' = "cancer_type", "Stage")) %>%
+     left_join(df_surv_12345y, by = c('Cancer type' = "NCRAS_Draw", "Stage")) %>%
+     filter(stop == 1 & Stage == "II") %>%
+     dplyr:::bind_cols(as.data.frame(metafor::predict.rma(fit_metareg_stageII, newmods = .$CSS_adjusted)))
+
+#' _____________________________________________________________________________ 
+## Meta-regression figure stage III
+df_stageIII <- df_HDI_costs %>% filter(Stage == "III") %>% filter(cost_outcome == "0-1 years after diagnosis") %>%
+  left_join(df_surv_12345y, by = c(cancer_type = "NCRAS_Draw", "Stage")) %>%
+  filter(stop == 1)
+
+fit_metareg_stageIII <- rma(yi = absolute_average, sei = absolute_SE, data = df_stageIII, mods = ~CSS_adjusted)
+fig_metareg_stageIII_01y <- f_plot_metareg(data = df_stageIII, fit = fit_metareg_stageIII, title_string = "Stage III")
+
+pred_metafor_stageIII_01y <- df_all_combo_template %>% 
+     left_join(df_HDI_costs, by = c('Cancer type' = "cancer_type", "Stage")) %>%
+     left_join(df_surv_12345y, by = c('Cancer type' = "NCRAS_Draw", "Stage")) %>%
+     filter(stop == 1 & Stage == "III") %>%
+     dplyr:::bind_cols(as.data.frame(metafor::predict.rma(fit_metareg_stageIII, newmods = .$CSS_adjusted)))
+
+#' _____________________________________________________________________________ 
+## Meta-regression figure stage IV
+df_stageIV <- df_HDI_costs %>% filter(Stage == "IV") %>% filter(cost_outcome == "0-1 years after diagnosis") %>%
+  left_join(df_surv_12345y, by = c(cancer_type = "NCRAS_Draw", "Stage")) %>%
+  filter(stop == 1)
+
+fit_metareg_stageIV <- rma(yi = absolute_average, sei = absolute_SE, data = df_stageIV, mods = ~CSS_adjusted)
+fig_metareg_stageIV_01y <- f_plot_metareg(data = df_stageIV, fit = fit_metareg_stageIV, title_string = "Stage IV")
+
+pred_metafor_stageIV_01y <- df_all_combo_template %>% 
+     left_join(df_HDI_costs, by = c('Cancer type' = "cancer_type", "Stage")) %>%
+     left_join(df_surv_12345y, by = c('Cancer type' = "NCRAS_Draw", "Stage")) %>%
+     filter(stop == 1 & Stage == "IV") %>%
+     dplyr:::bind_cols(as.data.frame(metafor::predict.rma(fit_metareg_stageIV, newmods = .$CSS_adjusted)))
+
+fig_metafor_pred_01y <- f_plot_absolute_costs(data = bind_rows(pred_metafor_stageI, pred_metafor_stageII,
+                                                           pred_metafor_stageIII, pred_metafor_stageIV))
+
+fig_all_metareg_01y <- patchwork::wrap_plots(fig_metareg_stageI_01y + labs(title = "A) Stage I"),
+                      fig_metareg_stageII_01y + labs(title = "B) Stage II", y = ""),
+                      fig_metareg_stageIII_01y + labs(title = "C) Stage III", y = ""),
+                      fig_metareg_stageIV_01y + labs(title = "D) Stage IV", y = ""), ncol =2) 
+
+ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", "metareg_01annual_1ysurv.png"), fig_all_metareg_01y, device = "png",
+       width = 200,
+       height = 120,
+       units = "mm")
+
+#' _____________________________________________________________________________ 
+#' Leave one out variability
+
+res_LOO_stageI <- fun_LOO(df_stageI)
+res_LOO_stageII <- fun_LOO(df_stageII)
+res_LOO_stageIII <- fun_LOO(df_stageIII)
+res_LOO_stageIV <- fun_LOO(df_stageIV)
+
+res_LOO_stageI_fig <- fun_LOO_figure(df_stageI, res_LOO_stageI)
+res_LOO_stageII_fig <- fun_LOO_figure(df_stageII, res_LOO_stageII)
+res_LOO_stageIII_fig <- fun_LOO_figure(df_stageIII, res_LOO_stageIII)
+res_LOO_stageIV_fig <- fun_LOO_figure(df_stageIV, res_LOO_stageIV)
+
+
+fig_all_LOO_overall_01y <- patchwork::wrap_plots(res_LOO_stageI_fig + labs(title = "A) Stage I"),
+                      res_LOO_stageII_fig + labs(title = "B) Stage II", y = ""),
+                      res_LOO_stageIII_fig + labs(title = "C) Stage III", y = ""),
+                      res_LOO_stageIV_fig + labs(title = "D) Stage IV", y = ""), ncol =2)
+
+```
+
+# 3. Will et al comparison
+
+```{r}
+
+df_annual_costs_willscompare <- bind_rows(pred_metafor_stageI_01y, pred_metafor_stageII_01y, 
+                                          pred_metafor_stageIII_01y, pred_metafor_stageIV_01y) %>%
+  select(`Cancer type`, Stage, cost_outcome, absolute_average, absolute_SE, pred, ci.lb, ci.ub) %>%
+   mutate(cost = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average, .default = pred)) %>%
+    mutate(upr = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average + (qnorm(0.975) * absolute_SE), .default = ci.ub)) %>%
+    mutate(lwr = case_when(`Cancer type` %in% c("Colorectal", "Head and neck", "Liver", "Lung",
+                                               "Lymphoma" , "Oesophageal", "Ovarian", "Pancreatic") ~  absolute_average - (qnorm(0.975) * absolute_SE), .default = ci.lb)) %>%
+  filter(cost_outcome == "0-1 years after diagnosis" | is.na(cost_outcome))
+  
+  
+df_wills <- tibble(`Cancer type` = c(rep(c("Breast","Colorectal", "Lung", "Prostate"), 4)),
+                       Stage = c(rep("I", 4), rep("II", 4), rep("III", 4), rep("IV", 4)),
+                       Study = c(rep("Wills et al", 16)),
+                       cost = c(7517, 6604, 5124, 2126,
+                                10478, 8252, 5745, 4335,
+                                13939, 10304, 5195, 5179,
+                                15453, 7970, 3429, 2629))
+
+fig_colo_lung_real_compare <- df_annual_costs_willscompare %>%
+  filter(`Cancer type` %in% c("Breast", "Colorectal", "Lung", "Prostate")) %>%
+  select(`Cancer type` , Stage, cost) %>% 
+  mutate(Study = "GRAIL CbS") %>%
+  bind_rows(df_wills %>% filter(`Cancer type` %in% c("Breast", "Colorectal", "Lung", "Prostate"))) %>%
+  mutate(`Cancer type` = case_when(`Cancer type` == "Breast" ~ "Breast†",
+                                   `Cancer type` == "Prostate" ~ "Prostate†",.default =  `Cancer type`)) %>%
+     ggplot(aes(y = cost, x = Stage, group = Study, color = Study)) +
+        geom_line() +
+          facet_grid(~ `Cancer type`) +
+        theme_bw(base_size = 16) +
+        labs( x = "Stage", y = "0-1 year costs") +
+        scale_color_manual(values = c("#D29A22", "#3B1C52")) +
+        scale_y_continuous(breaks = c(0,10000,20000,30000,40000), limits = c(0,40000), labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K")) + 
+        theme(legend.position = "bottom") +
+  labs(caption = "†For breast and prostate cancer, the GRAIL CbS costs are the predicted costs from\nthe meta-regressions, for colorectal and lung they are the costs estimated in the study") +
+  theme(plot.caption = element_text(hjust = 0))
+
+
+ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", "Willscompare.png"), fig_colo_lung_real_compare, device = "png",
+       width = 200,
+       height = 150,
+       units = "mm")
+
+```
+
+# 4. Meta-regression approach - 1 to 5 year costs
+
+```{r}
+
+v_annual_names <- c("1-2 years after diagnosis","2-3 years after diagnosis","3-4 years after diagnosis","4-5 years after diagnosis")
+
+
+df_costs_surv_diff <- df_surv_12345y %>% 
+  mutate(surv_diff = CSS_adjusted - dplyr::lead(CSS_adjusted)) %>%
+  select(-CSS_adjusted) %>%
+  rename("cancer_type" = "NCRAS_Draw",
+         "CSS_adjusted" = "surv_diff") %>%
+  filter(stop != 5) %>%
+  mutate(cost_outcome = case_when(stop == 1 ~ "1-2 years after diagnosis",
+                                  stop == 2 ~ "2-3 years after diagnosis",
+                                   stop == 3 ~ "3-4 years after diagnosis",
+                                   stop == 4 ~ "4-5 years after diagnosis")) %>% 
+  select( cancer_type, Stage, CSS_adjusted, cost_outcome) %>%
+  inner_join(df_HDI_costs, by = c( "cancer_type", "Stage", "cost_outcome"))
+  
+# Use for pure survival - being lazy and not changing names
+df_costs_surv_diff <- df_surv_12345y %>% 
+  rename("cancer_type" = "NCRAS_Draw") %>%
+  mutate(cost_outcome = case_when(stop == 2 ~ "1-2 years after diagnosis",
+                                  stop == 3 ~ "2-3 years after diagnosis",
+                                   stop == 4 ~ "3-4 years after diagnosis",
+                                   stop == 5 ~ "4-5 years after diagnosis")) %>% 
+  select( cancer_type, Stage, CSS_adjusted, cost_outcome) %>%
+  inner_join(df_HDI_costs, by = c( "cancer_type", "Stage", "cost_outcome"))
+  
+
+f_plot_metareg1_5y <- function(filter){
+  
+  temp_list <- vector("list", length = 4)
+  v_stages <- c("I", "II", "III", "IV")
+  
+  for(i in 1:length(v_stages)){
+
+    temp_df <- df_costs_surv_diff %>% filter(Stage == v_stages[[i]]) %>% filter(cost_outcome == filter)
+    temp_fit <- rma(yi = absolute_average, sei = absolute_SE, data = temp_df, mods = ~CSS_adjusted)
+    temp_fig <- f_plot_metareg(data = temp_df, fit = temp_fit, title_string = paste0("Stage ",  v_stages[[i]]))
+    temp_list[[i]] <- temp_fig +  
+      #labs( x = "Net survival difference", y = "Average overall cost") +
+      # Use when pure surv
+      labs( x = "Net survival", y = "Average overall cost") +
+      scale_x_continuous(breaks = c(0,0.1,0.2,0.3), limits = c(0,0.3)) +
+      # Use when pure surv
+      scale_x_continuous(breaks = c(0,0.2,0.4,0.6,0.8,1), limits = c(0,1)) +
+      scale_y_continuous(labels = scales::label_currency(scale = .001, prefix = "£", suffix = "K"),
+                         breaks = c(0,10000,20000), limits = c(0,20000)) +
+      theme_bw(base_size = 12) +
+      theme(legend.position = "none") 
+    
+
+  }
+  
+  return(patchwork::wrap_plots(temp_list[[1]] + labs(title = "A) Stage I"),
+                      temp_list[[2]] + labs(title = "B) Stage II", y = ""),
+                      temp_list[[3]] + labs(title = "C) Stage III", y = ""),
+                      temp_list[[4]] + labs(title = "D) Stage IV", y = ""), ncol =2))
+
+}
+
+
+l_plots_metareg1_5y <- map(v_annual_names, f_plot_metareg1_5y)
+
+v_paste_names <- c("metareg_12_12ysurvdiff.png", "metareg_23_23ysurvdiff.png", "metareg_34_34ysurvdiff.png", "metareg_45_45ysurvdiff.png")
+v_paste_names <- c("metareg_12_2ysurv.png", "metareg_23_3ysurv.png", "metareg_34_4ysurv.png", "metareg_45_5ysurv.png")
+
+for(i in 1:4){
+  
+  ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", v_paste_names[[i]]), l_plots_metareg1_5y[[i]], device = "png",
+       width = 200,
+       height = 120,
+       units = "mm")
+  
+}
+
+
+
+```
+
+# 2. Most common treatment approach
+
+```{r}
+
+df_most_common_Tx <- df_treat_14to19_master %>%
+  filter( `Stage at diagnosis` != "Unknown/missing") %>%
+  filter(`Cancer type` %in%  c( "Anal", "Bladder", "Breast", "Cervix", "Colorectal",
+                                                        "Head and neck", "Kidney", "Liver", "Lung", "Lymphoma","Oesophageal", "Ovarian",
+                                                        "Pancreatic", "Prostate", "Stomach", "Urothelial Tract", "Uterine", "[OTHER]")) %>%
+  select(-`Number of tumours treated`, -`Number of tumours diagnosed`, -LCI, -UCI) %>%
+  mutate(Proportion = as.numeric(Proportion)) %>%
+  group_by(`Cancer type`, `Stage at diagnosis`) %>%
+  slice_max(Proportion, n = 1) %>%
+  left_join(df_surv_12345y, by = c("Cancer type" = "NCRAS_Draw", "Stage at diagnosis" = "Stage")) %>% 
+  filter(stop == 1) %>%
+  ungroup()
+
+
+
+fig_most_common_txt <- df_most_common_Tx %>%
+    filter(!(`Treatment modality` %in% c("Tumour resection", "Chemotherapy", "Radiotherapy"))) %>%
+  mutate(`Treatment modality` = case_when(grepl(c("Tumour resection"), `Treatment modality`) & grepl(c("therapy"), `Treatment modality`)  ~ "Resection plus (neo)adj", .default = `Treatment modality`)) %>%
+  group_by(`Stage at diagnosis`) %>%
+  arrange(CSS_adjusted, .by_group = TRUE) %>%
+  mutate(Order = row_number()) %>%  
+  ungroup() %>%
+  ggplot() +
+  geom_bar(aes(y = CSS_adjusted, x =  tidytext::reorder_within(`Cancer type`, CSS_adjusted, `Stage at diagnosis`) 
+               , group = `Treatment modality`, fill = `Treatment modality`),
+           position= position_dodge(0.5), stat = "identity", width = .5) +
+    tidytext::scale_x_reordered() +
+           facet_wrap(~`Stage at diagnosis` ,  ncol= 2, scales = "free_y") +
+                  coord_flip() +
+        scale_fill_manual(values = c("#666666", "#3B1C52","#D29A22", "green", "#B73D27", "#E0E0E0")) +
+        labs(fill = "", x = "Cancer type", y = "1-year net survival (%)" ,  title = NULL) +
+        theme_bw(base_size = 16) +
+    theme(plot.title = element_text(size=14)) +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              legend.position = "bottom") 
+
+ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", "Most_common_txt.png"), fig_most_common_txt, device = "png",
+       width = 250,
+       height = 200,
+       units = "mm")
+
+
+fig_sact_use <- df_treat_14to19_master %>%
+  filter(`Treatment modality` %in% c("Chemotherapy")) %>%
+  filter( `Stage at diagnosis` != "Unknown/missing") %>%
+  filter(`Cancer type` %in%  c( "Anal", "Bladder", "Breast", "Cervix", "Colorectal",
+                                                        "Head and neck", "Kidney", "Liver", "Lung", "Lymphoma","Oesophageal", "Ovarian",
+                                                        "Pancreatic", "Prostate", "Stomach", "Urothelial Tract", "Uterine", "[OTHER]")) %>%
+  select(-`Number of tumours treated`, -`Number of tumours diagnosed`, -LCI, -UCI) %>%
+  mutate(Proportion = as.numeric(Proportion)) %>%
+  left_join(df_surv_12345y, by = c("Cancer type" = "NCRAS_Draw", "Stage at diagnosis" = "Stage")) %>% 
+  filter(stop == 1) %>%
+  group_by(`Stage at diagnosis`) %>%
+  arrange(Proportion, .by_group = TRUE) %>%
+  mutate(Order = row_number()) %>%  
+  ungroup() %>%
+  ggplot() +
+  geom_bar(aes(y = Proportion, x =  tidytext::reorder_within(`Cancer type`, Proportion, `Stage at diagnosis`)),
+           position= position_dodge(0.5), stat = "identity", width = .5) +
+    tidytext::scale_x_reordered() +
+           facet_wrap(~`Stage at diagnosis` ,  ncol= 2, scales = "free_y") +
+                  coord_flip() +
+        labs(fill = "", x = "Cancer type", y = "Proportion receiving SACT(%)" ,  title = NULL) +
+        theme_bw(base_size = 16) +
+    theme(plot.title = element_text(size=14)) +
+        theme(axis.title = element_text(face = "bold", size = 17),
+              strip.background = element_rect(fill="white"),
+              strip.text = element_text(face = "bold", size = 13),
+              axis.text.x = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              axis.text.y = element_text(angle = 0, vjust = 0, hjust=0,  size = 13),
+              legend.position = "bottom") 
+
+ggsave(paste0("~/Miscellaneous/HDI/Cost generalisation/", "Most_common_txt.png"), fig_most_common_txt, device = "png",
+       width = 250,
+       height = 200,
+       units = "mm")
+  
+```
