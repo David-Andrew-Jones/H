@@ -1,0 +1,1505 @@
+Cancer	scenario	Stage	dwell
+[OTHER]	old_1	I	10
+[OTHER]	old_1	II	4
+[OTHER]	old_1	III	2
+[OTHER]	old_1	IV	1
+[OTHER]	old_2	I	7
+[OTHER]	old_2	II	3
+[OTHER]	old_2	III	1.5
+[OTHER]	old_2	IV	1
+[OTHER]	old_3	I	4
+[OTHER]	old_3	II	2
+[OTHER]	old_3	III	1
+[OTHER]	old_3	IV	1
+[OTHER]	old_4	I	2
+[OTHER]	old_4	II	1
+[OTHER]	old_4	III	0.5
+[OTHER]	old_4	IV	0.5
+[OTHER]	old_1	NotStaged	6
+[OTHER]	old_2	NotStaged	4
+[OTHER]	old_3	NotStaged	3
+[OTHER]	old_4	NotStaged	2
+Anus	old_1	I	4
+Anus	old_1	II	2
+Anus	old_1	III	1
+Anus	old_1	IV	1
+Anus	old_2	I	3
+Anus	old_2	II	1.5
+Anus	old_2	III	0.75
+Anus	old_2	IV	0.75
+Anus	old_3	I	2
+Anus	old_3	II	1
+Anus	old_3	III	0.5
+Anus	old_3	IV	0.5
+Anus	old_4	I	1.5
+Anus	old_4	II	0.75
+Anus	old_4	III	0.5
+Anus	old_4	IV	0.25
+Bladder	old_1	I	10
+Bladder	old_1	II	4
+Bladder	old_1	III	2
+Bladder	old_1	IV	1
+Bladder	old_2	I	7
+Bladder	old_2	II	3
+Bladder	old_2	III	1.5
+Bladder	old_2	IV	1
+Bladder	old_3	I	4
+Bladder	old_3	II	2
+Bladder	old_3	III	1
+Bladder	old_3	IV	1
+Bladder	old_4	I	2
+Bladder	old_4	II	1
+Bladder	old_4	III	0.5
+Bladder	old_4	IV	0.5
+Brain	old_1	NotStaged	6
+Brain	old_2	NotStaged	4
+Brain	old_3	NotStaged	3
+Brain	old_4	NotStaged	2
+Breast	old_1	I	10
+Breast	old_1	II	4
+Breast	old_1	III	2
+Breast	old_1	IV	1
+Breast	old_2	I	7
+Breast	old_2	II	3
+Breast	old_2	III	1.5
+Breast	old_2	IV	1
+Breast	old_3	I	4
+Breast	old_3	II	2
+Breast	old_3	III	1
+Breast	old_3	IV	1
+Breast	old_4	I	2
+Breast	old_4	II	1
+Breast	old_4	III	0.5
+Breast	old_4	IV	0.5
+Cervix	old_1	I	8
+Cervix	old_1	II	4
+Cervix	old_1	III	2
+Cervix	old_1	IV	1
+Cervix	old_2	I	6
+Cervix	old_2	II	3
+Cervix	old_2	III	1.5
+Cervix	old_2	IV	1
+Cervix	old_3	I	4
+Cervix	old_3	II	2
+Cervix	old_3	III	1
+Cervix	old_3	IV	1
+Cervix	old_4	I	1.5
+Cervix	old_4	II	0.75
+Cervix	old_4	III	0.5
+Cervix	old_4	IV	0.25
+Colon/Rectum	old_1	I	4
+Colon/Rectum	old_1	II	2
+Colon/Rectum	old_1	III	1
+Colon/Rectum	old_1	IV	1
+Colon/Rectum	old_2	I	3
+Colon/Rectum	old_2	II	1.5
+Colon/Rectum	old_2	III	0.75
+Colon/Rectum	old_2	IV	0.75
+Colon/Rectum	old_3	I	2
+Colon/Rectum	old_3	II	1
+Colon/Rectum	old_3	III	0.5
+Colon/Rectum	old_3	IV	0.5
+Colon/Rectum	old_4	I	1.5
+Colon/Rectum	old_4	II	0.75
+Colon/Rectum	old_4	III	0.5
+Colon/Rectum	old_4	IV	0.25
+CUP	old_1	NotStaged	6
+CUP	old_2	NotStaged	4
+CUP	old_3	NotStaged	3
+CUP	old_4	NotStaged	2
+Esophagus	old_1	I	4
+Esophagus	old_1	II	2
+Esophagus	old_1	III	1
+Esophagus	old_1	IV	1
+Esophagus	old_2	I	3
+Esophagus	old_2	II	1.5
+Esophagus	old_2	III	0.75
+Esophagus	old_2	IV	0.75
+Esophagus	old_3	I	2
+Esophagus	old_3	II	1
+Esophagus	old_3	III	0.5
+Esophagus	old_3	IV	0.5
+Esophagus	old_4	I	1.5
+Esophagus	old_4	II	0.75
+Esophagus	old_4	III	0.5
+Esophagus	old_4	IV	0.25
+Gallbladder	old_1	I	8
+Gallbladder	old_1	II	2
+Gallbladder	old_1	III	1
+Gallbladder	old_1	IV	1
+Gallbladder	old_2	I	5
+Gallbladder	old_2	II	1.5
+Gallbladder	old_2	III	1
+Gallbladder	old_2	IV	0.75
+Gallbladder	old_3	I	2
+Gallbladder	old_3	II	1
+Gallbladder	old_3	III	1
+Gallbladder	old_3	IV	0.5
+Gallbladder	old_4	I	1
+Gallbladder	old_4	II	0.5
+Gallbladder	old_4	III	0.25
+Gallbladder	old_4	IV	0.25
+Head and Neck	old_1	I	8
+Head and Neck	old_1	II	4
+Head and Neck	old_1	III	2
+Head and Neck	old_1	IV	1
+Head and Neck	old_2	I	6
+Head and Neck	old_2	II	3
+Head and Neck	old_2	III	1.5
+Head and Neck	old_2	IV	1
+Head and Neck	old_3	I	4
+Head and Neck	old_3	II	2
+Head and Neck	old_3	III	1
+Head and Neck	old_3	IV	1
+Head and Neck	old_4	I	1.5
+Head and Neck	old_4	II	0.75
+Head and Neck	old_4	III	0.5
+Head and Neck	old_4	IV	0.25
+Kidney	old_1	I	8
+Kidney	old_1	II	2
+Kidney	old_1	III	1
+Kidney	old_1	IV	1
+Kidney	old_2	I	5
+Kidney	old_2	II	1.5
+Kidney	old_2	III	1
+Kidney	old_2	IV	0.75
+Kidney	old_3	I	2
+Kidney	old_3	II	1
+Kidney	old_3	III	1
+Kidney	old_3	IV	0.5
+Kidney	old_4	I	1
+Kidney	old_4	II	0.5
+Kidney	old_4	III	0.25
+Kidney	old_4	IV	0.25
+Liver/Bile-duct	old_1	I	8
+Liver/Bile-duct	old_1	II	2
+Liver/Bile-duct	old_1	III	1
+Liver/Bile-duct	old_1	IV	1
+Liver/Bile-duct	old_2	I	5
+Liver/Bile-duct	old_2	II	1.5
+Liver/Bile-duct	old_2	III	1
+Liver/Bile-duct	old_2	IV	0.75
+Liver/Bile-duct	old_3	I	2
+Liver/Bile-duct	old_3	II	1
+Liver/Bile-duct	old_3	III	1
+Liver/Bile-duct	old_3	IV	0.5
+Liver/Bile-duct	old_4	I	1
+Liver/Bile-duct	old_4	II	0.5
+Liver/Bile-duct	old_4	III	0.25
+Liver/Bile-duct	old_4	IV	0.25
+Lung	old_1	I	4
+Lung	old_1	II	2
+Lung	old_1	III	1
+Lung	old_1	IV	1
+Lung	old_2	I	3
+Lung	old_2	II	1.5
+Lung	old_2	III	0.75
+Lung	old_2	IV	0.75
+Lung	old_3	I	2
+Lung	old_3	II	1
+Lung	old_3	III	0.5
+Lung	old_3	IV	0.5
+Lung	old_4	I	1.5
+Lung	old_4	II	0.75
+Lung	old_4	III	0.5
+Lung	old_4	IV	0.25
+Lymphoid Leukemia	old_1	NotStaged	6
+Lymphoid Leukemia	old_2	NotStaged	4
+Lymphoid Leukemia	old_3	NotStaged	3
+Lymphoid Leukemia	old_4	NotStaged	2
+Lymphoma	old_1	I	8
+Lymphoma	old_1	II	4
+Lymphoma	old_1	III	2
+Lymphoma	old_1	IV	1
+Lymphoma	old_2	I	6
+Lymphoma	old_2	II	3
+Lymphoma	old_2	III	1.5
+Lymphoma	old_2	IV	1
+Lymphoma	old_3	I	4
+Lymphoma	old_3	II	2
+Lymphoma	old_3	III	1
+Lymphoma	old_3	IV	1
+Lymphoma	old_4	I	1.5
+Lymphoma	old_4	II	0.75
+Lymphoma	old_4	III	0.5
+Lymphoma	old_4	IV	0.25
+Melanoma	old_1	I	10
+Melanoma	old_1	II	4
+Melanoma	old_1	III	2
+Melanoma	old_1	IV	1
+Melanoma	old_2	I	7
+Melanoma	old_2	II	3
+Melanoma	old_2	III	1.5
+Melanoma	old_2	IV	1
+Melanoma	old_3	I	4
+Melanoma	old_3	II	2
+Melanoma	old_3	III	1
+Melanoma	old_3	IV	1
+Melanoma	old_4	I	2
+Melanoma	old_4	II	1
+Melanoma	old_4	III	0.5
+Melanoma	old_4	IV	0.5
+Myeloid Neoplasm	old_1	NotStaged	6
+Myeloid Neoplasm	old_2	NotStaged	4
+Myeloid Neoplasm	old_3	NotStaged	3
+Myeloid Neoplasm	old_4	NotStaged	2
+Ovary	old_1	I	8
+Ovary	old_1	II	4
+Ovary	old_1	III	2
+Ovary	old_1	IV	1
+Ovary	old_2	I	6
+Ovary	old_2	II	3
+Ovary	old_2	III	1.5
+Ovary	old_2	IV	1
+Ovary	old_3	I	4
+Ovary	old_3	II	2
+Ovary	old_3	III	1
+Ovary	old_3	IV	1
+Ovary	old_4	I	1.5
+Ovary	old_4	II	0.75
+Ovary	old_4	III	0.5
+Ovary	old_4	IV	0.25
+Pancreas	old_1	I	8
+Pancreas	old_1	II	2
+Pancreas	old_1	III	1
+Pancreas	old_1	IV	1
+Pancreas	old_2	I	5
+Pancreas	old_2	II	1.5
+Pancreas	old_2	III	1
+Pancreas	old_2	IV	0.75
+Pancreas	old_3	I	2
+Pancreas	old_3	II	1
+Pancreas	old_3	III	1
+Pancreas	old_3	IV	0.5
+Pancreas	old_4	I	1
+Pancreas	old_4	II	0.5
+Pancreas	old_4	III	0.25
+Pancreas	old_4	IV	0.25
+Plasma Cell Neoplasm	old_1	NotStaged	6
+Plasma Cell Neoplasm	old_2	NotStaged	4
+Plasma Cell Neoplasm	old_3	NotStaged	3
+Plasma Cell Neoplasm	old_4	NotStaged	2
+Prostate	old_1	I	8
+Prostate	old_1	II	2
+Prostate	old_1	III	1
+Prostate	old_1	IV	1
+Prostate	old_2	I	5
+Prostate	old_2	II	1.5
+Prostate	old_2	III	1
+Prostate	old_2	IV	0.75
+Prostate	old_3	I	2
+Prostate	old_3	II	1
+Prostate	old_3	III	1
+Prostate	old_3	IV	0.5
+Prostate	old_4	I	1
+Prostate	old_4	II	0.5
+Prostate	old_4	III	0.25
+Prostate	old_4	IV	0.25
+Sarcoma	old_1	I	8
+Sarcoma	old_1	II	2
+Sarcoma	old_1	III	1
+Sarcoma	old_1	IV	1
+Sarcoma	old_2	I	5
+Sarcoma	old_2	II	1.5
+Sarcoma	old_2	III	1
+Sarcoma	old_2	IV	0.75
+Sarcoma	old_3	I	2
+Sarcoma	old_3	II	1
+Sarcoma	old_3	III	1
+Sarcoma	old_3	IV	0.5
+Sarcoma	old_4	I	1
+Sarcoma	old_4	II	0.5
+Sarcoma	old_4	III	0.25
+Sarcoma	old_4	IV	0.25
+Stomach	old_1	I	8
+Stomach	old_1	II	2
+Stomach	old_1	III	1
+Stomach	old_1	IV	1
+Stomach	old_2	I	5
+Stomach	old_2	II	1.5
+Stomach	old_2	III	1
+Stomach	old_2	IV	0.75
+Stomach	old_3	I	2
+Stomach	old_3	II	1
+Stomach	old_3	III	1
+Stomach	old_3	IV	0.5
+Stomach	old_4	I	1
+Stomach	old_4	II	0.5
+Stomach	old_4	III	0.25
+Stomach	old_4	IV	0.25
+Thyroid	old_1	I	8
+Thyroid	old_1	II	2
+Thyroid	old_1	III	1
+Thyroid	old_1	IV	1
+Thyroid	old_2	I	5
+Thyroid	old_2	II	1.5
+Thyroid	old_2	III	1
+Thyroid	old_2	IV	0.75
+Thyroid	old_3	I	2
+Thyroid	old_3	II	1
+Thyroid	old_3	III	1
+Thyroid	old_3	IV	0.5
+Thyroid	old_4	I	1
+Thyroid	old_4	II	0.5
+Thyroid	old_4	III	0.25
+Thyroid	old_4	IV	0.25
+Urothelial Tract	old_1	I	10
+Urothelial Tract	old_1	II	4
+Urothelial Tract	old_1	III	2
+Urothelial Tract	old_1	IV	1
+Urothelial Tract	old_2	I	7
+Urothelial Tract	old_2	II	3
+Urothelial Tract	old_2	III	1.5
+Urothelial Tract	old_2	IV	1
+Urothelial Tract	old_3	I	4
+Urothelial Tract	old_3	II	2
+Urothelial Tract	old_3	III	1
+Urothelial Tract	old_3	IV	1
+Urothelial Tract	old_4	I	2
+Urothelial Tract	old_4	II	1
+Urothelial Tract	old_4	III	0.5
+Urothelial Tract	old_4	IV	0.5
+Uterus	old_1	I	8
+Uterus	old_1	II	4
+Uterus	old_1	III	2
+Uterus	old_1	IV	1
+Uterus	old_2	I	6
+Uterus	old_2	II	3
+Uterus	old_2	III	1.5
+Uterus	old_2	IV	1
+Uterus	old_3	I	4
+Uterus	old_3	II	2
+Uterus	old_3	III	1
+Uterus	old_3	IV	1
+Uterus	old_4	I	1.5
+Uterus	old_4	II	0.75
+Uterus	old_4	III	0.5
+Uterus	old_4	IV	0.25
+[OTHER]	new_1	I	1.1880000000000002
+[OTHER]	new_1	II	0.5940000000000001
+[OTHER]	new_1	III	0.5940000000000001
+[OTHER]	new_1	IV	0.5940000000000001
+[OTHER]	new_2	I	1.8
+[OTHER]	new_2	II	0.9
+[OTHER]	new_2	III	0.9
+[OTHER]	new_2	IV	0.9
+[OTHER]	new_3	I	2.7
+[OTHER]	new_3	II	1.35
+[OTHER]	new_3	III	1.35
+[OTHER]	new_3	IV	1.35
+[OTHER]	new_4	I	0.7425
+[OTHER]	new_4	II	0.7425
+[OTHER]	new_4	III	0.7425
+[OTHER]	new_4	IV	0.7425
+[OTHER]	new_5	I	1.125
+[OTHER]	new_5	II	1.125
+[OTHER]	new_5	III	1.125
+[OTHER]	new_5	IV	1.125
+[OTHER]	new_6	I	1.6875
+[OTHER]	new_6	II	1.6875
+[OTHER]	new_6	III	1.6875
+[OTHER]	new_6	IV	1.6875
+[OTHER]	new_7	I	1.1880000000000002
+[OTHER]	new_7	II	0.8909999999999999
+[OTHER]	new_7	III	0.5940000000000001
+[OTHER]	new_7	IV	0.29700000000000004
+[OTHER]	new_8	I	1.8
+[OTHER]	new_8	II	1.3499999999999999
+[OTHER]	new_8	III	0.9
+[OTHER]	new_8	IV	0.45
+[OTHER]	new_9	I	2.7
+[OTHER]	new_9	II	2.025
+[OTHER]	new_9	III	1.35
+[OTHER]	new_9	IV	0.675
+[OTHER]	new_10	I	0.29700000000000004
+[OTHER]	new_10	II	0.5940000000000001
+[OTHER]	new_10	III	0.8909999999999999
+[OTHER]	new_10	IV	1.1880000000000002
+[OTHER]	new_11	I	0.45
+[OTHER]	new_11	II	0.9
+[OTHER]	new_11	III	1.3499999999999999
+[OTHER]	new_11	IV	1.8
+[OTHER]	new_12	I	0.675
+[OTHER]	new_12	II	1.35
+[OTHER]	new_12	III	2.025
+[OTHER]	new_12	IV	2.7
+[OTHER]	new_1	NotStaged	6
+[OTHER]	new_2	NotStaged	6
+[OTHER]	new_3	NotStaged	6
+[OTHER]	new_4	NotStaged	6
+[OTHER]	new_5	NotStaged	6
+[OTHER]	new_6	NotStaged	6
+[OTHER]	new_7	NotStaged	6
+[OTHER]	new_8	NotStaged	6
+[OTHER]	new_9	NotStaged	6
+[OTHER]	new_10	NotStaged	6
+[OTHER]	new_11	NotStaged	6
+[OTHER]	new_12	NotStaged	6
+Anus	new_1	I	1.4520000000000002
+Anus	new_1	II	0.7260000000000001
+Anus	new_1	III	0.7260000000000001
+Anus	new_1	IV	0.7260000000000001
+Anus	new_2	I	2.2
+Anus	new_2	II	1.1
+Anus	new_2	III	1.1
+Anus	new_2	IV	1.1
+Anus	new_3	I	3.3000000000000003
+Anus	new_3	II	1.6500000000000001
+Anus	new_3	III	1.6500000000000001
+Anus	new_3	IV	1.6500000000000001
+Anus	new_4	I	0.9075000000000001
+Anus	new_4	II	0.9075000000000001
+Anus	new_4	III	0.9075000000000001
+Anus	new_4	IV	0.9075000000000001
+Anus	new_5	I	1.375
+Anus	new_5	II	1.375
+Anus	new_5	III	1.375
+Anus	new_5	IV	1.375
+Anus	new_6	I	2.0625
+Anus	new_6	II	2.0625
+Anus	new_6	III	2.0625
+Anus	new_6	IV	2.0625
+Anus	new_7	I	1.4520000000000002
+Anus	new_7	II	1.089
+Anus	new_7	III	0.7260000000000001
+Anus	new_7	IV	0.36300000000000004
+Anus	new_8	I	2.2
+Anus	new_8	II	1.65
+Anus	new_8	III	1.1
+Anus	new_8	IV	0.55
+Anus	new_9	I	3.3000000000000003
+Anus	new_9	II	2.4749999999999996
+Anus	new_9	III	1.6500000000000001
+Anus	new_9	IV	0.8250000000000001
+Anus	new_10	I	0.36300000000000004
+Anus	new_10	II	0.7260000000000001
+Anus	new_10	III	1.089
+Anus	new_10	IV	1.4520000000000002
+Anus	new_11	I	0.55
+Anus	new_11	II	1.1
+Anus	new_11	III	1.65
+Anus	new_11	IV	2.2
+Anus	new_12	I	0.8250000000000001
+Anus	new_12	II	1.6500000000000001
+Anus	new_12	III	2.4749999999999996
+Anus	new_12	IV	3.3000000000000003
+Bladder	new_1	I	1.1880000000000002
+Bladder	new_1	II	0.5940000000000001
+Bladder	new_1	III	0.5940000000000001
+Bladder	new_1	IV	0.5940000000000001
+Bladder	new_2	I	1.8
+Bladder	new_2	II	0.9
+Bladder	new_2	III	0.9
+Bladder	new_2	IV	0.9
+Bladder	new_3	I	2.7
+Bladder	new_3	II	1.35
+Bladder	new_3	III	1.35
+Bladder	new_3	IV	1.35
+Bladder	new_4	I	0.7425
+Bladder	new_4	II	0.7425
+Bladder	new_4	III	0.7425
+Bladder	new_4	IV	0.7425
+Bladder	new_5	I	1.125
+Bladder	new_5	II	1.125
+Bladder	new_5	III	1.125
+Bladder	new_5	IV	1.125
+Bladder	new_6	I	1.6875
+Bladder	new_6	II	1.6875
+Bladder	new_6	III	1.6875
+Bladder	new_6	IV	1.6875
+Bladder	new_7	I	1.1880000000000002
+Bladder	new_7	II	0.8909999999999999
+Bladder	new_7	III	0.5940000000000001
+Bladder	new_7	IV	0.29700000000000004
+Bladder	new_8	I	1.8
+Bladder	new_8	II	1.3499999999999999
+Bladder	new_8	III	0.9
+Bladder	new_8	IV	0.45
+Bladder	new_9	I	2.7
+Bladder	new_9	II	2.025
+Bladder	new_9	III	1.35
+Bladder	new_9	IV	0.675
+Bladder	new_10	I	0.29700000000000004
+Bladder	new_10	II	0.5940000000000001
+Bladder	new_10	III	0.8909999999999999
+Bladder	new_10	IV	1.1880000000000002
+Bladder	new_11	I	0.45
+Bladder	new_11	II	0.9
+Bladder	new_11	III	1.3499999999999999
+Bladder	new_11	IV	1.8
+Bladder	new_12	I	0.675
+Bladder	new_12	II	1.35
+Bladder	new_12	III	2.025
+Bladder	new_12	IV	2.7
+Brain	new_1	NotStaged	6
+Brain	new_2	NotStaged	6
+Brain	new_3	NotStaged	6
+Brain	new_4	NotStaged	6
+Brain	new_5	NotStaged	6
+Brain	new_6	NotStaged	6
+Brain	new_7	NotStaged	6
+Brain	new_8	NotStaged	6
+Brain	new_9	NotStaged	6
+Brain	new_10	NotStaged	6
+Brain	new_11	NotStaged	6
+Brain	new_12	NotStaged	6
+Breast	new_1	I	1.4520000000000002
+Breast	new_1	II	0.7260000000000001
+Breast	new_1	III	0.7260000000000001
+Breast	new_1	IV	0.7260000000000001
+Breast	new_2	I	2.2
+Breast	new_2	II	1.1
+Breast	new_2	III	1.1
+Breast	new_2	IV	1.1
+Breast	new_3	I	3.3000000000000003
+Breast	new_3	II	1.6500000000000001
+Breast	new_3	III	1.6500000000000001
+Breast	new_3	IV	1.6500000000000001
+Breast	new_4	I	0.9075000000000001
+Breast	new_4	II	0.9075000000000001
+Breast	new_4	III	0.9075000000000001
+Breast	new_4	IV	0.9075000000000001
+Breast	new_5	I	1.375
+Breast	new_5	II	1.375
+Breast	new_5	III	1.375
+Breast	new_5	IV	1.375
+Breast	new_6	I	2.0625
+Breast	new_6	II	2.0625
+Breast	new_6	III	2.0625
+Breast	new_6	IV	2.0625
+Breast	new_7	I	1.4520000000000002
+Breast	new_7	II	1.089
+Breast	new_7	III	0.7260000000000001
+Breast	new_7	IV	0.36300000000000004
+Breast	new_8	I	2.2
+Breast	new_8	II	1.65
+Breast	new_8	III	1.1
+Breast	new_8	IV	0.55
+Breast	new_9	I	3.3000000000000003
+Breast	new_9	II	2.4749999999999996
+Breast	new_9	III	1.6500000000000001
+Breast	new_9	IV	0.8250000000000001
+Breast	new_10	I	0.36300000000000004
+Breast	new_10	II	0.7260000000000001
+Breast	new_10	III	1.089
+Breast	new_10	IV	1.4520000000000002
+Breast	new_11	I	0.55
+Breast	new_11	II	1.1
+Breast	new_11	III	1.65
+Breast	new_11	IV	2.2
+Breast	new_12	I	0.8250000000000001
+Breast	new_12	II	1.6500000000000001
+Breast	new_12	III	2.4749999999999996
+Breast	new_12	IV	3.3000000000000003
+Cervix	new_1	I	1.1880000000000002
+Cervix	new_1	II	0.5940000000000001
+Cervix	new_1	III	0.5940000000000001
+Cervix	new_1	IV	0.5940000000000001
+Cervix	new_2	I	1.8
+Cervix	new_2	II	0.9
+Cervix	new_2	III	0.9
+Cervix	new_2	IV	0.9
+Cervix	new_3	I	2.7
+Cervix	new_3	II	1.35
+Cervix	new_3	III	1.35
+Cervix	new_3	IV	1.35
+Cervix	new_4	I	0.7425
+Cervix	new_4	II	0.7425
+Cervix	new_4	III	0.7425
+Cervix	new_4	IV	0.7425
+Cervix	new_5	I	1.125
+Cervix	new_5	II	1.125
+Cervix	new_5	III	1.125
+Cervix	new_5	IV	1.125
+Cervix	new_6	I	1.6875
+Cervix	new_6	II	1.6875
+Cervix	new_6	III	1.6875
+Cervix	new_6	IV	1.6875
+Cervix	new_7	I	1.1880000000000002
+Cervix	new_7	II	0.8909999999999999
+Cervix	new_7	III	0.5940000000000001
+Cervix	new_7	IV	0.29700000000000004
+Cervix	new_8	I	1.8
+Cervix	new_8	II	1.3499999999999999
+Cervix	new_8	III	0.9
+Cervix	new_8	IV	0.45
+Cervix	new_9	I	2.7
+Cervix	new_9	II	2.025
+Cervix	new_9	III	1.35
+Cervix	new_9	IV	0.675
+Cervix	new_10	I	0.29700000000000004
+Cervix	new_10	II	0.5940000000000001
+Cervix	new_10	III	0.8909999999999999
+Cervix	new_10	IV	1.1880000000000002
+Cervix	new_11	I	0.45
+Cervix	new_11	II	0.9
+Cervix	new_11	III	1.3499999999999999
+Cervix	new_11	IV	1.8
+Cervix	new_12	I	0.675
+Cervix	new_12	II	1.35
+Cervix	new_12	III	2.025
+Cervix	new_12	IV	2.7
+Colon/Rectum	new_1	I	1.4520000000000002
+Colon/Rectum	new_1	II	0.7260000000000001
+Colon/Rectum	new_1	III	0.7260000000000001
+Colon/Rectum	new_1	IV	0.7260000000000001
+Colon/Rectum	new_2	I	2.2
+Colon/Rectum	new_2	II	1.1
+Colon/Rectum	new_2	III	1.1
+Colon/Rectum	new_2	IV	1.1
+Colon/Rectum	new_3	I	3.3000000000000003
+Colon/Rectum	new_3	II	1.6500000000000001
+Colon/Rectum	new_3	III	1.6500000000000001
+Colon/Rectum	new_3	IV	1.6500000000000001
+Colon/Rectum	new_4	I	0.9075000000000001
+Colon/Rectum	new_4	II	0.9075000000000001
+Colon/Rectum	new_4	III	0.9075000000000001
+Colon/Rectum	new_4	IV	0.9075000000000001
+Colon/Rectum	new_5	I	1.375
+Colon/Rectum	new_5	II	1.375
+Colon/Rectum	new_5	III	1.375
+Colon/Rectum	new_5	IV	1.375
+Colon/Rectum	new_6	I	2.0625
+Colon/Rectum	new_6	II	2.0625
+Colon/Rectum	new_6	III	2.0625
+Colon/Rectum	new_6	IV	2.0625
+Colon/Rectum	new_7	I	1.4520000000000002
+Colon/Rectum	new_7	II	1.089
+Colon/Rectum	new_7	III	0.7260000000000001
+Colon/Rectum	new_7	IV	0.36300000000000004
+Colon/Rectum	new_8	I	2.2
+Colon/Rectum	new_8	II	1.65
+Colon/Rectum	new_8	III	1.1
+Colon/Rectum	new_8	IV	0.55
+Colon/Rectum	new_9	I	3.3000000000000003
+Colon/Rectum	new_9	II	2.4749999999999996
+Colon/Rectum	new_9	III	1.6500000000000001
+Colon/Rectum	new_9	IV	0.8250000000000001
+Colon/Rectum	new_10	I	0.36300000000000004
+Colon/Rectum	new_10	II	0.7260000000000001
+Colon/Rectum	new_10	III	1.089
+Colon/Rectum	new_10	IV	1.4520000000000002
+Colon/Rectum	new_11	I	0.55
+Colon/Rectum	new_11	II	1.1
+Colon/Rectum	new_11	III	1.65
+Colon/Rectum	new_11	IV	2.2
+Colon/Rectum	new_12	I	0.8250000000000001
+Colon/Rectum	new_12	II	1.6500000000000001
+Colon/Rectum	new_12	III	2.4749999999999996
+Colon/Rectum	new_12	IV	3.3000000000000003
+CUP	new_1	NotStaged	6
+CUP	new_2	NotStaged	6
+CUP	new_3	NotStaged	6
+CUP	new_4	NotStaged	6
+CUP	new_5	NotStaged	6
+CUP	new_6	NotStaged	6
+CUP	new_7	NotStaged	6
+CUP	new_8	NotStaged	6
+CUP	new_9	NotStaged	6
+CUP	new_10	NotStaged	6
+CUP	new_11	NotStaged	6
+CUP	new_12	NotStaged	6
+Esophagus	new_1	I	1.056
+Esophagus	new_1	II	0.528
+Esophagus	new_1	III	0.528
+Esophagus	new_1	IV	0.528
+Esophagus	new_2	I	1.6
+Esophagus	new_2	II	0.8
+Esophagus	new_2	III	0.8
+Esophagus	new_2	IV	0.8
+Esophagus	new_3	I	2.4000000000000004
+Esophagus	new_3	II	1.2000000000000002
+Esophagus	new_3	III	1.2000000000000002
+Esophagus	new_3	IV	1.2000000000000002
+Esophagus	new_4	I	0.66
+Esophagus	new_4	II	0.66
+Esophagus	new_4	III	0.66
+Esophagus	new_4	IV	0.66
+Esophagus	new_5	I	1
+Esophagus	new_5	II	1
+Esophagus	new_5	III	1
+Esophagus	new_5	IV	1
+Esophagus	new_6	I	1.5
+Esophagus	new_6	II	1.5
+Esophagus	new_6	III	1.5
+Esophagus	new_6	IV	1.5
+Esophagus	new_7	I	1.056
+Esophagus	new_7	II	0.792
+Esophagus	new_7	III	0.528
+Esophagus	new_7	IV	0.264
+Esophagus	new_8	I	1.6
+Esophagus	new_8	II	1.2
+Esophagus	new_8	III	0.8
+Esophagus	new_8	IV	0.4
+Esophagus	new_9	I	2.4000000000000004
+Esophagus	new_9	II	1.7999999999999998
+Esophagus	new_9	III	1.2000000000000002
+Esophagus	new_9	IV	0.6000000000000001
+Esophagus	new_10	I	0.264
+Esophagus	new_10	II	0.528
+Esophagus	new_10	III	0.792
+Esophagus	new_10	IV	1.056
+Esophagus	new_11	I	0.4
+Esophagus	new_11	II	0.8
+Esophagus	new_11	III	1.2
+Esophagus	new_11	IV	1.6
+Esophagus	new_12	I	0.6000000000000001
+Esophagus	new_12	II	1.2000000000000002
+Esophagus	new_12	III	1.7999999999999998
+Esophagus	new_12	IV	2.4000000000000004
+Gallbladder	new_1	I	1.056
+Gallbladder	new_1	II	0.528
+Gallbladder	new_1	III	0.528
+Gallbladder	new_1	IV	0.528
+Gallbladder	new_2	I	1.6
+Gallbladder	new_2	II	0.8
+Gallbladder	new_2	III	0.8
+Gallbladder	new_2	IV	0.8
+Gallbladder	new_3	I	2.4000000000000004
+Gallbladder	new_3	II	1.2000000000000002
+Gallbladder	new_3	III	1.2000000000000002
+Gallbladder	new_3	IV	1.2000000000000002
+Gallbladder	new_4	I	0.66
+Gallbladder	new_4	II	0.66
+Gallbladder	new_4	III	0.66
+Gallbladder	new_4	IV	0.66
+Gallbladder	new_5	I	1
+Gallbladder	new_5	II	1
+Gallbladder	new_5	III	1
+Gallbladder	new_5	IV	1
+Gallbladder	new_6	I	1.5
+Gallbladder	new_6	II	1.5
+Gallbladder	new_6	III	1.5
+Gallbladder	new_6	IV	1.5
+Gallbladder	new_7	I	1.056
+Gallbladder	new_7	II	0.792
+Gallbladder	new_7	III	0.528
+Gallbladder	new_7	IV	0.264
+Gallbladder	new_8	I	1.6
+Gallbladder	new_8	II	1.2
+Gallbladder	new_8	III	0.8
+Gallbladder	new_8	IV	0.4
+Gallbladder	new_9	I	2.4000000000000004
+Gallbladder	new_9	II	1.7999999999999998
+Gallbladder	new_9	III	1.2000000000000002
+Gallbladder	new_9	IV	0.6000000000000001
+Gallbladder	new_10	I	0.264
+Gallbladder	new_10	II	0.528
+Gallbladder	new_10	III	0.792
+Gallbladder	new_10	IV	1.056
+Gallbladder	new_11	I	0.4
+Gallbladder	new_11	II	0.8
+Gallbladder	new_11	III	1.2
+Gallbladder	new_11	IV	1.6
+Gallbladder	new_12	I	0.6000000000000001
+Gallbladder	new_12	II	1.2000000000000002
+Gallbladder	new_12	III	1.7999999999999998
+Gallbladder	new_12	IV	2.4000000000000004
+Head and Neck	new_1	I	1.7160000000000002
+Head and Neck	new_1	II	0.8580000000000001
+Head and Neck	new_1	III	0.8580000000000001
+Head and Neck	new_1	IV	0.8580000000000001
+Head and Neck	new_2	I	2.6
+Head and Neck	new_2	II	1.3
+Head and Neck	new_2	III	1.3
+Head and Neck	new_2	IV	1.3
+Head and Neck	new_3	I	3.9000000000000004
+Head and Neck	new_3	II	1.9500000000000002
+Head and Neck	new_3	III	1.9500000000000002
+Head and Neck	new_3	IV	1.9500000000000002
+Head and Neck	new_4	I	1.0725
+Head and Neck	new_4	II	1.0725
+Head and Neck	new_4	III	1.0725
+Head and Neck	new_4	IV	1.0725
+Head and Neck	new_5	I	1.625
+Head and Neck	new_5	II	1.625
+Head and Neck	new_5	III	1.625
+Head and Neck	new_5	IV	1.625
+Head and Neck	new_6	I	2.4375
+Head and Neck	new_6	II	2.4375
+Head and Neck	new_6	III	2.4375
+Head and Neck	new_6	IV	2.4375
+Head and Neck	new_7	I	1.7160000000000002
+Head and Neck	new_7	II	1.287
+Head and Neck	new_7	III	0.8580000000000001
+Head and Neck	new_7	IV	0.42900000000000005
+Head and Neck	new_8	I	2.6
+Head and Neck	new_8	II	1.95
+Head and Neck	new_8	III	1.3
+Head and Neck	new_8	IV	0.65
+Head and Neck	new_9	I	3.9000000000000004
+Head and Neck	new_9	II	2.925
+Head and Neck	new_9	III	1.9500000000000002
+Head and Neck	new_9	IV	0.9750000000000001
+Head and Neck	new_10	I	0.42900000000000005
+Head and Neck	new_10	II	0.8580000000000001
+Head and Neck	new_10	III	1.287
+Head and Neck	new_10	IV	1.7160000000000002
+Head and Neck	new_11	I	0.65
+Head and Neck	new_11	II	1.3
+Head and Neck	new_11	III	1.95
+Head and Neck	new_11	IV	2.6
+Head and Neck	new_12	I	0.9750000000000001
+Head and Neck	new_12	II	1.9500000000000002
+Head and Neck	new_12	III	2.925
+Head and Neck	new_12	IV	3.9000000000000004
+Kidney	new_1	I	1.4520000000000002
+Kidney	new_1	II	0.7260000000000001
+Kidney	new_1	III	0.7260000000000001
+Kidney	new_1	IV	0.7260000000000001
+Kidney	new_2	I	2.2
+Kidney	new_2	II	1.1
+Kidney	new_2	III	1.1
+Kidney	new_2	IV	1.1
+Kidney	new_3	I	3.3000000000000003
+Kidney	new_3	II	1.6500000000000001
+Kidney	new_3	III	1.6500000000000001
+Kidney	new_3	IV	1.6500000000000001
+Kidney	new_4	I	0.9075000000000001
+Kidney	new_4	II	0.9075000000000001
+Kidney	new_4	III	0.9075000000000001
+Kidney	new_4	IV	0.9075000000000001
+Kidney	new_5	I	1.375
+Kidney	new_5	II	1.375
+Kidney	new_5	III	1.375
+Kidney	new_5	IV	1.375
+Kidney	new_6	I	2.0625
+Kidney	new_6	II	2.0625
+Kidney	new_6	III	2.0625
+Kidney	new_6	IV	2.0625
+Kidney	new_7	I	1.4520000000000002
+Kidney	new_7	II	1.089
+Kidney	new_7	III	0.7260000000000001
+Kidney	new_7	IV	0.36300000000000004
+Kidney	new_8	I	2.2
+Kidney	new_8	II	1.65
+Kidney	new_8	III	1.1
+Kidney	new_8	IV	0.55
+Kidney	new_9	I	3.3000000000000003
+Kidney	new_9	II	2.4749999999999996
+Kidney	new_9	III	1.6500000000000001
+Kidney	new_9	IV	0.8250000000000001
+Kidney	new_10	I	0.36300000000000004
+Kidney	new_10	II	0.7260000000000001
+Kidney	new_10	III	1.089
+Kidney	new_10	IV	1.4520000000000002
+Kidney	new_11	I	0.55
+Kidney	new_11	II	1.1
+Kidney	new_11	III	1.65
+Kidney	new_11	IV	2.2
+Kidney	new_12	I	0.8250000000000001
+Kidney	new_12	II	1.6500000000000001
+Kidney	new_12	III	2.4749999999999996
+Kidney	new_12	IV	3.3000000000000003
+Liver/Bile-duct	new_1	I	1.056
+Liver/Bile-duct	new_1	II	0.528
+Liver/Bile-duct	new_1	III	0.528
+Liver/Bile-duct	new_1	IV	0.528
+Liver/Bile-duct	new_2	I	1.6
+Liver/Bile-duct	new_2	II	0.8
+Liver/Bile-duct	new_2	III	0.8
+Liver/Bile-duct	new_2	IV	0.8
+Liver/Bile-duct	new_3	I	2.4000000000000004
+Liver/Bile-duct	new_3	II	1.2000000000000002
+Liver/Bile-duct	new_3	III	1.2000000000000002
+Liver/Bile-duct	new_3	IV	1.2000000000000002
+Liver/Bile-duct	new_4	I	0.66
+Liver/Bile-duct	new_4	II	0.66
+Liver/Bile-duct	new_4	III	0.66
+Liver/Bile-duct	new_4	IV	0.66
+Liver/Bile-duct	new_5	I	1
+Liver/Bile-duct	new_5	II	1
+Liver/Bile-duct	new_5	III	1
+Liver/Bile-duct	new_5	IV	1
+Liver/Bile-duct	new_6	I	1.5
+Liver/Bile-duct	new_6	II	1.5
+Liver/Bile-duct	new_6	III	1.5
+Liver/Bile-duct	new_6	IV	1.5
+Liver/Bile-duct	new_7	I	1.056
+Liver/Bile-duct	new_7	II	0.792
+Liver/Bile-duct	new_7	III	0.528
+Liver/Bile-duct	new_7	IV	0.264
+Liver/Bile-duct	new_8	I	1.6
+Liver/Bile-duct	new_8	II	1.2
+Liver/Bile-duct	new_8	III	0.8
+Liver/Bile-duct	new_8	IV	0.4
+Liver/Bile-duct	new_9	I	2.4000000000000004
+Liver/Bile-duct	new_9	II	1.7999999999999998
+Liver/Bile-duct	new_9	III	1.2000000000000002
+Liver/Bile-duct	new_9	IV	0.6000000000000001
+Liver/Bile-duct	new_10	I	0.264
+Liver/Bile-duct	new_10	II	0.528
+Liver/Bile-duct	new_10	III	0.792
+Liver/Bile-duct	new_10	IV	1.056
+Liver/Bile-duct	new_11	I	0.4
+Liver/Bile-duct	new_11	II	0.8
+Liver/Bile-duct	new_11	III	1.2
+Liver/Bile-duct	new_11	IV	1.6
+Liver/Bile-duct	new_12	I	0.6000000000000001
+Liver/Bile-duct	new_12	II	1.2000000000000002
+Liver/Bile-duct	new_12	III	1.7999999999999998
+Liver/Bile-duct	new_12	IV	2.4000000000000004
+Lung	new_1	I	1.056
+Lung	new_1	II	0.528
+Lung	new_1	III	0.528
+Lung	new_1	IV	0.528
+Lung	new_2	I	1.6
+Lung	new_2	II	0.8
+Lung	new_2	III	0.8
+Lung	new_2	IV	0.8
+Lung	new_3	I	2.4000000000000004
+Lung	new_3	II	1.2000000000000002
+Lung	new_3	III	1.2000000000000002
+Lung	new_3	IV	1.2000000000000002
+Lung	new_4	I	0.66
+Lung	new_4	II	0.66
+Lung	new_4	III	0.66
+Lung	new_4	IV	0.66
+Lung	new_5	I	1
+Lung	new_5	II	1
+Lung	new_5	III	1
+Lung	new_5	IV	1
+Lung	new_6	I	1.5
+Lung	new_6	II	1.5
+Lung	new_6	III	1.5
+Lung	new_6	IV	1.5
+Lung	new_7	I	1.056
+Lung	new_7	II	0.792
+Lung	new_7	III	0.528
+Lung	new_7	IV	0.264
+Lung	new_8	I	1.6
+Lung	new_8	II	1.2
+Lung	new_8	III	0.8
+Lung	new_8	IV	0.4
+Lung	new_9	I	2.4000000000000004
+Lung	new_9	II	1.7999999999999998
+Lung	new_9	III	1.2000000000000002
+Lung	new_9	IV	0.6000000000000001
+Lung	new_10	I	0.264
+Lung	new_10	II	0.528
+Lung	new_10	III	0.792
+Lung	new_10	IV	1.056
+Lung	new_11	I	0.4
+Lung	new_11	II	0.8
+Lung	new_11	III	1.2
+Lung	new_11	IV	1.6
+Lung	new_12	I	0.6000000000000001
+Lung	new_12	II	1.2000000000000002
+Lung	new_12	III	1.7999999999999998
+Lung	new_12	IV	2.4000000000000004
+Lymphoid Leukemia	new_1	NotStaged	6
+Lymphoid Leukemia	new_2	NotStaged	6
+Lymphoid Leukemia	new_3	NotStaged	6
+Lymphoid Leukemia	new_4	NotStaged	6
+Lymphoid Leukemia	new_5	NotStaged	6
+Lymphoid Leukemia	new_6	NotStaged	6
+Lymphoid Leukemia	new_7	NotStaged	6
+Lymphoid Leukemia	new_8	NotStaged	6
+Lymphoid Leukemia	new_9	NotStaged	6
+Lymphoid Leukemia	new_10	NotStaged	6
+Lymphoid Leukemia	new_11	NotStaged	6
+Lymphoid Leukemia	new_12	NotStaged	6
+Lymphoma	new_1	I	1.7160000000000002
+Lymphoma	new_1	II	0.8580000000000001
+Lymphoma	new_1	III	0.8580000000000001
+Lymphoma	new_1	IV	0.8580000000000001
+Lymphoma	new_2	I	2.6
+Lymphoma	new_2	II	1.3
+Lymphoma	new_2	III	1.3
+Lymphoma	new_2	IV	1.3
+Lymphoma	new_3	I	3.9000000000000004
+Lymphoma	new_3	II	1.9500000000000002
+Lymphoma	new_3	III	1.9500000000000002
+Lymphoma	new_3	IV	1.9500000000000002
+Lymphoma	new_4	I	1.0725
+Lymphoma	new_4	II	1.0725
+Lymphoma	new_4	III	1.0725
+Lymphoma	new_4	IV	1.0725
+Lymphoma	new_5	I	1.625
+Lymphoma	new_5	II	1.625
+Lymphoma	new_5	III	1.625
+Lymphoma	new_5	IV	1.625
+Lymphoma	new_6	I	2.4375
+Lymphoma	new_6	II	2.4375
+Lymphoma	new_6	III	2.4375
+Lymphoma	new_6	IV	2.4375
+Lymphoma	new_7	I	1.7160000000000002
+Lymphoma	new_7	II	1.287
+Lymphoma	new_7	III	0.8580000000000001
+Lymphoma	new_7	IV	0.42900000000000005
+Lymphoma	new_8	I	2.6
+Lymphoma	new_8	II	1.95
+Lymphoma	new_8	III	1.3
+Lymphoma	new_8	IV	0.65
+Lymphoma	new_9	I	3.9000000000000004
+Lymphoma	new_9	II	2.925
+Lymphoma	new_9	III	1.9500000000000002
+Lymphoma	new_9	IV	0.9750000000000001
+Lymphoma	new_10	I	0.42900000000000005
+Lymphoma	new_10	II	0.8580000000000001
+Lymphoma	new_10	III	1.287
+Lymphoma	new_10	IV	1.7160000000000002
+Lymphoma	new_11	I	0.65
+Lymphoma	new_11	II	1.3
+Lymphoma	new_11	III	1.95
+Lymphoma	new_11	IV	2.6
+Lymphoma	new_12	I	0.9750000000000001
+Lymphoma	new_12	II	1.9500000000000002
+Lymphoma	new_12	III	2.925
+Lymphoma	new_12	IV	3.9000000000000004
+Melanoma	new_1	I	1.4520000000000002
+Melanoma	new_1	II	0.7260000000000001
+Melanoma	new_1	III	0.7260000000000001
+Melanoma	new_1	IV	0.7260000000000001
+Melanoma	new_2	I	2.2
+Melanoma	new_2	II	1.1
+Melanoma	new_2	III	1.1
+Melanoma	new_2	IV	1.1
+Melanoma	new_3	I	3.3000000000000003
+Melanoma	new_3	II	1.6500000000000001
+Melanoma	new_3	III	1.6500000000000001
+Melanoma	new_3	IV	1.6500000000000001
+Melanoma	new_4	I	0.9075000000000001
+Melanoma	new_4	II	0.9075000000000001
+Melanoma	new_4	III	0.9075000000000001
+Melanoma	new_4	IV	0.9075000000000001
+Melanoma	new_5	I	1.375
+Melanoma	new_5	II	1.375
+Melanoma	new_5	III	1.375
+Melanoma	new_5	IV	1.375
+Melanoma	new_6	I	2.0625
+Melanoma	new_6	II	2.0625
+Melanoma	new_6	III	2.0625
+Melanoma	new_6	IV	2.0625
+Melanoma	new_7	I	1.4520000000000002
+Melanoma	new_7	II	1.089
+Melanoma	new_7	III	0.7260000000000001
+Melanoma	new_7	IV	0.36300000000000004
+Melanoma	new_8	I	2.2
+Melanoma	new_8	II	1.65
+Melanoma	new_8	III	1.1
+Melanoma	new_8	IV	0.55
+Melanoma	new_9	I	3.3000000000000003
+Melanoma	new_9	II	2.4749999999999996
+Melanoma	new_9	III	1.6500000000000001
+Melanoma	new_9	IV	0.8250000000000001
+Melanoma	new_10	I	0.36300000000000004
+Melanoma	new_10	II	0.7260000000000001
+Melanoma	new_10	III	1.089
+Melanoma	new_10	IV	1.4520000000000002
+Melanoma	new_11	I	0.55
+Melanoma	new_11	II	1.1
+Melanoma	new_11	III	1.65
+Melanoma	new_11	IV	2.2
+Melanoma	new_12	I	0.8250000000000001
+Melanoma	new_12	II	1.6500000000000001
+Melanoma	new_12	III	2.4749999999999996
+Melanoma	new_12	IV	3.3000000000000003
+Myeloid Neoplasm	new_1	NotStaged	6
+Myeloid Neoplasm	new_2	NotStaged	6
+Myeloid Neoplasm	new_3	NotStaged	6
+Myeloid Neoplasm	new_4	NotStaged	6
+Myeloid Neoplasm	new_5	NotStaged	6
+Myeloid Neoplasm	new_6	NotStaged	6
+Myeloid Neoplasm	new_7	NotStaged	6
+Myeloid Neoplasm	new_8	NotStaged	6
+Myeloid Neoplasm	new_9	NotStaged	6
+Myeloid Neoplasm	new_10	NotStaged	6
+Myeloid Neoplasm	new_11	NotStaged	6
+Myeloid Neoplasm	new_12	NotStaged	6
+Ovary	new_1	I	1.1880000000000002
+Ovary	new_1	II	0.5940000000000001
+Ovary	new_1	III	0.5940000000000001
+Ovary	new_1	IV	0.5940000000000001
+Ovary	new_2	I	1.8
+Ovary	new_2	II	0.9
+Ovary	new_2	III	0.9
+Ovary	new_2	IV	0.9
+Ovary	new_3	I	2.7
+Ovary	new_3	II	1.35
+Ovary	new_3	III	1.35
+Ovary	new_3	IV	1.35
+Ovary	new_4	I	0.7425
+Ovary	new_4	II	0.7425
+Ovary	new_4	III	0.7425
+Ovary	new_4	IV	0.7425
+Ovary	new_5	I	1.125
+Ovary	new_5	II	1.125
+Ovary	new_5	III	1.125
+Ovary	new_5	IV	1.125
+Ovary	new_6	I	1.6875
+Ovary	new_6	II	1.6875
+Ovary	new_6	III	1.6875
+Ovary	new_6	IV	1.6875
+Ovary	new_7	I	1.1880000000000002
+Ovary	new_7	II	0.8909999999999999
+Ovary	new_7	III	0.5940000000000001
+Ovary	new_7	IV	0.29700000000000004
+Ovary	new_8	I	1.8
+Ovary	new_8	II	1.3499999999999999
+Ovary	new_8	III	0.9
+Ovary	new_8	IV	0.45
+Ovary	new_9	I	2.7
+Ovary	new_9	II	2.025
+Ovary	new_9	III	1.35
+Ovary	new_9	IV	0.675
+Ovary	new_10	I	0.29700000000000004
+Ovary	new_10	II	0.5940000000000001
+Ovary	new_10	III	0.8909999999999999
+Ovary	new_10	IV	1.1880000000000002
+Ovary	new_11	I	0.45
+Ovary	new_11	II	0.9
+Ovary	new_11	III	1.3499999999999999
+Ovary	new_11	IV	1.8
+Ovary	new_12	I	0.675
+Ovary	new_12	II	1.35
+Ovary	new_12	III	2.025
+Ovary	new_12	IV	2.7
+Pancreas	new_1	I	1.056
+Pancreas	new_1	II	0.528
+Pancreas	new_1	III	0.528
+Pancreas	new_1	IV	0.528
+Pancreas	new_2	I	1.6
+Pancreas	new_2	II	0.8
+Pancreas	new_2	III	0.8
+Pancreas	new_2	IV	0.8
+Pancreas	new_3	I	2.4000000000000004
+Pancreas	new_3	II	1.2000000000000002
+Pancreas	new_3	III	1.2000000000000002
+Pancreas	new_3	IV	1.2000000000000002
+Pancreas	new_4	I	0.66
+Pancreas	new_4	II	0.66
+Pancreas	new_4	III	0.66
+Pancreas	new_4	IV	0.66
+Pancreas	new_5	I	1
+Pancreas	new_5	II	1
+Pancreas	new_5	III	1
+Pancreas	new_5	IV	1
+Pancreas	new_6	I	1.5
+Pancreas	new_6	II	1.5
+Pancreas	new_6	III	1.5
+Pancreas	new_6	IV	1.5
+Pancreas	new_7	I	1.056
+Pancreas	new_7	II	0.792
+Pancreas	new_7	III	0.528
+Pancreas	new_7	IV	0.264
+Pancreas	new_8	I	1.6
+Pancreas	new_8	II	1.2
+Pancreas	new_8	III	0.8
+Pancreas	new_8	IV	0.4
+Pancreas	new_9	I	2.4000000000000004
+Pancreas	new_9	II	1.7999999999999998
+Pancreas	new_9	III	1.2000000000000002
+Pancreas	new_9	IV	0.6000000000000001
+Pancreas	new_10	I	0.264
+Pancreas	new_10	II	0.528
+Pancreas	new_10	III	0.792
+Pancreas	new_10	IV	1.056
+Pancreas	new_11	I	0.4
+Pancreas	new_11	II	0.8
+Pancreas	new_11	III	1.2
+Pancreas	new_11	IV	1.6
+Pancreas	new_12	I	0.6000000000000001
+Pancreas	new_12	II	1.2000000000000002
+Pancreas	new_12	III	1.7999999999999998
+Pancreas	new_12	IV	2.4000000000000004
+Plasma Cell Neoplasm	new_1	NotStaged	6
+Plasma Cell Neoplasm	new_2	NotStaged	6
+Plasma Cell Neoplasm	new_3	NotStaged	6
+Plasma Cell Neoplasm	new_4	NotStaged	6
+Plasma Cell Neoplasm	new_5	NotStaged	6
+Plasma Cell Neoplasm	new_6	NotStaged	6
+Plasma Cell Neoplasm	new_7	NotStaged	6
+Plasma Cell Neoplasm	new_8	NotStaged	6
+Plasma Cell Neoplasm	new_9	NotStaged	6
+Plasma Cell Neoplasm	new_10	NotStaged	6
+Plasma Cell Neoplasm	new_11	NotStaged	6
+Plasma Cell Neoplasm	new_12	NotStaged	6
+Prostate	new_1	I	2.244
+Prostate	new_1	II	1.122
+Prostate	new_1	III	1.122
+Prostate	new_1	IV	1.122
+Prostate	new_2	I	3.4000000000000004
+Prostate	new_2	II	1.7000000000000002
+Prostate	new_2	III	1.7000000000000002
+Prostate	new_2	IV	1.7000000000000002
+Prostate	new_3	I	5.1000000000000005
+Prostate	new_3	II	2.5500000000000003
+Prostate	new_3	III	2.5500000000000003
+Prostate	new_3	IV	2.5500000000000003
+Prostate	new_4	I	1.4025
+Prostate	new_4	II	1.4025
+Prostate	new_4	III	1.4025
+Prostate	new_4	IV	1.4025
+Prostate	new_5	I	2.125
+Prostate	new_5	II	2.125
+Prostate	new_5	III	2.125
+Prostate	new_5	IV	2.125
+Prostate	new_6	I	3.1875
+Prostate	new_6	II	3.1875
+Prostate	new_6	III	3.1875
+Prostate	new_6	IV	3.1875
+Prostate	new_7	I	2.244
+Prostate	new_7	II	1.683
+Prostate	new_7	III	1.122
+Prostate	new_7	IV	0.561
+Prostate	new_8	I	3.4000000000000004
+Prostate	new_8	II	2.55
+Prostate	new_8	III	1.7000000000000002
+Prostate	new_8	IV	0.8500000000000001
+Prostate	new_9	I	5.1000000000000005
+Prostate	new_9	II	3.8249999999999997
+Prostate	new_9	III	2.5500000000000003
+Prostate	new_9	IV	1.2750000000000001
+Prostate	new_10	I	0.561
+Prostate	new_10	II	1.122
+Prostate	new_10	III	1.683
+Prostate	new_10	IV	2.244
+Prostate	new_11	I	0.8500000000000001
+Prostate	new_11	II	1.7000000000000002
+Prostate	new_11	III	2.55
+Prostate	new_11	IV	3.4000000000000004
+Prostate	new_12	I	1.2750000000000001
+Prostate	new_12	II	2.5500000000000003
+Prostate	new_12	III	3.8249999999999997
+Prostate	new_12	IV	5.1000000000000005
+Sarcoma	new_1	I	1.1880000000000002
+Sarcoma	new_1	II	0.5940000000000001
+Sarcoma	new_1	III	0.5940000000000001
+Sarcoma	new_1	IV	0.5940000000000001
+Sarcoma	new_2	I	1.8
+Sarcoma	new_2	II	0.9
+Sarcoma	new_2	III	0.9
+Sarcoma	new_2	IV	0.9
+Sarcoma	new_3	I	2.7
+Sarcoma	new_3	II	1.35
+Sarcoma	new_3	III	1.35
+Sarcoma	new_3	IV	1.35
+Sarcoma	new_4	I	0.7425
+Sarcoma	new_4	II	0.7425
+Sarcoma	new_4	III	0.7425
+Sarcoma	new_4	IV	0.7425
+Sarcoma	new_5	I	1.125
+Sarcoma	new_5	II	1.125
+Sarcoma	new_5	III	1.125
+Sarcoma	new_5	IV	1.125
+Sarcoma	new_6	I	1.6875
+Sarcoma	new_6	II	1.6875
+Sarcoma	new_6	III	1.6875
+Sarcoma	new_6	IV	1.6875
+Sarcoma	new_7	I	1.1880000000000002
+Sarcoma	new_7	II	0.8909999999999999
+Sarcoma	new_7	III	0.5940000000000001
+Sarcoma	new_7	IV	0.29700000000000004
+Sarcoma	new_8	I	1.8
+Sarcoma	new_8	II	1.3499999999999999
+Sarcoma	new_8	III	0.9
+Sarcoma	new_8	IV	0.45
+Sarcoma	new_9	I	2.7
+Sarcoma	new_9	II	2.025
+Sarcoma	new_9	III	1.35
+Sarcoma	new_9	IV	0.675
+Sarcoma	new_10	I	0.29700000000000004
+Sarcoma	new_10	II	0.5940000000000001
+Sarcoma	new_10	III	0.8909999999999999
+Sarcoma	new_10	IV	1.1880000000000002
+Sarcoma	new_11	I	0.45
+Sarcoma	new_11	II	0.9
+Sarcoma	new_11	III	1.3499999999999999
+Sarcoma	new_11	IV	1.8
+Sarcoma	new_12	I	0.675
+Sarcoma	new_12	II	1.35
+Sarcoma	new_12	III	2.025
+Sarcoma	new_12	IV	2.7
+Stomach	new_1	I	1.056
+Stomach	new_1	II	0.528
+Stomach	new_1	III	0.528
+Stomach	new_1	IV	0.528
+Stomach	new_2	I	1.6
+Stomach	new_2	II	0.8
+Stomach	new_2	III	0.8
+Stomach	new_2	IV	0.8
+Stomach	new_3	I	2.4000000000000004
+Stomach	new_3	II	1.2000000000000002
+Stomach	new_3	III	1.2000000000000002
+Stomach	new_3	IV	1.2000000000000002
+Stomach	new_4	I	0.66
+Stomach	new_4	II	0.66
+Stomach	new_4	III	0.66
+Stomach	new_4	IV	0.66
+Stomach	new_5	I	1
+Stomach	new_5	II	1
+Stomach	new_5	III	1
+Stomach	new_5	IV	1
+Stomach	new_6	I	1.5
+Stomach	new_6	II	1.5
+Stomach	new_6	III	1.5
+Stomach	new_6	IV	1.5
+Stomach	new_7	I	1.056
+Stomach	new_7	II	0.792
+Stomach	new_7	III	0.528
+Stomach	new_7	IV	0.264
+Stomach	new_8	I	1.6
+Stomach	new_8	II	1.2
+Stomach	new_8	III	0.8
+Stomach	new_8	IV	0.4
+Stomach	new_9	I	2.4000000000000004
+Stomach	new_9	II	1.7999999999999998
+Stomach	new_9	III	1.2000000000000002
+Stomach	new_9	IV	0.6000000000000001
+Stomach	new_10	I	0.264
+Stomach	new_10	II	0.528
+Stomach	new_10	III	0.792
+Stomach	new_10	IV	1.056
+Stomach	new_11	I	0.4
+Stomach	new_11	II	0.8
+Stomach	new_11	III	1.2
+Stomach	new_11	IV	1.6
+Stomach	new_12	I	0.6000000000000001
+Stomach	new_12	II	1.2000000000000002
+Stomach	new_12	III	1.7999999999999998
+Stomach	new_12	IV	2.4000000000000004
+Thyroid	new_1	I	2.244
+Thyroid	new_1	II	1.122
+Thyroid	new_1	III	1.122
+Thyroid	new_1	IV	1.122
+Thyroid	new_2	I	3.4000000000000004
+Thyroid	new_2	II	1.7000000000000002
+Thyroid	new_2	III	1.7000000000000002
+Thyroid	new_2	IV	1.7000000000000002
+Thyroid	new_3	I	5.1000000000000005
+Thyroid	new_3	II	2.5500000000000003
+Thyroid	new_3	III	2.5500000000000003
+Thyroid	new_3	IV	2.5500000000000003
+Thyroid	new_4	I	1.4025
+Thyroid	new_4	II	1.4025
+Thyroid	new_4	III	1.4025
+Thyroid	new_4	IV	1.4025
+Thyroid	new_5	I	2.125
+Thyroid	new_5	II	2.125
+Thyroid	new_5	III	2.125
+Thyroid	new_5	IV	2.125
+Thyroid	new_6	I	3.1875
+Thyroid	new_6	II	3.1875
+Thyroid	new_6	III	3.1875
+Thyroid	new_6	IV	3.1875
+Thyroid	new_7	I	2.244
+Thyroid	new_7	II	1.683
+Thyroid	new_7	III	1.122
+Thyroid	new_7	IV	0.561
+Thyroid	new_8	I	3.4000000000000004
+Thyroid	new_8	II	2.55
+Thyroid	new_8	III	1.7000000000000002
+Thyroid	new_8	IV	0.8500000000000001
+Thyroid	new_9	I	5.1000000000000005
+Thyroid	new_9	II	3.8249999999999997
+Thyroid	new_9	III	2.5500000000000003
+Thyroid	new_9	IV	1.2750000000000001
+Thyroid	new_10	I	0.561
+Thyroid	new_10	II	1.122
+Thyroid	new_10	III	1.683
+Thyroid	new_10	IV	2.244
+Thyroid	new_11	I	0.8500000000000001
+Thyroid	new_11	II	1.7000000000000002
+Thyroid	new_11	III	2.55
+Thyroid	new_11	IV	3.4000000000000004
+Thyroid	new_12	I	1.2750000000000001
+Thyroid	new_12	II	2.5500000000000003
+Thyroid	new_12	III	3.8249999999999997
+Thyroid	new_12	IV	5.1000000000000005
+Urothelial Tract	new_1	I	1.1880000000000002
+Urothelial Tract	new_1	II	0.5940000000000001
+Urothelial Tract	new_1	III	0.5940000000000001
+Urothelial Tract	new_1	IV	0.5940000000000001
+Urothelial Tract	new_2	I	1.8
+Urothelial Tract	new_2	II	0.9
+Urothelial Tract	new_2	III	0.9
+Urothelial Tract	new_2	IV	0.9
+Urothelial Tract	new_3	I	2.7
+Urothelial Tract	new_3	II	1.35
+Urothelial Tract	new_3	III	1.35
+Urothelial Tract	new_3	IV	1.35
+Urothelial Tract	new_4	I	0.7425
+Urothelial Tract	new_4	II	0.7425
+Urothelial Tract	new_4	III	0.7425
+Urothelial Tract	new_4	IV	0.7425
+Urothelial Tract	new_5	I	1.125
+Urothelial Tract	new_5	II	1.125
+Urothelial Tract	new_5	III	1.125
+Urothelial Tract	new_5	IV	1.125
+Urothelial Tract	new_6	I	1.6875
+Urothelial Tract	new_6	II	1.6875
+Urothelial Tract	new_6	III	1.6875
+Urothelial Tract	new_6	IV	1.6875
+Urothelial Tract	new_7	I	1.1880000000000002
+Urothelial Tract	new_7	II	0.8909999999999999
+Urothelial Tract	new_7	III	0.5940000000000001
+Urothelial Tract	new_7	IV	0.29700000000000004
+Urothelial Tract	new_8	I	1.8
+Urothelial Tract	new_8	II	1.3499999999999999
+Urothelial Tract	new_8	III	0.9
+Urothelial Tract	new_8	IV	0.45
+Urothelial Tract	new_9	I	2.7
+Urothelial Tract	new_9	II	2.025
+Urothelial Tract	new_9	III	1.35
+Urothelial Tract	new_9	IV	0.675
+Urothelial Tract	new_10	I	0.29700000000000004
+Urothelial Tract	new_10	II	0.5940000000000001
+Urothelial Tract	new_10	III	0.8909999999999999
+Urothelial Tract	new_10	IV	1.1880000000000002
+Urothelial Tract	new_11	I	0.45
+Urothelial Tract	new_11	II	0.9
+Urothelial Tract	new_11	III	1.3499999999999999
+Urothelial Tract	new_11	IV	1.8
+Urothelial Tract	new_12	I	0.675
+Urothelial Tract	new_12	II	1.35
+Urothelial Tract	new_12	III	2.025
+Urothelial Tract	new_12	IV	2.7
+Uterus	new_1	I	1.4520000000000002
+Uterus	new_1	II	0.7260000000000001
+Uterus	new_1	III	0.7260000000000001
+Uterus	new_1	IV	0.7260000000000001
+Uterus	new_2	I	2.2
+Uterus	new_2	II	1.1
+Uterus	new_2	III	1.1
+Uterus	new_2	IV	1.1
+Uterus	new_3	I	3.3000000000000003
+Uterus	new_3	II	1.6500000000000001
+Uterus	new_3	III	1.6500000000000001
+Uterus	new_3	IV	1.6500000000000001
+Uterus	new_4	I	0.9075000000000001
+Uterus	new_4	II	0.9075000000000001
+Uterus	new_4	III	0.9075000000000001
+Uterus	new_4	IV	0.9075000000000001
+Uterus	new_5	I	1.375
+Uterus	new_5	II	1.375
+Uterus	new_5	III	1.375
+Uterus	new_5	IV	1.375
+Uterus	new_6	I	2.0625
+Uterus	new_6	II	2.0625
+Uterus	new_6	III	2.0625
+Uterus	new_6	IV	2.0625
+Uterus	new_7	I	1.4520000000000002
+Uterus	new_7	II	1.089
+Uterus	new_7	III	0.7260000000000001
+Uterus	new_7	IV	0.36300000000000004
+Uterus	new_8	I	2.2
+Uterus	new_8	II	1.65
+Uterus	new_8	III	1.1
+Uterus	new_8	IV	0.55
+Uterus	new_9	I	3.3000000000000003
+Uterus	new_9	II	2.4749999999999996
+Uterus	new_9	III	1.6500000000000001
+Uterus	new_9	IV	0.8250000000000001
+Uterus	new_10	I	0.36300000000000004
+Uterus	new_10	II	0.7260000000000001
+Uterus	new_10	III	1.089
+Uterus	new_10	IV	1.4520000000000002
+Uterus	new_11	I	0.55
+Uterus	new_11	II	1.1
+Uterus	new_11	III	1.65
+Uterus	new_11	IV	2.2
+Uterus	new_12	I	0.8250000000000001
+Uterus	new_12	II	1.6500000000000001
+Uterus	new_12	III	2.4749999999999996
+Uterus	new_12	IV	3.3000000000000003

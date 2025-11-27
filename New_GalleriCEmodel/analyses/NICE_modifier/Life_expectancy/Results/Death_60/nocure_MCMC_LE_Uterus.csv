@@ -1,0 +1,13 @@
+Sex,NCRAS_Draw,Stage,Age,t,median,CrI
+Female,Uterus,IV,50-54,1,0.61,(0.51 to 0.69)
+Female,Uterus,IV,50-54,5,0.19,(0.11 to 0.31)
+Female,Uterus,IV,55-59,1,0.63,(0.57 to 0.7)
+Female,Uterus,IV,55-59,5,0.22,(0.14 to 0.31)
+Female,Uterus,IV,60-64,1,0.61,(0.55 to 0.66)
+Female,Uterus,IV,60-64,5,0.2,(0.14 to 0.28)
+Female,Uterus,IV,65-69,1,0.57,(0.52 to 0.62)
+Female,Uterus,IV,65-69,5,0.21,(0.16 to 0.26)
+Female,Uterus,IV,70-74,1,0.52,(0.47 to 0.58)
+Female,Uterus,IV,70-74,5,0.12,(0.07 to 0.18)
+Female,Uterus,IV,75-79,1,0.53,(0.47 to 0.58)
+Female,Uterus,IV,75-79,5,0.13,(0.09 to 0.18)

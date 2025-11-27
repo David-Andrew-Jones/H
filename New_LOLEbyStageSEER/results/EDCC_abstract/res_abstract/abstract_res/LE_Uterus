@@ -1,0 +1,25 @@
+Sex,SEER_Draw,AJCC_stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,Uterus,I,50,rmst,50,29.57 (29.57 to 29.57),29.57,29.57 to 29.57,29.57,29.57,(29.57 to 29.57),50 years at diagnosis,33.62016677856445
+Female,Uterus,I,55,rmst,45,25.47 (25.47 to 25.47),25.47,25.47 to 25.47,25.47,25.47,(25.47 to 25.47),55 years at diagnosis,29.177453994750977
+Female,Uterus,I,60,rmst,40,21.61 (21.61 to 21.61),21.61,21.61 to 21.61,21.61,21.61,(21.61 to 21.61),60 years at diagnosis,24.911766052246094
+Female,Uterus,I,65,rmst,35,17.83 (17.83 to 17.83),17.83,17.83 to 17.83,17.83,17.83,(17.83 to 17.83),65 years at diagnosis,20.823043823242188
+Female,Uterus,I,70,rmst,30,14.28 (14.28 to 14.28),14.28,14.28 to 14.28,14.28,14.28,(14.28 to 14.28),70 years at diagnosis,16.87740135192871
+Female,Uterus,I,75,rmst,25,11.08 (11.08 to 11.08),11.08,11.08 to 11.08,11.08,11.08,(11.08 to 11.08),75 years at diagnosis,13.205001831054688
+Female,Uterus,II,50,rmst,50,26.26 (26.26 to 26.26),26.26,26.26 to 26.26,26.26,26.26,(26.26 to 26.26),50 years at diagnosis,33.62016677856445
+Female,Uterus,II,55,rmst,45,21.88 (21.88 to 21.88),21.88,21.88 to 21.88,21.88,21.88,(21.88 to 21.88),55 years at diagnosis,29.177453994750977
+Female,Uterus,II,60,rmst,40,18.23 (18.23 to 18.23),18.23,18.23 to 18.23,18.23,18.23,(18.23 to 18.23),60 years at diagnosis,24.911766052246094
+Female,Uterus,II,65,rmst,35,14.47 (14.47 to 14.47),14.47,14.47 to 14.47,14.47,14.47,(14.47 to 14.47),65 years at diagnosis,20.823043823242188
+Female,Uterus,II,70,rmst,30,11.6 (11.6 to 11.6),11.6,11.6 to 11.6,11.6,11.6,(11.6 to 11.6),70 years at diagnosis,16.87740135192871
+Female,Uterus,II,75,rmst,25,8.71 (8.71 to 8.71),8.71,8.71 to 8.71,8.71,8.71,(8.71 to 8.71),75 years at diagnosis,13.205001831054688
+Female,Uterus,III,50,rmst,50,22.29 (22.29 to 22.29),22.29,22.29 to 22.29,22.29,22.29,(22.29 to 22.29),50 years at diagnosis,33.62016677856445
+Female,Uterus,III,55,rmst,45,17.38 (17.38 to 17.38),17.38,17.38 to 17.38,17.38,17.38,(17.38 to 17.38),55 years at diagnosis,29.177453994750977
+Female,Uterus,III,60,rmst,40,14.35 (14.35 to 14.35),14.35,14.35 to 14.35,14.35,14.35,(14.35 to 14.35),60 years at diagnosis,24.911766052246094
+Female,Uterus,III,65,rmst,35,10.97 (10.97 to 10.97),10.97,10.97 to 10.97,10.97,10.97,(10.97 to 10.97),65 years at diagnosis,20.823043823242188
+Female,Uterus,III,70,rmst,30,8.81 (8.81 to 8.81),8.81,8.81 to 8.81,8.81,8.81,(8.81 to 8.81),70 years at diagnosis,16.87740135192871
+Female,Uterus,III,75,rmst,25,6.21 (6.21 to 6.21),6.21,6.21 to 6.21,6.21,6.21,(6.21 to 6.21),75 years at diagnosis,13.205001831054688
+Female,Uterus,IV,50,rmst,50,7.03 (5.97 to 10.1),7.03,5.97 to 10.1,5.97,10.1,(5.97 to 10.1),50 years at diagnosis,33.62016677856445
+Female,Uterus,IV,55,rmst,45,5.91 (5.06 to 7.48),5.91,5.06 to 7.48,5.06,7.48,(5.06 to 7.48),55 years at diagnosis,29.177453994750977
+Female,Uterus,IV,60,rmst,40,3.76 (3.76 to 3.76),3.76,3.76 to 3.76,3.76,3.76,(3.76 to 3.76),60 years at diagnosis,24.911766052246094
+Female,Uterus,IV,65,rmst,35,3.08 (3.08 to 3.08),3.08,3.08 to 3.08,3.08,3.08,(3.08 to 3.08),65 years at diagnosis,20.823043823242188
+Female,Uterus,IV,70,rmst,30,3.01 (2.5 to 4.93),3.01,2.5 to 4.93,2.5,4.93,(2.5 to 4.93),70 years at diagnosis,16.87740135192871
+Female,Uterus,IV,75,rmst,25,1.83 (1.83 to 1.83),1.83,1.83 to 1.83,1.83,1.83,(1.83 to 1.83),75 years at diagnosis,13.205001831054688

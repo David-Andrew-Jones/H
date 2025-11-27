@@ -1,0 +1,85 @@
+﻿Cancer,Stage,cure_fraction,remain_excess_risk
+Anus,I,88,0.5
+Anus,II,83,0.8
+Anus,III,69,0.9
+Anus,IV,23,1.1
+Bladder,I,92,1.5
+Bladder,II,66,1.7
+Bladder,III,52,1.7
+Bladder,IV,17,1.8
+Breast,I,87,0
+Breast,II,82,0.1
+Breast,III,57,0.2
+Breast,IV,2,1
+Cervix,I,91,0.5
+Cervix,II,75,1.4
+Cervix,III,54,1.7
+Cervix,IV,19,1.9
+Colon/Rectum,I,91,0.8
+Colon/Rectum,II,66,0.8
+Colon/Rectum,III,63,0.8
+Colon/Rectum,IV,7,0.9
+Esophagus,I,57,1.2
+Esophagus,II,39,1.8
+Esophagus,III,23,1.9
+Esophagus,IV,5,2
+Gallbladder,I,47,0.5
+Gallbladder,II,22,1.2
+Gallbladder,III,20,1.5
+Gallbladder,IV,2,1.8
+Head and Neck,I,94,1.4
+Head and Neck,II,86,1.9
+Head and Neck,III,75,2
+Head and Neck,IV,60,2
+Kidney,I,93,0.9
+Kidney,II,76,1.4
+Kidney,III,68,1.7
+Kidney,IV,11,1.9
+Liver/Bile-duct,I,31,0.9
+Liver/Bile-duct,II,30,1
+Liver/Bile-duct,III,7,1.8
+Liver/Bile-duct,IV,2,1.9
+Lung,I,61,1.9
+Lung,II,37,1.9
+Lung,III,16,2
+Lung,IV,4,2
+Lymphoma,I,90,1.2
+Lymphoma,II,85,1.4
+Lymphoma,III,79,1.8
+Lymphoma,IV,72,2
+Melanoma,I,94,0
+Melanoma,II,74,0.2
+Melanoma,III,61,1.3
+Melanoma,IV,22,1.4
+Ovary,I,71,0.1
+Ovary,II,44,0.3
+Ovary,III,16,0.5
+Ovary,IV,3,1.3
+Pancreas,I,39,1.9
+Pancreas,II,13,1.9
+Pancreas,III,4,1.9
+Pancreas,IV,2,2
+Prostate,I,88,0
+Prostate,II,83,0
+Prostate,III,80,0
+Prostate,IV,47,1.9
+Sarcoma,I,85,0.6
+Sarcoma,II,74,1.1
+Sarcoma,III,50,1.6
+Sarcoma,IV,10,1.8
+Stomach,I,67,1
+Stomach,II,41,1.8
+Stomach,III,27,1.9
+Stomach,IV,5,1.9
+Thyroid,I,96,0
+Thyroid,II,94,0.1
+Thyroid,III,90,0.1
+Thyroid,IV,82,2
+Urothelial Tract,I,79,0.9
+Urothelial Tract,II,72,1.3
+Urothelial Tract,III,56,1.6
+Urothelial Tract,IV,17,1.8
+Uterus,I,94,0.2
+Uterus,II,82,0.3
+Uterus,III,65,0.9
+Uterus,IV,16,1.6

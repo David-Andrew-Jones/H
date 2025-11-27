@@ -1,0 +1,9 @@
+Sex,SEER_Draw,AJCC_stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,allexcprostate,I,55,rmst,45,25.14 (24.42 to 25.28),25.14,24.42 to 25.28,24.42,25.28,(24.42 to 25.28),55 years at diagnosis,29.177453994750977
+Female,allexcprostate,II,55,rmst,45,20.63 (19.67 to 21.73),20.63,19.67 to 21.73,19.67,21.73,(19.67 to 21.73),55 years at diagnosis,29.177453994750977
+Female,allexcprostate,III,55,rmst,45,14.3 (13.46 to 14.87),14.3,13.46 to 14.87,13.46,14.87,(13.46 to 14.87),55 years at diagnosis,29.177453994750977
+Female,allexcprostate,IV,55,rmst,45,4.94 (4.71 to 5.23),4.94,4.71 to 5.23,4.71,5.23,(4.71 to 5.23),55 years at diagnosis,29.177453994750977
+Male,allexcprostate,I,55,rmst,45,19.71 (18.78 to 20.2),19.71,18.78 to 20.2,18.78,20.2,(18.78 to 20.2),55 years at diagnosis,25.79340171813965
+Male,allexcprostate,II,55,rmst,45,13.89 (12.71 to 14.8),13.89,12.71 to 14.8,12.71,14.8,(12.71 to 14.8),55 years at diagnosis,25.79340171813965
+Male,allexcprostate,III,55,rmst,45,10.03 (9.41 to 10.61),10.03,9.41 to 10.61,9.41,10.61,(9.41 to 10.61),55 years at diagnosis,25.79340171813965
+Male,allexcprostate,IV,55,rmst,45,4.48 (4.28 to 5.05),4.48,4.28 to 5.05,4.28,5.05,(4.28 to 5.05),55 years at diagnosis,25.79340171813965

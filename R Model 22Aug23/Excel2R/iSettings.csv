@@ -1,0 +1,15 @@
+model_start_age,50,Model starting age
+soc_screen_min_age,50,SoC screening age min
+soc_screen_max_age,85,SoC screening age max
+mced_screen_min_age,50,MCED screening age min
+mced_screen_max_age,79,MCED screening age max
+time_horizon,100,Time horizon
+perc_female,0.533333333333333,% female
+disc_health,0.03,Annual discount rate health
+disc_cost,0.03,Annual discount rate costs
+cost_growth_rate_screening,0,Cost growth rate for screening costs
+cost_growth_rate,0,Cost growth rate
+dur_iatrogenic,0.25,Duration of survival for patients affected by iatrogenic harm
+perspective,1,Perspective
+analysis_type,1,1 = general population, 2 = patient heterogeneity
+cohort_size,100000,Cohort size

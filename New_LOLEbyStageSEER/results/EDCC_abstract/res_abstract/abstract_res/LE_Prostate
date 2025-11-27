@@ -1,0 +1,25 @@
+Sex,SEER_Draw,AJCC_stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Male,Prostate,I,50,rmst,50,22.3 (22.3 to 22.3),22.3,22.3 to 22.3,22.3,22.3,(22.3 to 22.3),50 years at diagnosis,29.97743797302246
+Male,Prostate,I,55,rmst,45,21.32 (21.32 to 21.32),21.32,21.32 to 21.32,21.32,21.32,(21.32 to 21.32),55 years at diagnosis,25.79340171813965
+Male,Prostate,I,60,rmst,40,18.39 (18.39 to 18.39),18.39,18.39 to 18.39,18.39,18.39,(18.39 to 18.39),60 years at diagnosis,21.87360572814941
+Male,Prostate,I,65,rmst,35,15.02 (15.02 to 15.02),15.02,15.02 to 15.02,15.02,15.02,(15.02 to 15.02),65 years at diagnosis,18.201061248779297
+Male,Prostate,I,70,rmst,30,11.58 (11.58 to 11.58),11.58,11.58 to 11.58,11.58,11.58,(11.58 to 11.58),70 years at diagnosis,14.719858169555664
+Male,Prostate,I,75,rmst,25,10.09 (10.09 to 10.09),10.09,10.09 to 10.09,10.09,10.09,(10.09 to 10.09),75 years at diagnosis,11.435514450073242
+Male,Prostate,II,50,rmst,50,29.95 (29.95 to 29.95),29.95,29.95 to 29.95,29.95,29.95,(29.95 to 29.95),50 years at diagnosis,29.97743797302246
+Male,Prostate,II,55,rmst,45,25.77 (25.77 to 25.77),25.77,25.77 to 25.77,25.77,25.77,(25.77 to 25.77),55 years at diagnosis,25.79340171813965
+Male,Prostate,II,60,rmst,40,21.16 (21.16 to 21.16),21.16,21.16 to 21.16,21.16,21.16,(21.16 to 21.16),60 years at diagnosis,21.87360572814941
+Male,Prostate,II,65,rmst,35,18.17 (18.17 to 18.17),18.17,18.17 to 18.17,18.17,18.17,(18.17 to 18.17),65 years at diagnosis,18.201061248779297
+Male,Prostate,II,70,rmst,30,13.71 (13.71 to 13.71),13.71,13.71 to 13.71,13.71,13.71,(13.71 to 13.71),70 years at diagnosis,14.719858169555664
+Male,Prostate,II,75,rmst,25,10.59 (10.59 to 10.59),10.59,10.59 to 10.59,10.59,10.59,(10.59 to 10.59),75 years at diagnosis,11.435514450073242
+Male,Prostate,III,50,rmst,50,28.02 (28.02 to 28.02),28.02,28.02 to 28.02,28.02,28.02,(28.02 to 28.02),50 years at diagnosis,29.97743797302246
+Male,Prostate,III,55,rmst,45,23.44 (23.44 to 23.44),23.44,23.44 to 23.44,23.44,23.44,(23.44 to 23.44),55 years at diagnosis,25.79340171813965
+Male,Prostate,III,60,rmst,40,20.1 (20.1 to 20.1),20.1,20.1 to 20.1,20.1,20.1,(20.1 to 20.1),60 years at diagnosis,21.87360572814941
+Male,Prostate,III,65,rmst,35,17.51 (17.51 to 17.51),17.51,17.51 to 17.51,17.51,17.51,(17.51 to 17.51),65 years at diagnosis,18.201061248779297
+Male,Prostate,III,70,rmst,30,13.77 (13.77 to 13.77),13.77,13.77 to 13.77,13.77,13.77,(13.77 to 13.77),70 years at diagnosis,14.719858169555664
+Male,Prostate,III,75,rmst,25,11.4 (11.4 to 11.4),11.4,11.4 to 11.4,11.4,11.4,(11.4 to 11.4),75 years at diagnosis,11.435514450073242
+Male,Prostate,IV,50,rmst,50,12.27 (12.27 to 12.27),12.27,12.27 to 12.27,12.27,12.27,(12.27 to 12.27),50 years at diagnosis,29.97743797302246
+Male,Prostate,IV,55,rmst,45,11.1 (11.1 to 11.1),11.1,11.1 to 11.1,11.1,11.1,(11.1 to 11.1),55 years at diagnosis,25.79340171813965
+Male,Prostate,IV,60,rmst,40,10.17 (10.17 to 10.17),10.17,10.17 to 10.17,10.17,10.17,(10.17 to 10.17),60 years at diagnosis,21.87360572814941
+Male,Prostate,IV,65,rmst,35,8.68 (8.68 to 8.68),8.68,8.68 to 8.68,8.68,8.68,(8.68 to 8.68),65 years at diagnosis,18.201061248779297
+Male,Prostate,IV,70,rmst,30,6.27 (6.27 to 6.27),6.27,6.27 to 6.27,6.27,6.27,(6.27 to 6.27),70 years at diagnosis,14.719858169555664
+Male,Prostate,IV,75,rmst,25,4.38 (4.38 to 4.38),4.38,4.38 to 4.38,4.38,4.38,(4.38 to 4.38),75 years at diagnosis,11.435514450073242

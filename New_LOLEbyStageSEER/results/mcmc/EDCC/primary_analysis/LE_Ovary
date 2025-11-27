@@ -1,0 +1,25 @@
+Sex,NCRAS_Draw,Stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,Ovary,I,50,rmst,47,24.77 (24.18 to 25.29),24.77,24.18 to 25.29,24.18,25.29,(24.18 to 25.29),50 years at diagnosis,33.62016677856445
+Female,Ovary,I,55,rmst,42,22.1 (21.53 to 22.58),22.1,21.53 to 22.58,21.53,22.58,(21.53 to 22.58),55 years at diagnosis,29.177453994750977
+Female,Ovary,I,60,rmst,37,18.78 (18.17 to 19.29),18.78,18.17 to 19.29,18.17,19.29,(18.17 to 19.29),60 years at diagnosis,24.911766052246094
+Female,Ovary,I,65,rmst,32,14.97 (14.4 to 15.53),14.97,14.4 to 15.53,14.4,15.53,(14.4 to 15.53),65 years at diagnosis,20.823043823242188
+Female,Ovary,I,70,rmst,27,12.06 (11.37 to 12.68),12.06,11.37 to 12.68,11.37,12.68,(11.37 to 12.68),70 years at diagnosis,16.87740135192871
+Female,Ovary,I,75,rmst,22,8.91 (8.48 to 9.59),8.91,8.48 to 9.59,8.48,9.59,(8.48 to 9.59),75 years at diagnosis,13.205001831054688
+Female,Ovary,II,50,rmst,47,20.49 (19.32 to 21.63),20.49,19.32 to 21.63,19.32,21.63,(19.32 to 21.63),50 years at diagnosis,33.62016677856445
+Female,Ovary,II,55,rmst,42,17 (16.13 to 17.97),17,16.13 to 17.97,16.13,17.97,(16.13 to 17.97),55 years at diagnosis,29.177453994750977
+Female,Ovary,II,60,rmst,37,14.51 (13.75 to 15.37),14.51,13.75 to 15.37,13.75,15.37,(13.75 to 15.37),60 years at diagnosis,24.911766052246094
+Female,Ovary,II,65,rmst,32,11.17 (10.42 to 12.06),11.17,10.42 to 12.06,10.42,12.06,(10.42 to 12.06),65 years at diagnosis,20.823043823242188
+Female,Ovary,II,70,rmst,27,9.18 (8.37 to 10.04),9.18,8.37 to 10.04,8.37,10.04,(8.37 to 10.04),70 years at diagnosis,16.87740135192871
+Female,Ovary,II,75,rmst,22,7.3 (6.68 to 8.04),7.3,6.68 to 8.04,6.68,8.04,(6.68 to 8.04),75 years at diagnosis,13.205001831054688
+Female,Ovary,III,50,rmst,47,9.83 (9.35 to 10.33),9.83,9.35 to 10.33,9.35,10.33,(9.35 to 10.33),50 years at diagnosis,33.62016677856445
+Female,Ovary,III,55,rmst,42,8.73 (8.35 to 9.22),8.73,8.35 to 9.22,8.35,9.22,(8.35 to 9.22),55 years at diagnosis,29.177453994750977
+Female,Ovary,III,60,rmst,37,7.58 (7.26 to 7.94),7.58,7.26 to 7.94,7.26,7.94,(7.26 to 7.94),60 years at diagnosis,24.911766052246094
+Female,Ovary,III,65,rmst,32,6.03 (5.72 to 6.36),6.03,5.72 to 6.36,5.72,6.36,(5.72 to 6.36),65 years at diagnosis,20.823043823242188
+Female,Ovary,III,70,rmst,27,5.1 (4.83 to 5.38),5.1,4.83 to 5.38,4.83,5.38,(4.83 to 5.38),70 years at diagnosis,16.87740135192871
+Female,Ovary,III,75,rmst,22,3.89 (3.66 to 4.11),3.89,3.66 to 4.11,3.66,4.11,(3.66 to 4.11),75 years at diagnosis,13.205001831054688
+Female,Ovary,IV,50,rmst,47,5.64 (5.15 to 6.16),5.64,5.15 to 6.16,5.15,6.16,(5.15 to 6.16),50 years at diagnosis,33.62016677856445
+Female,Ovary,IV,55,rmst,42,5.03 (4.74 to 5.37),5.03,4.74 to 5.37,4.74,5.37,(4.74 to 5.37),55 years at diagnosis,29.177453994750977
+Female,Ovary,IV,60,rmst,37,4.37 (4.11 to 4.68),4.37,4.11 to 4.68,4.11,4.68,(4.11 to 4.68),60 years at diagnosis,24.911766052246094
+Female,Ovary,IV,65,rmst,32,3.54 (3.29 to 3.81),3.54,3.29 to 3.81,3.29,3.81,(3.29 to 3.81),65 years at diagnosis,20.823043823242188
+Female,Ovary,IV,70,rmst,27,2.95 (2.74 to 3.21),2.95,2.74 to 3.21,2.74,3.21,(2.74 to 3.21),70 years at diagnosis,16.87740135192871
+Female,Ovary,IV,75,rmst,22,2.1 (1.94 to 2.28),2.1,1.94 to 2.28,1.94,2.28,(1.94 to 2.28),75 years at diagnosis,13.205001831054688

@@ -1,0 +1,43 @@
+iSettings,iSettings,iSettings.csv,"Model settings",Values,"[X, 3]",Settings
+iBooleanSettings,iBooleanSettings,iBooleanSettings.csv,"Other miscellaneous boolean inputs",Values,"[X, 3]",Multiple sheets
+iMiscellaneous,iMisc,iMisc.csv,"Other miscellaneous inputs",Values,"[X, 3]",Multiple sheets
+iCancerInclusion,incl_cancer,incl_cancer.csv,"Inclusion/exclusion of cancers",Vector,"[N]",Settings
+iCancerInclusion_hete,incl_cancer_hete,incl_cancer_hete.csv,"Inclusion/exclusion of cancers",Vector,"[N]",Settings
+iIncidence,incidence,incidence.csv,"SEER Incidence by cancer, stage and age (per 100,000)",Dataframe,"[N*S, A]",Incidence
+iIncidence_Intercept,incidence_Intercept,incidence_Intercept.csv,Base case inputs for stage shift distribution calculation,Dataframe,"[N*S, A]",Incidence
+iIncidence_hete,incidence_hete,incidence_hete.csv,"SEER Incidence by cancer, stage and age (per 100,000)",Dataframe,"[N*S, A]",Incidence
+iDeath5y,deaths_5y,deaths_5y.csv,"Cancer and stage specific deaths at 5-year post diagnosis",Dataframe,"[N*S, A]",Survival
+iIatrogenicProp,prop_iatrogenic,prop_iatrogenic.csv,"Proportion experiencing Iatrogenic harm by cancer, stage and age",Dataframe,"[N*S, A]",Survival
+iDwellTime,dwell_times,dwell_times.csv,"Dwell time by cancer and stage",Vector,"[N*S]",Dwell Time
+iDwellTime_hete,dwell_times_hete,dwell_times_hete.csv,"Dwell time by cancer and stage",Vector,"[N*S]",Dwell Time
+iCostsCancerTreatment,costs_cancer_tx,costs_cancer_tx.csv,"Cancer-related costs by cancer, stage and year since diagnosis",Dataframe,"[N*S, 6]",Costs
+iCostsCancerTreatment,costs_cancer_tx_base,costs_cancer_tx_base.csv,"Cancer-related costs by cancer, stage and year since diagnosis",Dataframe,"[N*S, 6]",Costs
+iCostsWorkupMisdiagnosis,costs_workup_misdiagnosis,costs_workup_misdiagnosis.csv,"Additional workup costs due to misdiagnosis by cancer",Vector,"[N]",Costs
+iCostsWorkupFP,costs_workup_FP,costs_workup_FP.csv,"Additional workup costs due to false positives by cancer",Vector,"[N]",Costs
+iCostsSocietal,costs_societal,costs_societal.csv,"Annual societal costs by cancer and stage",Vector,"[N*S]",Costs
+iUtilityPopulation,gen_pop_utility,gen_pop_utility.csv,"Age-specific utility",Vector,"[A]",Utilities
+iUtilityCancer,util_cancer,util_cancer.csv,"Utility multiplier by cancer, stage and year since diagnosis",Dataframe,"[N*S, 6]",Utilities
+iUtilityCancer,util_cancer_base,util_cancer_base.csv,"Utility multiplier by cancer, stage and year since diagnosis",Dataframe,"[N*S, 6]",Utilities
+iAccuracy,accuracy,accuracy.csv,"Accuracy by cancer",Vector,"[N]",GRAIL Test
+iAccuracy_hete,accuracy_hete,accuracy_hete.csv,"Accuracy by cancer",Vector,"[N]",GRAIL Test
+iSensitivity,sensitivity,sensitivity.csv,"MCED sensitivity by cancer and stage",Vector,"[N*S]",GRAIL Test
+iSensitivity_hete,sensitivity_hete,sensitivity_hete.csv,"MCED sensitivity by cancer and stage",Vector,"[N*S]",GRAIL Test
+iSoCCosts,soc_test_costs,soc_test_costs.csv,"SoC screening costs by cancer",Vector,"[N]",SoC Tests
+iSoCCompliance,soc_test_compliance,soc_test_compliance.csv,"SoC screening compliance by cancer",Vector,"[N]",SoC Tests
+iSoCFrequency,soc_test_frequency,soc_test_frequency.csv,"SoC screening frequency by cancer",Vector,"[N]",SoC Tests
+iSoCSpecificity,soc_test_specificity,soc_test_specificity.csv,"SoC screening specificity by cancer",Vector,"[N]",SoC Tests
+iSoCTestEligibility,soc_test_eligibility,soc_test_eligibility.csv,"SoC screening test eligibility",Vector,"[N]",SoC Tests
+iSurvival,survival,survival.csv,"Survival inputs by cancer, stage and age",Dataframe,"[N*S, A]",Survival
+iMortality,gen_pop_mortality,gen_pop_mortality.csv,"General population mortality life tables",Vector,"[101]",Life Tables
+weightCohort,weightCohort,weightCohort.csv,"Cohort weight",Vector,"[30]",Settings
+weightAge,weightAge,weightAge.csv,"Cohort starting age distribution weight",Dataframe,"[30, 20 or 10]",Settings
+timeShift3to1,timeShift3to1,timeShift3to1.csv,"Time shift distribution for patients moving from Stage III to I",Dataframe,"[N, 20]",Time Shift Lookup
+timeShift4to1,timeShift4to1,timeShift4to1.csv,"Time shift distribution for patients moving from Stage III to I",Dataframe,"[N, 20]",Time Shift Lookup
+timeShift4to2,timeShift4to2,timeShift4to2.csv,"Time shift distribution for patients moving from Stage IV to II",Dataframe,"[N, 20]",Time Shift Lookup
+timeShiftDistMean,timeShiftDistMean,timeShiftDistMean.csv,"Time shift lookup values to be used for single stage transitions",Dataframe,"[40]",Time Shift Lookup
+timeShiftDist,timeShiftDist,timeShiftDist.csv,"Time shift distribution for patients moving one stage",Dataframe,"[40, 20]",Time Shift Lookup
+iSoCCosts_SE,soc_test_costs_SE,soc_test_costs_SE.csv,"SE of SoC screening costs by cancer",Vector,"[N]",Standard Errors
+iCostsWorkupMisdiagnosis_SE,costs_workup_misdiagnosis_SE,costs_workup_misdiagnosis_SE.csv,"SE of Additional workup costs due to misdiagnosis by cancer",Vector,"[N]",Standard Errors
+iCostsWorkupFP_SE,costs_workup_FP_SE,costs_workup_FP_SE.csv,"SE of Additional workup costs due to false positives by cancer",Vector,"[N]",Standard Errors
+iCostsCancerTreatment_SE,costs_cancer_tx_SE,costs_cancer_tx_SE.csv,"SE of Cancer-related costs by cancer, stage and year since diagnosis",Dataframe,"[N*S, 6]",Standard Errors
+iUtilityCancer_SE,util_cancer_SE,util_cancer_SE.csv,"SE of Utility multiplier by cancer, stage and year since diagnosis",Dataframe,"[N*S, 6]",Standard Errors

@@ -1,0 +1,226 @@
+---
+title: "Probability of death at stage IV by cancer type and age at diagnosis"
+format:
+  html:
+    embed-resources: true
+    code-background: true
+execute: 
+  echo: FALSE
+---
+
+```{r, message=FALSE}
+
+suppressPackageStartupMessages(library(tidyverse))
+library(readxl)
+library(openxlsx, quietly = TRUE)
+
+
+res_LE_tables_all_full <- list.files(path = "~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/results/Death_60/", pattern = "^nocure_MCMC_LE") %>% # Defined in 01 script
+        map(~read_csv(paste0("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/results/Death_60/", .))) %>%
+        bind_rows() %>%
+        select(NCRAS_Draw, Age, Sex, Stage, median, t) %>%
+        rename(`Probability of surviving beyond specified number of years` = median,
+               `Number of years` = t) %>%
+        mutate(`Number of years` = case_when(`Number of years` == 1 ~ "1 year after diagnosis",
+                                             `Number of years` == 5 ~ "5 years after diagnosis",
+                                             .default = NA)) %>%
+                mutate(across(where(is.character), as.factor))
+
+
+df_pop_inc <- read_xlsx(path = "~/GalleriCEmodel/data-raw/NICE_modifier/grail_incidence_formatted_v2.xlsx") |>
+        mutate(across(where(is.character), as.factor)) |>
+        filter(deprivationqunitile == "All deprivations") |>
+        filter(stageatdiagnosis == "4") |>
+        filter(subtype == "N/A") |>
+        filter(agegroup %in% c("50-54", "55-59", "60-64", "65-69", "70-74", "75-79")) %>%
+        select(sex, agegroup, cancersite, stageatdiagnosis, count, rateper100000population) %>%
+        rename(Sex = sex,
+               Age = agegroup, 
+               NCRAS_Draw = cancersite,
+               Stage = stageatdiagnosis) %>%
+        mutate(Sex = as.factor(case_when(Sex == "Males" ~ "Male",
+                               Sex == "Females" ~ "Female",
+                               .default = Sex)),
+               Stage = as.factor(case_when(Stage == "4" ~ "IV",
+                                           .default = Stage))) %>%
+  mutate(NCRAS_Draw = case_when(NCRAS_Draw == "Liver/Bile duct" ~ "Liver/Bile-duct",
+                               NCRAS_Draw == "Oesophagus" ~ "Esophagus",
+                               .default = NCRAS_Draw))
+        
+res_LE_tables_all_fullXinc <- res_LE_tables_all_full %>%
+        left_join(df_pop_inc, by = c("Sex", "Age", "NCRAS_Draw", "Stage")) %>% 
+        mutate(`No. of deaths` = count * (1 - `Probability of surviving beyond specified number of years`))
+
+
+# Excel output
+        
+
+```
+
+
+## Figure 1. Probability of surviving 1 year after stage IV diagnosis by age at diagnosis and cancer type
+```{r, message=FALSE, fig.height=20,fig.width=10, warnings = FALSE}
+
+plot_1yearsurv <- res_LE_tables_all_full %>%
+        filter(`Number of years` == "1 year after diagnosis") %>%
+        ggplot() +
+        geom_col(aes(y = `Probability of surviving beyond specified number of years`, x = Age), fill = "darkgray", colour = "black") +
+        facet_grid(NCRAS_Draw ~ Sex  , scales="free", switch = "y") +
+        labs(color = "Cancer type", x = "Age at diagnosis", y = "Probability of surviving beyond 1 years")+
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+        theme(strip.text.y.left = element_text(angle = 0)) +
+        theme(text = element_text(size=14))
+
+
+excel_output <- createWorkbook()
+
+addWorksheet(excel_output, sheetName = "Fig 1. Prob of surviving 1 yr")
+print(plot_1yearsurv)
+insertPlot(excel_output, sheet = "Fig 1. Prob of surviving 1 yr", xy = c("B", 2), width = 10, height = 30, fileType = "png", units = "in")
+
+
+
+
+```
+
+
+## Figure 2. Probability of surviving 5 year after stage IV diagnosis by age at diagnosis and cancer type
+```{r, message=FALSE, fig.height=20,fig.width=10, warnings = FALSE}
+
+plot_5yearsurv <- res_LE_tables_all_full %>%
+        filter(`Number of years` == "5 years after diagnosis") %>%
+        ggplot() +
+        geom_col(aes(y = `Probability of surviving beyond specified number of years`, x = Age), fill = "darkgray", colour = "black") +
+        facet_grid(NCRAS_Draw ~ Sex  , scales="free", switch = "y") +
+        labs(color = "Cancer type", x = "Age at diagnosis", y = "Probability of surviving beyond 5 years")+
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+        theme(strip.text.y.left = element_text(angle = 0))+
+        theme(text = element_text(size=14))
+
+addWorksheet(excel_output, sheetName = "Fig 2. Prob of surviving 5 yrs")
+print(plot_5yearsurv)
+insertPlot(excel_output, sheet = "Fig 2. Prob of surviving 5 yrs", xy = c("B", 2), width = 10, height = 30, fileType = "png", units = "in")
+
+
+
+```
+
+
+## Figure 3. Number of patients surviving 1 year after stage IV diagnosis by age at diagnosis and cancer type - based on 2013-2018 incidence
+
+```{r, message=FALSE, fig.height=20,fig.width=10, warning = FALSE}
+
+plot_1yearDeath <- res_LE_tables_all_fullXinc %>%
+        filter(`Number of years` == "1 year after diagnosis") %>%
+        ggplot() +
+        geom_col(aes(y = `No. of deaths`, x = Age), fill = "darkgray", colour = "black") +
+        facet_grid(NCRAS_Draw ~ Sex  , scales="free", switch = "y") +
+        labs(color = "Cancer type", x = "Age at diagnosis", y = "Number of deaths 1 year after diagnosis")+
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+        theme(strip.text.y.left = element_text(angle = 0)) +
+        theme(text = element_text(size=14))
+
+addWorksheet(excel_output, sheetName = "Fig 3. No. of deaths at 1 yr")
+print(plot_1yearDeath)
+insertPlot(excel_output, sheet = "Fig 3. No. of deaths at 1 yr", xy = c("B", 2), width = 10, height = 30, fileType = "png", units = "in")
+
+
+```
+
+## Figure 4. Number of patients surviving 5 year after stage IV diagnosis by age at diagnosis and cancer type - based on 2013-2018 incidence
+
+
+```{r, message=FALSE, fig.height=20,fig.width=10, warning = FALSE}
+
+plot_5yearDeath <- res_LE_tables_all_fullXinc %>%
+        filter(`Number of years` == "5 years after diagnosis") %>%
+        ggplot() +
+        geom_col(aes(y = `No. of deaths`, x = Age), fill = "darkgray", colour = "black") +
+        facet_grid(NCRAS_Draw ~ Sex  , scales="free", switch = "y") +
+        labs(color = "Cancer type", x = "Age at diagnosis", y = "Number of deaths 5 years after diagnosis")+
+        theme_bw() +
+        theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+        theme(strip.text.y.left = element_text(angle = 0)) +
+        theme(text = element_text(size=14))
+
+
+addWorksheet(excel_output, sheetName = "Fig 4. No. of deaths at 5 yrs")
+print(plot_5yearDeath)
+insertPlot(excel_output, sheet = "Fig 4. No. of deaths at 5 yrs", xy = c("B", 2), width = 10, height = 30, fileType = "png", units = "in")
+
+
+
+```
+
+## Table 1. Full numbers for Females, Survival 1 year from diagnosis
+
+
+```{r, message=FALSE, warning = FALSE}
+
+fem_1_res_LE_tables_all_fullXinc <- res_LE_tables_all_fullXinc %>%
+               select(-Stage) %>%
+               filter(Sex == "Female") %>%
+               filter(`Number of years` == "1 year after diagnosis") %>%
+               select(-`Number of years`) %>%
+               rename(`Probability of surviving beyond 1 year` = `Probability of surviving beyond specified number of years`)
+
+addWorksheet(excel_output, sheetName = "Tab 1. Females, 1 yr from diag")
+writeData(excel_output, sheet = "Tab 1. Females, 1 yr from diag", fem_1_res_LE_tables_all_fullXinc)
+
+```
+
+## Table 2. Full numbers for Females, Survival 5 years from diagnosis
+
+
+```{r, message=FALSE, warning = FALSE}
+
+fem_5_res_LE_tables_all_fullXinc <- res_LE_tables_all_fullXinc %>%
+               select(-Stage) %>%
+               filter(Sex == "Female") %>%
+               filter(`Number of years` == "5 years after diagnosis") %>%
+               select(-`Number of years`) %>%
+               rename(`Probability of surviving beyond 5 year` = `Probability of surviving beyond specified number of years`)
+
+addWorksheet(excel_output, sheetName = "Tab 2. Females, 5 yrs from diag")
+writeData(excel_output, sheet = "Tab 2. Females, 5 yrs from diag", fem_5_res_LE_tables_all_fullXinc)
+
+
+```
+## Table 3. Full numbers for Males, Survival 1 years from diagnosis
+
+
+```{r, message=FALSE, warning = FALSE}
+
+male_1_res_LE_tables_all_fullXinc <- res_LE_tables_all_fullXinc %>%
+               select(-Stage) %>%
+               filter(Sex == "Male") %>%
+               filter(`Number of years` == "1 year after diagnosis") %>%
+               select(-`Number of years`) %>%
+               rename(`Probability of surviving beyond 1 year` = `Probability of surviving beyond specified number of years`)
+
+addWorksheet(excel_output, sheetName = "Tab 3. Males, 1 yr from diag")
+writeData(excel_output, sheet = "Tab 3. Males, 1 yr from diag", male_1_res_LE_tables_all_fullXinc)
+
+
+```
+## Table 4. Full numbers for Males, Survival 5 years from diagnosis
+
+
+```{r, message=FALSE, warning = FALSE}
+
+male_5_res_LE_tables_all_fullXinc <- res_LE_tables_all_fullXinc %>%
+               select(-Stage) %>%
+               filter(Sex == "Male") %>%
+               filter(`Number of years` == "5 years after diagnosis") %>%
+               select(-`Number of years`) %>%
+               rename(`Probability of surviving beyond 5 year` = `Probability of surviving beyond specified number of years`)
+
+addWorksheet(excel_output, sheetName = "Tab 4. Males, 5 yrs from diag")
+writeData(excel_output, sheet = "Tab 4. Males, 5 yrs from diag", male_5_res_LE_tables_all_fullXinc)
+saveWorkbook(excel_output, paste0("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/results/Death_60/", "probability_death_tables.xlsx" ), overwrite = TRUE)
+
+
+```

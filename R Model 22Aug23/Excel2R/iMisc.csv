@@ -1,0 +1,29 @@
+mced_cost,949,MCED cost
+adherence,1,Adherence
+annual_compliance,0.9,Annual compliance
+mced_specificity,0.995,MCED specificity
+util_iatrogenic,0,Iatrogenic harm utility
+disutil_FP,0.05,Disutility associated with false positive diagnosis
+disutil_misdiagnosis,0.05,Disutility associated with misdiagnosis
+perc_overdiagnosis,0.05,% of dead patients with asymptomatic cancer (for overdiagnosis calculation)
+perc_misdiagnosis,1,% of patients correctly diagnosed after misdiagnosis
+dur_workup_misdiagnosis,0.5,Additional work-up period for misdiagnosis
+dur_workup_FP,0.5,Additional work-up period for false positive diagnosis
+iPop,1,VBA index for cohort
+start_age_band,11,VBA index for age
+max_age_band,20,VBA index for age
+age_band_interval,5,Age band interval
+age_option,1,1=min age, 2=mid-point
+nPSA,1000,PSA Number of simulations
+nDSA,18,DSA number of parameters
+optPSA_soc_test_costs,1,SoC Costs SE variation option
+optPSA_costs_cancer_tx,1,Cancer treatment costs variation option
+optPSA_costs_workup_FP,2,FP workup costs variation option
+optPSA_costs_workup_misdiagnosis,2,Misdiagnosis workup costs variation option
+optPSA_util_cancer,2,Disutility variation option
+pctPSA_soc_test_costs,0,Value of SoC Costs SE variation option
+pctPSA_costs_cancer_tx,0,Value of Cancer treatment costs variation option
+pctPSA_costs_workup_FP,0.2,Value of FP workup costs variation option
+pctPSA_costs_workup_misdiagnosis,0.2,Value of Misdiagnosis workup costs variation option
+pctPSA_util_cancer,0.2,Value of Disutility variation option
+UtilMultiplier,1,Multiplier applied to difference between cancer utility and general population utility

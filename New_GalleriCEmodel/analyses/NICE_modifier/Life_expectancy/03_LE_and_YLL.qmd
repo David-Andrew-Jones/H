@@ -1,0 +1,323 @@
+---
+title: "LE and YLL manuscript results"
+execute:
+  warning: false
+  echo: false
+format:
+   docx: 
+    output-file: "Supplemental Tables"
+    output-ext:  "docx"
+---
+
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(dplyr, quietly = TRUE)
+library(readr, quietly = TRUE)
+library(ggplot2, quietly = TRUE)
+library(tidyr, quietly = TRUE)
+library(stringr, quietly = TRUE)
+library(purrr, quietly = TRUE)
+library(readxl, quietly = TRUE)
+library(gt, quietly = TRUE)
+library(GalleriCEmodel, quietly = TRUE)
+
+source("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/01_prep_England5year_net_surv.R")
+source("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/03_LE_and_YLL.R")
+
+```
+
+
+## Table 1: 5-year net survival probability estimates for each cancer type, stage, age at diagnosis and gender combinations 
+
+
+```{r}
+
+
+gt(df_surv_byHR_CF %>% 
+  filter(stop == 5 & cfDNA_status == "negative" & haz_ratio == "1") %>%
+  filter(!(Sex == "Male" & NCRAS_Draw == "Cervix"))%>%
+  filter(!(Sex == "Male" & NCRAS_Draw == "Breast"))%>%
+  filter(!(Sex == "Male" & NCRAS_Draw == "Ovary"))%>%
+  filter(!(Sex == "Male" & NCRAS_Draw == "Uterus"))%>%
+  filter(!(Sex == "Female" & NCRAS_Draw == "Prostate")) %>%
+  select(Age, Sex, NCRAS_Draw, Stage, CSS_adjusted) %>%
+  rename(Gender = Sex, `Cancer type` = NCRAS_Draw, `5yr net survival` = CSS_adjusted) %>%
+  pivot_wider(names_from = "Age", values_from = `5yr net survival`) %>%
+    mutate(across(where(is.factor), as.character)) %>%
+         group_by(Gender) %>%
+     mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`),
+            Gender = ifelse(duplicated(Gender), NA, Gender)) %>%
+       ungroup()) |>
+  sub_missing( missing_text = "") 
+  
+
+```
+
+
+
+## Table 2: Cancer type, stage, age at diagnosis and gender combinations for which a life expectancy could be generated from the Bayesian flexible parametric survival modelling approach
+
+```{r}
+
+gt(df_combos_checklist_noHR %>%
+     filter(Gender != "Total") %>%
+       mutate(`Cancer type` = case_when(`Cancer type` == "all" ~ "All combined", .default = `Cancer type`)) %>%
+       arrange(Gender, `Cancer type`, Stage) %>%
+     group_by(Gender) %>%
+     mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`),
+            Gender = ifelse(duplicated(Gender), NA, Gender)) %>%
+     ungroup() %>%
+     mutate(across(where(is.numeric), ~ case_when(. == 1 ~ "Yes", .default = "No")))) |>
+  sub_missing( missing_text = "") |>
+    data_color(
+      columns = `50-54`:`75-79`,
+    method = "auto",
+    palette = c("red", "darkgreen")
+  )|>
+  tab_spanner(
+    label = "Age at diagnosis",
+    columns = `50-54`:`75-79`
+  )
+
+```
+
+## Table 3: Life expectancy estimates for each cancer type, stage, age at diagnosis and gender combinations 
+
+```{r}
+
+gt(res_LE_tables %>%
+    filter(`cfDNA status` == "negative" & HR == "1") %>%
+    mutate( `LE and 95% CrI`= paste0(median, " ", "(", `2.5%`, " to ", `97.5%`, ")")) %>%
+    select(Gender:Age, `LE and 95% CrI`) %>%
+    pivot_wider(names_from = "Age", values_from = `LE and 95% CrI`) %>%
+    mutate(across(where(is.factor), as.character)) %>%
+          group_by(Gender) %>%
+    mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`),
+            Gender = ifelse(duplicated(Gender), NA, Gender)) %>%
+     ungroup()) |>
+  sub_missing( missing_text = "") %>%  tab_spanner(
+    label = "Age at diagnosis",
+    columns = `50-54`:`75-79`
+  )
+     
+```
+
+## Table 4: Years of life lost estimates for each cancer type, stage, age at diagnosis and gender combinations 
+
+```{r}
+
+gt(res_YLL_tables_all_full %>%
+    filter(`cfDNA status` == "negative" & HR == "1") %>%
+    select(Gender:Age, YLL_median_CrI) %>%
+    pivot_wider(names_from = "Age", values_from = YLL_median_CrI) %>%
+    mutate(across(where(is.factor), as.character)) %>%
+               group_by(Gender) %>%
+    mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`),
+            Gender = ifelse(duplicated(Gender), NA, Gender)) %>%
+     ungroup()) |>
+  sub_missing( missing_text = "") %>%  tab_spanner(
+    label = "Age at diagnosis",
+    columns = `50-54`:`75-79`
+  )
+     
+```
+
+```{r}
+
+# Print YLL figures
+
+for(var in c("50-54","55-59","60-64","65-69","70-74","75-79")) {
+  
+  temp1 <- res_YLL_tables_all_full %>%
+        filter(Gender == "Female" & Age %in% c(var) & HR == "1") %>%
+        filter(HR == "1" & `cfDNA status` == "negative") %>%
+        ggplot() +
+        geom_bar(aes(x = Stage, y = `median YLL`, group = Stage, fill = Stage), position= position_dodge(0.5), stat = "identity", width = .5) +
+        geom_errorbar(aes(x = Stage, ymin = `YLL 97.5% CrI`, ymax = `YLL 2.5% CrI`, group = Stage), colour = "black", position= position_dodge(0.5), width=.1) +
+        facet_wrap(facets = vars(`Cancer type`), ncol = 4) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592")) +
+        labs(colour = "Stage", x = "Stage at diagnosis", y = "Years of Life Lost", title = "Females") +
+        guides(fill="none", colour = "none")+
+        theme_bw() +
+        theme(plot.title =element_text(face = "bold", size = 14),
+              strip.background = element_blank(),
+              strip.text = element_text(face = "bold", size = 10),
+              axis.text.x = element_text(face = "bold", size = 12),
+              axis.text.y = element_text(face = "bold", size = 12),
+              axis.title = element_text(face = "bold", size = 12)) +
+        scale_y_continuous(limits = c(0,40))
+
+temp2 <- res_YLL_tables_all_full %>%
+  filter(Gender == "Male" & Age %in% c( var) & HR == "1") %>%
+  filter(HR == "1" & `cfDNA status` == "negative") %>%
+        ggplot() +
+        geom_bar(aes(x = Stage, y = `median YLL`, group = Stage, fill = Stage), position= position_dodge(0.5), stat = "identity", width = .5) +
+        geom_errorbar(aes(x = Stage, ymin = `YLL 97.5% CrI`, ymax = `YLL 2.5% CrI`, group = Stage), colour = "black", position= position_dodge(0.5), width=.1) +
+        facet_wrap(facets = vars(`Cancer type`), ncol = 4) +
+        scale_fill_manual(values = c("#666666", "#D29A22", "#3B1C52", "#628592")) +
+        labs(colour = "Stage", x = "Stage at diagnosis", y = "", title = "Males") +
+        guides(fill="none", colour = "none")+
+        theme_bw() +
+        theme(plot.title =element_text(face = "bold", size = 14),
+              strip.background = element_blank(),
+              strip.text = element_text(face = "bold", size = 10),
+              axis.text.y = element_text(face = "bold", size = 12),
+              axis.text.x = element_text(face = "bold", size = 12),
+              axis.title = element_text(face = "bold", size = 12)) +
+        scale_y_continuous(limits = c(0,40))
+
+ggsave(paste0("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/", "YLLplot_", var, ".png"),
+       patchwork::wrap_plots(temp1, temp2, ncol = 2), device = "png",
+       width = 300,
+       height = 200,
+       units = "mm")
+  
+}
+
+```
+
+## Figure 1: Years of life lost estimates for each cancer type, stage, and gender: 50-54 years at diagnosis 
+
+![](YLLplot_50-54.png)
+
+## Figure 2: Years of life lost estimates for each cancer type, stage, and gender: 55-59 years at diagnosis 
+
+![](YLLplot_55-59.png)
+
+## Figure 3: Years of life lost estimates for each cancer type, stage, and gender: 60-64 years at diagnosis 
+
+![](YLLplot_60-64.png)
+
+
+## Figure 4: Years of life lost estimates for each cancer type, stage, and gender: 65-69 years at diagnosis 
+
+![](YLLplot_65-69.png)
+
+
+
+## Figure 5: Years of life lost estimates for each cancer type, stage, and gender: 70-74 years at diagnosis 
+
+![](YLLplot_70-74.png)
+
+
+## Figure 6: Years of life lost estimates for each cancer type, stage, and gender: 75-79 years at diagnosis 
+
+![](YLLplot_75-79.png)
+
+```{r}
+
+# Print Difference in YLL figures
+res_YLL_table_Stage4v1_4v3_3v2_2v1 <- res_YLL_tables_all_full %>%
+        filter(HR == "1" & `cfDNA status` == "negative") %>%
+        select(Gender, `Cancer type`, Age, Stage, `median YLL`)%>%
+        pivot_wider(names_from = Stage, values_from = `median YLL`) %>%
+        mutate(`IV v III` = `IV` - `III`) %>%
+        mutate(`III v II` = `III` - `II`) %>%
+        mutate(`II v I` = `II` - `I`) %>%
+        select(Gender, `Cancer type`, Age,
+               `IV v III`,`III v II`, `II v I`) %>%
+        mutate(highest = case_when((`IV v III` > `III v II`) & (`IV v III` > `II v I`) ~ "4v3 Highest",
+                                   (`III v II` > `IV v III`) & (`III v II`  > `II v I`) ~ "3v2 Highest",
+                                   (`II v I` > `IV v III`) &  (`II v I` > `III v II`) ~ "2v1 Highest",
+                                   .default = NA), .after = Age) %>%
+        pivot_longer(!Gender:highest, names_to = "Stage comparison", values_to = "Difference in years of life lost") %>%
+        mutate(highest = case_when(highest == "4v3 Highest" & `Stage comparison` == "IV v III" ~ "Yes",
+                                   highest == "3v2 Highest" & `Stage comparison` == "III v II" ~ "Yes",
+                                   highest == "2v1 Highest" & `Stage comparison` == "II v I" ~ "Yes",
+                                   .default = "No"), .after = Age)
+
+for(var in c("50-54","55-59","60-64","65-69","70-74","75-79")) {
+  
+  temp1 <- res_YLL_table_Stage4v1_4v3_3v2_2v1 %>%
+        filter(Age %in% c(var) ) %>%
+    mutate(`Cancer type` = fct_rev(`Cancer type`)) %>%
+        ggplot() +
+        # ordered alphabetically
+        geom_bar(aes(x = `Cancer type`, y = `Difference in years of life lost`, fill = highest),
+                 position= position_dodge(0.5), stat = "identity", width = .5) +
+        facet_grid(Gender ~ fct_rev(`Stage comparison`), scales = "free_y") +
+        tidytext::scale_x_reordered() +
+        coord_flip() +
+        ggsci::scale_color_jama() +
+        labs( x = "Cancer type", y = "Difference in years of life lost") +
+        theme_bw() +
+        theme(strip.background = element_blank(),
+              strip.text = element_text(face = "bold", size = 14),
+              axis.text.y = element_text( size = 14),
+              axis.text.x = element_text( size = 14),
+              axis.title = element_text(face = "bold", size = 14)) +
+        scale_fill_manual(values = c( "#D29A22", "#3B1C52")) +
+        scale_y_continuous(breaks = c(-2,0,2,4,6,8,10,12,14,16,18,20), limits = c(-2,20)) +
+        guides(fill="none", colour = "none")
+    
+    ggsave(paste0("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/", "Differences_plot_", var, ".png"),
+           temp1,
+        device = "png",
+       width = 300,
+       height = 200,
+       units = "mm")
+}
+
+
+```
+
+
+## Figure 1: Years of life lost estimates for each cancer type, stage, and gender: 50-54 years at diagnosis 
+
+![](Differences_plot_50-54.png)
+
+## Figure 2: Years of life lost estimates for each cancer type, stage, and gender: 55-59 years at diagnosis 
+
+![](Differences_plot_55-59.png)
+
+## Figure 3: Years of life lost estimates for each cancer type, stage, and gender: 60-64 years at diagnosis 
+
+![](Differences_plot_60-64.png)
+
+
+## Figure 4: Years of life lost estimates for each cancer type, stage, and gender: 65-69 years at diagnosis 
+
+![](Differences_plot_65-69.png)
+
+
+
+## Figure 5: Years of life lost estimates for each cancer type, stage, and gender: 70-74 years at diagnosis 
+
+![](Differences_plot_70-74.png)
+
+
+## Figure 6: Years of life lost estimates for each cancer type, stage, and gender: 75-79 years at diagnosis 
+
+![](Differences_plot_75-79.png)
+
+## Table 5: Aggregate years of life lost estimates for each cancer type
+
+```{r}
+
+gt(aggregate_YLL %>%
+        left_join(res_perc_YLL_bytype %>% select(-`Total YLL by type`) , by = c("NCRAS_Draw")) %>%
+     rename(`Cancer type` = NCRAS_Draw,
+            `Percentage of total YLL` = freq) %>%
+          mutate(`Cancer type` = ifelse(duplicated(`Cancer type`), NA, `Cancer type`))
+
+   ) %>%
+  sub_missing( missing_text = "")
+
+
+```
+
+```{r}
+
+
+ggsave(paste0("~/GalleriCEmodel/analyses/NICE_modifier/Life_expectancy/", "aggregate_YLL", ".png"),
+       plot_mosaic_LOLE,
+       device = "png",
+       width = 200,
+       height = 200,
+       units = "mm")
+
+```
+
+## Figure 7: Distribution by index cancer type and stage of the total estimated years of life lost for the 1,338,861 incident cases across the 21 cancer types diagnosed between 2013 and 2019 in individuals ages 50 to 79.
+
+![](aggregate_YLL.png)

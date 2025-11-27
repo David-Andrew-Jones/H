@@ -1,0 +1,3 @@
+booIatrogenic,0,Include iatrogenic harm
+booAsympStageIII,1,Allow stage shift in stage III for patients with asymptomatic cancer
+booAsympStageIV,1,Allow stage shift in stage IV for patients with asymptomatic cancer
