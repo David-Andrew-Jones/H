@@ -1,0 +1,9 @@
+Sex,SEER_Draw,AJCC_stage,Age_lower,variable,t,median_CrI,median,CrI_temp,lower,upper,LOOIC,CrI,Age_string,Age_mid,ex
+Female,all,I,75,rmst,22.5,10.2 (10 to 10.41),10.2,10 to 10.41,10,10.41,NA,(10 to 10.41),75 years at diagnosis,77.5,11.497892971864527
+Female,all,II,75,rmst,22.5,8.38 (8.15 to 8.65),8.38,8.15 to 8.65,8.15,8.65,NA,(8.15 to 8.65),75 years at diagnosis,77.5,11.497892971864527
+Female,all,III,75,rmst,22.5,5.31 (5.08 to 5.54),5.31,5.08 to 5.54,5.08,5.54,NA,(5.08 to 5.54),75 years at diagnosis,77.5,11.497892971864527
+Female,all,IV,75,rmst,22.5,2.24 (2.13 to 2.35),2.24,2.13 to 2.35,2.13,2.35,NA,(2.13 to 2.35),75 years at diagnosis,77.5,11.497892971864527
+Male,all,I,75,rmst,22.5,7.64 (7.43 to 7.86),7.64,7.43 to 7.86,7.43,7.86,NA,(7.43 to 7.86),75 years at diagnosis,77.5,9.922643838116347
+Male,all,II,75,rmst,22.5,9.13 (8.95 to 9.34),9.13,8.95 to 9.34,8.95,9.34,NA,(8.95 to 9.34),75 years at diagnosis,77.5,9.922643838116347
+Male,all,III,75,rmst,22.5,4.56 (4.36 to 4.79),4.56,4.36 to 4.79,4.36,4.79,NA,(4.36 to 4.79),75 years at diagnosis,77.5,9.922643838116347
+Male,all,IV,75,rmst,22.5,2.21 (2.12 to 2.32),2.21,2.12 to 2.32,2.12,2.32,NA,(2.12 to 2.32),75 years at diagnosis,77.5,9.922643838116347

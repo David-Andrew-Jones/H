@@ -1,0 +1,9 @@
+Sex,NCRAS_Draw,Stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,allexcprostate,I,65,rmst,32,15.7 (15.67 to 15.74),15.7,15.67 to 15.74,15.67,15.74,(15.67 to 15.74),65 years at diagnosis,20.823043823242188
+Female,allexcprostate,II,65,rmst,32,13.82 (13.73 to 13.92),13.82,13.73 to 13.92,13.73,13.92,(13.73 to 13.92),65 years at diagnosis,20.823043823242188
+Female,allexcprostate,III,65,rmst,32,8.89 (8.79 to 8.99),8.89,8.79 to 8.99,8.79,8.99,(8.79 to 8.99),65 years at diagnosis,20.823043823242188
+Female,allexcprostate,IV,65,rmst,32,3.19 (3.11 to 3.26),3.19,3.11 to 3.26,3.11,3.26,(3.11 to 3.26),65 years at diagnosis,20.823043823242188
+Male,allexcprostate,I,65,rmst,32,13.24 (13.15 to 13.33),13.24,13.15 to 13.33,13.15,13.33,(13.15 to 13.33),65 years at diagnosis,18.201061248779297
+Male,allexcprostate,II,65,rmst,32,9.41 (9.25 to 9.55),9.41,9.25 to 9.55,9.25,9.55,(9.25 to 9.55),65 years at diagnosis,18.201061248779297
+Male,allexcprostate,III,65,rmst,32,6.69 (6.58 to 6.81),6.69,6.58 to 6.81,6.58,6.81,(6.58 to 6.81),65 years at diagnosis,18.201061248779297
+Male,allexcprostate,IV,65,rmst,32,2.92 (2.86 to 2.97),2.92,2.86 to 2.97,2.86,2.97,(2.86 to 2.97),65 years at diagnosis,18.201061248779297

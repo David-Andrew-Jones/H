@@ -1,0 +1,9 @@
+Sex,NCRAS_Draw,Stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,all,I,60,rmst,37,19.37 (19.33 to 19.4),19.37,19.33 to 19.4,19.33,19.4,(19.33 to 19.4),60 years at diagnosis,24.911766052246094
+Female,all,II,60,rmst,37,17.14 (17.01 to 17.25),17.14,17.01 to 17.25,17.01,17.25,(17.01 to 17.25),60 years at diagnosis,24.911766052246094
+Female,all,III,60,rmst,37,11.45 (11.32 to 11.58),11.45,11.32 to 11.58,11.32,11.58,(11.32 to 11.58),60 years at diagnosis,24.911766052246094
+Female,all,IV,60,rmst,37,3.93 (3.84 to 4.02),3.93,3.84 to 4.02,3.84,4.02,(3.84 to 4.02),60 years at diagnosis,24.911766052246094
+Male,all,I,60,rmst,37,15.71 (15.58 to 15.85),15.71,15.58 to 15.85,15.58,15.85,(15.58 to 15.85),60 years at diagnosis,21.873605728149414
+Male,all,II,60,rmst,37,18.82 (18.75 to 18.87),18.82,18.75 to 18.87,18.75,18.87,(18.75 to 18.87),60 years at diagnosis,21.873605728149414
+Male,all,III,60,rmst,37,11.52 (11.37 to 11.65),11.52,11.37 to 11.65,11.37,11.65,(11.37 to 11.65),60 years at diagnosis,21.873605728149414
+Male,all,IV,60,rmst,37,4.58 (4.49 to 4.66),4.58,4.49 to 4.66,4.49,4.66,(4.49 to 4.66),60 years at diagnosis,21.873605728149414

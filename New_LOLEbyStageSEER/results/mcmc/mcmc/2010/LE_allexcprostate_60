@@ -1,0 +1,5 @@
+Sex,SEER_Draw,AJCC_stage,Age_lower,variable,t,median_CrI,median,CrI_temp,lower,upper,LOOIC,CrI,Age_string,Age_mid,ex
+Male,allexcprostate,I,60,rmst,37.5,17.74 (17.08 to 18.4),17.74,17.08 to 18.4,17.08,18.4,NA,(17.08 to 18.4),60 years at diagnosis,62.5,20.011099484469376
+Male,allexcprostate,II,60,rmst,37.5,12.08 (11.38 to 12.89),12.08,11.38 to 12.89,11.38,12.89,NA,(11.38 to 12.89),60 years at diagnosis,62.5,20.011099484469376
+Male,allexcprostate,III,60,rmst,37.5,9.27 (8.76 to 9.95),9.27,8.76 to 9.95,8.76,9.95,NA,(8.76 to 9.95),60 years at diagnosis,62.5,20.011099484469376
+Male,allexcprostate,IV,60,rmst,37.5,3.85 (3.63 to 4.11),3.85,3.63 to 4.11,3.63,4.11,NA,(3.63 to 4.11),60 years at diagnosis,62.5,20.011099484469376

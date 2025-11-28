@@ -1,0 +1,25 @@
+Sex,NCRAS_Draw,Stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,Cervix,I,50,rmst,47,25.93 (25.68 to 26.15),25.93,25.68 to 26.15,25.68,26.15,(25.68 to 26.15),50 years at diagnosis,33.62016677856445
+Female,Cervix,I,55,rmst,42,21.59 (21.04 to 22.12),21.59,21.04 to 22.12,21.04,22.12,(21.04 to 22.12),55 years at diagnosis,29.177453994750977
+Female,Cervix,I,60,rmst,37,18.02 (17.5 to 18.47),18.02,17.5 to 18.47,17.5,18.47,(17.5 to 18.47),60 years at diagnosis,24.911766052246094
+Female,Cervix,I,65,rmst,32,14.58 (14.1 to 15.1),14.58,14.1 to 15.1,14.1,15.1,(14.1 to 15.1),65 years at diagnosis,20.823043823242188
+Female,Cervix,I,70,rmst,27,11.52 (11.07 to 12.08),11.52,11.07 to 12.08,11.07,12.08,(11.07 to 12.08),70 years at diagnosis,16.87740135192871
+Female,Cervix,I,75,rmst,22,9.59 (9.17 to 9.59),9.59,9.17 to 9.59,9.17,9.59,(9.17 to 9.59),75 years at diagnosis,13.205001831054688
+Female,Cervix,II,50,rmst,47,20.45 (19.72 to 21.03),20.45,19.72 to 21.03,19.72,21.03,(19.72 to 21.03),50 years at diagnosis,33.62016677856445
+Female,Cervix,II,55,rmst,42,18 (17.14 to 18.68),18,17.14 to 18.68,17.14,18.68,(17.14 to 18.68),55 years at diagnosis,29.177453994750977
+Female,Cervix,II,60,rmst,37,15.56 (14.9 to 16.22),15.56,14.9 to 16.22,14.9,16.22,(14.9 to 16.22),60 years at diagnosis,24.911766052246094
+Female,Cervix,II,65,rmst,32,11.16 (10.43 to 11.93),11.16,10.43 to 11.93,10.43,11.93,(10.43 to 11.93),65 years at diagnosis,20.823043823242188
+Female,Cervix,II,70,rmst,27,9.45 (8.83 to 10.15),9.45,8.83 to 10.15,8.83,10.15,(8.83 to 10.15),70 years at diagnosis,16.87740135192871
+Female,Cervix,II,75,rmst,22,6.68 (5.98 to 7.55),6.68,5.98 to 7.55,5.98,7.55,(5.98 to 7.55),75 years at diagnosis,13.205001831054688
+Female,Cervix,III,50,rmst,47,16.43 (15.96 to 16.91),16.43,15.96 to 16.91,15.96,16.91,(15.96 to 16.91),50 years at diagnosis,33.62016677856445
+Female,Cervix,III,55,rmst,42,12.94 (12.26 to 13.58),12.94,12.26 to 13.58,12.26,13.58,(12.26 to 13.58),55 years at diagnosis,29.177453994750977
+Female,Cervix,III,60,rmst,37,10.93 (10.39 to 11.46),10.93,10.39 to 11.46,10.39,11.46,(10.39 to 11.46),60 years at diagnosis,24.911766052246094
+Female,Cervix,III,65,rmst,32,8.9 (8.23 to 9.52),8.9,8.23 to 9.52,8.23,9.52,(8.23 to 9.52),65 years at diagnosis,20.823043823242188
+Female,Cervix,III,70,rmst,27,6.86 (6.32 to 7.45),6.86,6.32 to 7.45,6.32,7.45,(6.32 to 7.45),70 years at diagnosis,16.87740135192871
+Female,Cervix,III,75,rmst,22,4.36 (3.91 to 4.85),4.36,3.91 to 4.85,3.91,4.85,(3.91 to 4.85),75 years at diagnosis,13.205001831054688
+Female,Cervix,IV,50,rmst,47,7.36 (6.78 to 7.96),7.36,6.78 to 7.96,6.78,7.96,(6.78 to 7.96),50 years at diagnosis,33.62016677856445
+Female,Cervix,IV,55,rmst,42,5.58 (5.09 to 6.09),5.58,5.09 to 6.09,5.09,6.09,(5.09 to 6.09),55 years at diagnosis,29.177453994750977
+Female,Cervix,IV,60,rmst,37,4.54 (4.15 to 4.98),4.54,4.15 to 4.98,4.15,4.98,(4.15 to 4.98),60 years at diagnosis,24.911766052246094
+Female,Cervix,IV,65,rmst,32,3.43 (3.06 to 3.98),3.43,3.06 to 3.98,3.06,3.98,(3.06 to 3.98),65 years at diagnosis,20.823043823242188
+Female,Cervix,IV,70,rmst,27,2.56 (2.23 to 2.91),2.56,2.23 to 2.91,2.23,2.91,(2.23 to 2.91),70 years at diagnosis,16.87740135192871
+Female,Cervix,IV,75,rmst,22,1.88 (1.61 to 2.22),1.88,1.61 to 2.22,1.61,2.22,(1.61 to 2.22),75 years at diagnosis,13.205001831054688

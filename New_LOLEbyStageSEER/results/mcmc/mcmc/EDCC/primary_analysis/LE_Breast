@@ -1,0 +1,25 @@
+Sex,NCRAS_Draw,Stage,Age_lower,variable,t,median_CrI,median,CrI_temp,2.5%,97.5%,CrI,Age_string,ex
+Female,Breast,I,50,rmst,47,27.41 (27.4 to 27.41),27.41,27.4 to 27.41,27.4,27.41,(27.4 to 27.41),50 years at diagnosis,33.62016677856445
+Female,Breast,I,55,rmst,42,23.38 (23.38 to 23.38),23.38,23.38 to 23.38,23.38,23.38,(23.38 to 23.38),55 years at diagnosis,29.177453994750977
+Female,Breast,I,60,rmst,37,19.61 (19.61 to 19.61),19.61,19.61 to 19.61,19.61,19.61,(19.61 to 19.61),60 years at diagnosis,24.911766052246094
+Female,Breast,I,65,rmst,32,16.06 (16.06 to 16.06),16.06,16.06 to 16.06,16.06,16.06,(16.06 to 16.06),65 years at diagnosis,20.823043823242188
+Female,Breast,I,70,rmst,27,12.68 (12.68 to 12.68),12.68,12.68 to 12.68,12.68,12.68,(12.68 to 12.68),70 years at diagnosis,16.87740135192871
+Female,Breast,I,75,rmst,22,9.59 (9.59 to 9.59),9.59,9.59 to 9.59,9.59,9.59,(9.59 to 9.59),75 years at diagnosis,13.205001831054688
+Female,Breast,II,50,rmst,47,25.73 (25.46 to 25.88),25.73,25.46 to 25.88,25.46,25.88,(25.46 to 25.88),50 years at diagnosis,33.62016677856445
+Female,Breast,II,55,rmst,42,22.12 (21.63 to 22.36),22.12,21.63 to 22.36,21.63,22.36,(21.63 to 22.36),55 years at diagnosis,29.177453994750977
+Female,Breast,II,60,rmst,37,19.05 (18.9 to 19.17),19.05,18.9 to 19.17,18.9,19.17,(18.9 to 19.17),60 years at diagnosis,24.911766052246094
+Female,Breast,II,65,rmst,32,15.84 (15.71 to 15.93),15.84,15.71 to 15.93,15.71,15.93,(15.71 to 15.93),65 years at diagnosis,20.823043823242188
+Female,Breast,II,70,rmst,27,12.68 (12.62 to 12.68),12.68,12.62 to 12.68,12.62,12.68,(12.62 to 12.68),70 years at diagnosis,16.87740135192871
+Female,Breast,II,75,rmst,22,9.59 (9.59 to 9.59),9.59,9.59 to 9.59,9.59,9.59,(9.59 to 9.59),75 years at diagnosis,13.205001831054688
+Female,Breast,III,50,rmst,47,19.42 (19.09 to 19.8),19.42,19.09 to 19.8,19.09,19.8,(19.09 to 19.8),50 years at diagnosis,33.62016677856445
+Female,Breast,III,55,rmst,42,16.7 (16.3 to 17.14),16.7,16.3 to 17.14,16.3,17.14,(16.3 to 17.14),55 years at diagnosis,29.177453994750977
+Female,Breast,III,60,rmst,37,14.32 (14.02 to 14.62),14.32,14.02 to 14.62,14.02,14.62,(14.02 to 14.62),60 years at diagnosis,24.911766052246094
+Female,Breast,III,65,rmst,32,11.67 (11.38 to 11.95),11.67,11.38 to 11.95,11.38,11.95,(11.38 to 11.95),65 years at diagnosis,20.823043823242188
+Female,Breast,III,70,rmst,27,9.72 (9.47 to 9.96),9.72,9.47 to 9.96,9.47,9.96,(9.47 to 9.96),70 years at diagnosis,16.87740135192871
+Female,Breast,III,75,rmst,22,7.22 (7.03 to 7.42),7.22,7.03 to 7.42,7.03,7.42,(7.03 to 7.42),75 years at diagnosis,13.205001831054688
+Female,Breast,IV,50,rmst,47,6.3 (5.93 to 6.64),6.3,5.93 to 6.64,5.93,6.64,(5.93 to 6.64),50 years at diagnosis,33.62016677856445
+Female,Breast,IV,55,rmst,42,4.95 (4.69 to 5.24),4.95,4.69 to 5.24,4.69,5.24,(4.69 to 5.24),55 years at diagnosis,29.177453994750977
+Female,Breast,IV,60,rmst,37,4.42 (4.21 to 4.65),4.42,4.21 to 4.65,4.21,4.65,(4.21 to 4.65),60 years at diagnosis,24.911766052246094
+Female,Breast,IV,65,rmst,32,3.94 (3.74 to 4.17),3.94,3.74 to 4.17,3.74,4.17,(3.74 to 4.17),65 years at diagnosis,20.823043823242188
+Female,Breast,IV,70,rmst,27,3.54 (3.34 to 3.74),3.54,3.34 to 3.74,3.34,3.74,(3.34 to 3.74),70 years at diagnosis,16.87740135192871
+Female,Breast,IV,75,rmst,22,2.9 (2.74 to 3.08),2.9,2.74 to 3.08,2.74,3.08,(2.74 to 3.08),75 years at diagnosis,13.205001831054688
